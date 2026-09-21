@@ -475,8 +475,9 @@ function pickCard(p){
 }
 
 function days(){
-  const out=[], now=new Date();
-  for(let i=0;i<7;i++){ const d=new Date(now); d.setDate(now.getDate()+i); out.push({day:d.getDate(),w:i===0?'今日':'日月火水木金土'[d.getDay()]}); }
+  // 日本のファン向けなので、閲覧者の端末の時刻ではなく日本時間で数える
+  const out=[], base=new Date(Date.now()+9*3600e3);
+  for(let i=0;i<7;i++){ const d=new Date(base.getTime()+i*86400e3); out.push({day:d.getUTCDate(),w:i===0?'今日':'日月火水木金土'[d.getUTCDay()]}); }
   return out;
 }
 const dot=g=>GMAP[g]?`<i class="dot" style="--h:${GMAP[g].hue}"></i>`:'<i class="dot all"></i>';
