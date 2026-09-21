@@ -202,6 +202,42 @@ a.offkai{text-decoration:none}
 a.offkai:hover{border-color:var(--accent)}
 .center{align-self:center}
 a.btn{text-decoration:none;display:inline-block}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:hsl(var(--h) 62% 56%);flex:none;margin-right:5px;vertical-align:middle}
+.dot.all{background:conic-gradient(hsl(345 62% 56%),hsl(40 62% 56%),hsl(140 62% 56%),hsl(215 62% 56%),hsl(300 62% 56%),hsl(345 62% 56%))}
+.gchip{display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+.fchip .dot{margin-right:4px}
+a.fchip{text-decoration:none;display:inline-flex;align-items:center}
+.fchip.add{border-style:dashed;color:var(--muted)}
+.chip.cat-media{background:#E6F0FF;color:#2358B8}.chip.cat-event{background:#FFE9E3;color:#B8421F}.chip.cat-goods{background:#FFF3D6;color:#8A5A00}.chip.cat-release{background:#EFE6FF;color:#6A3DC0}.chip.cat-other{background:var(--sunk);color:var(--muted)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .chip.cat-media{background:#1C2A45;color:#8DB4FF}:root:not([data-theme="light"]) .chip.cat-event{background:#3A221B;color:#FF9E80}:root:not([data-theme="light"]) .chip.cat-goods{background:#3A2E12;color:#F5C567}:root:not([data-theme="light"]) .chip.cat-release{background:#2B2140;color:#C2A6FF}}
+:root[data-theme="dark"] .chip.cat-media{background:#1C2A45;color:#8DB4FF}:root[data-theme="dark"] .chip.cat-event{background:#3A221B;color:#FF9E80}:root[data-theme="dark"] .chip.cat-goods{background:#3A2E12;color:#F5C567}:root[data-theme="dark"] .chip.cat-release{background:#2B2140;color:#C2A6FF}
+.linkbtn{background:none;border:0;padding:0;cursor:pointer;font:inherit}
+button.more{font-size:13px;color:var(--accent);font-weight:700;align-self:flex-start}
+.mx-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.mx{border-collapse:collapse;width:100%;min-width:340px;font-size:12.5px}
+.mx th,.mx td{padding:4px 3px;text-align:center}
+.mx thead th{padding-top:10px;font-size:11.5px}
+.mx tbody th{text-align:left;padding-left:12px;white-space:nowrap;font-weight:700;max-width:9em;overflow:hidden;text-overflow:ellipsis}
+.mx tbody th a{text-decoration:none;display:inline-flex;align-items:center}
+.mx tbody tr:last-child td,.mx tbody tr:last-child th{padding-bottom:10px}
+.mx-h{background:none;border:0;cursor:pointer;font-weight:700;color:var(--muted);padding:2px 0;font-size:11px;white-space:nowrap;letter-spacing:-.02em}
+.cell{width:100%;min-width:30px;height:32px;border:0;border-radius:8px;cursor:pointer;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink);background:color-mix(in srgb,var(--accent) calc(var(--a)*55%),var(--sunk))}
+.cell:disabled{cursor:default;color:var(--muted);background:transparent}
+.cell:not(:disabled):hover{outline:2px solid var(--accent)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.ctabs button{background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 10px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap;display:inline-flex;gap:5px;align-items:baseline}
+.ctabs button[aria-current="page"]{color:var(--accent);border-color:var(--accent)}
+.cnt{font-size:11px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.seg.mini{display:inline-flex;padding:3px;gap:2px}
+.seg.mini button{border:0;background:none;border-radius:8px;padding:5px 10px;font-weight:700;font-size:12.5px;color:var(--muted);cursor:pointer}
+.seg.mini button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.oitem{padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.oitem .t{font-weight:700;font-size:15px}
+.ghead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:16px;border-radius:16px;background:linear-gradient(135deg,hsl(var(--h) 70% 55% / .16),hsl(var(--h) 70% 55% / .04));border:1px solid hsl(var(--h) 50% 55% / .3)}
+.follow-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.fl{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:700;cursor:pointer}
+.fl input{margin:0 2px 0 0}
 .profile{padding:16px;display:flex;gap:14px;align-items:center}
 .profile .avatar{width:52px;height:52px;font-size:20px}
 @media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,8px);opacity:0}} }
@@ -222,7 +258,7 @@ a.btn{text-decoration:none;display:inline-block}
 <nav class="tabs" aria-label="メインメニュー">
   <div class="tabs-in">
     <a class="tab" href="#/home" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>ホーム</a>
-    <a class="tab" href="#/picks" data-tab="picks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>持ち寄り</a>
+    <a class="tab" href="#/info" data-tab="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>情報</a>
     <a class="tab" href="#/board" data-tab="board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>掲示板</a>
     <a class="tab" href="#/community" data-tab="community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M3 19c.6-3.4 3-5 6-5s5.4 1.6 6 5M15 14.6c2.8-.3 5.2 1 6 4.4"/></svg>コミュニティ</a>
     <a class="tab" href="#/me" data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.2-6.5 8-6.5s7 2 8 6.5"/></svg>マイページ</a>
@@ -234,28 +270,62 @@ a.btn{text-decoration:none;display:inline-block}
 </dialog>
 
 <script>
+const GROUPS=[
+  {id:'chotokkyu',name:'超特急',n:9,hue:215},
+  {id:'milk',name:'M!LK',n:5,hue:345},
+  {id:'superdragon',name:'SUPER★DRAGON',short:'スパドラ',n:9,hue:12},
+  {id:'sakurashimeji',name:'さくらしめじ',n:2,hue:95},
+  {id:'onenonly',name:"ONE N' ONLY",n:5,hue:270},
+  {id:'genjibu',name:'原因は自分にある。',short:'げんじぶ',n:7,hue:190},
+  {id:'buddiis',name:'BUDDiiS',n:9,hue:40},
+  {id:'icex',name:'ICEx',n:8,hue:175},
+  {id:'lienel',name:'Lienel',n:6,hue:300},
+  {id:'iiondo',name:'iiONDO',n:8,hue:140},
+];
+const GMAP=Object.fromEntries(GROUPS.map(g=>[g.id,g]));
+const gname=id=>GMAP[id]?GMAP[id].name:'全体';
+const gshort=id=>GMAP[id]?(GMAP[id].short||GMAP[id].name):'全体';
+const CATS=[
+  {id:'media',name:'メディア',desc:'テレビ・ラジオ・雑誌・配信'},
+  {id:'event',name:'イベント',desc:'ライブ・ファンミ・リリイベ'},
+  {id:'goods',name:'グッズ',desc:'グッズ・コラボ・書籍'},
+  {id:'release',name:'リリース',desc:'新曲・MV・CD'},
+  {id:'other',name:'お知らせ',desc:'FC・誕生日・その他'},
+];
+const CMAP=Object.fromEntries(CATS.map(c=>[c.id,c]));
 const MEMBERS=['吉田仁人','佐野勇斗','塩﨑太智','曽野舜太','山中柔太朗'];
-const TOPICS=['パフォーマンス','グッズ','ラジオ','テレビ','東京ドーム','まとめ','オフショット','親子参戦'];
+const TOPICS=['パフォーマンス','ラジオ','テレビ','東京ドーム','まとめ','オフショット','親子参戦'];
 const AGES=['10代','20代','30代','40代','50代以上'];
 const PREFS='北海道 青森県 岩手県 宮城県 秋田県 山形県 福島県 茨城県 栃木県 群馬県 埼玉県 千葉県 東京都 神奈川県 新潟県 富山県 石川県 福井県 山梨県 長野県 岐阜県 静岡県 愛知県 三重県 滋賀県 京都府 大阪府 兵庫県 奈良県 和歌山県 鳥取県 島根県 岡山県 広島県 山口県 徳島県 香川県 愛媛県 高知県 福岡県 佐賀県 長崎県 熊本県 大分県 宮崎県 鹿児島県 沖縄県'.split(' ');
 const PF={X:'X',Threads:'@',Instagram:'IG',YouTube:'▶',TikTok:'♪'};
 const PROVIDERS=[['Google','G'],['Apple',''],['X','X'],['LINE','L'],['Facebook','f'],['メールアドレス','✉']];
 
-const SCHEDULE=[
-  {d:0,time:'19:00',kind:'テレビ',t:'音楽番組 生出演',src:'official'},
-  {d:0,time:'24:00',kind:'ラジオ',t:'レギュラーラジオ 放送回',src:'official'},
-  {d:1,time:'発売日',kind:'雑誌',t:'ファッション誌 表紙・巻頭特集',src:'official'},
-  {d:2,time:'20:00',kind:'配信',t:'YouTube 新企画 公開予定',src:'official'},
-  {d:3,time:'22:00',kind:'テレビ',t:'バラエティ番組 ゲスト出演',src:'fan'},
-  {d:5,time:'17:00',kind:'イベント',t:'ファンミーティング 大阪公演',src:'official'},
-  {d:6,time:'終日',kind:'チケット',t:'11月 東京ドーム公演 一般販売',src:'official'},
-];
-const NEWS=[
-  {src:'公式サイト',t:'11月 東京ドーム公演 一般販売のお知らせ',ago:'2時間前'},
-  {src:'YouTube',t:'新曲MV メイキング映像を公開',ago:'5時間前'},
-  {src:'X（公式）',t:'今夜の音楽番組 出演情報',ago:'8時間前'},
-  {src:'Instagram（公式）',t:'撮影オフショットを投稿',ago:'昨日'},
-];
+// 公式情報のサンプル（自動収集・自動カテゴリ分けを想定した架空データ）
+const OFFICIAL=(()=>{
+  let seed=20260921; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647; const pick=a=>a[Math.floor(rnd()*a.length)];
+  const TPL={
+    media:['音楽番組 生出演','レギュラーラジオ 放送回','ファッション誌 表紙・特集','バラエティ番組 ゲスト出演','ドラマ 出演情報 解禁','YouTube 新企画 公開','Web番組 配信'],
+    event:['ファンミーティング 開催決定','リリースイベント 開催','ライブツアー 追加公演 決定','お話し会 参加券 受付開始','展示イベント 開催'],
+    goods:['ツアーグッズ ラインナップ公開','公式オンラインショップ 新商品','コラボカフェ グッズ情報','フォトブック 予約開始','アクリルスタンド 受注販売'],
+    release:['新曲 配信リリース','MV 公開','ニューアルバム 詳細発表','ジャケット写真 公開','ダンス練習動画 公開'],
+    other:['ファンクラブ 会員限定コンテンツ更新','メンバー誕生日のお知らせ','公式サイト お知らせ更新','メディア掲載のお知らせ'],
+  };
+  const VIA={media:['公式X','公式サイト','公式X'],event:['公式サイト','公式X'],goods:['公式ショップ','公式X'],release:['YouTube','公式サイト','公式X'],other:['ファンクラブ','公式X']};
+  const AGO=['8分前','25分前','1時間前','2時間前','3時間前','5時間前','8時間前','12時間前','昨日','2日前','3日前','4日前'];
+  const TIMES=['10:00','12:00','17:00','19:00','20:00','21:00','22:00','24:00'];
+  const W=['media','media','media','event','event','goods','goods','release','release','other'];
+  const out=[];
+  GROUPS.forEach(g=>{
+    const k=5+Math.floor(rnd()*4);
+    for(let i=0;i<k;i++){
+      const cat=pick(W), r=Math.floor(rnd()*AGO.length);
+      const it={id:`o-${g.id}-${i}`,g:g.id,cat,src:'official',via:pick(VIA[cat]),t:pick(TPL[cat]),r,ago:AGO[r]};
+      if(cat==='media'||cat==='event') it.sched={d:Math.floor(rnd()*7),time:cat==='event'?pick(['13:00','17:00','18:30']):pick(TIMES)};
+      out.push(it);
+    }
+  });
+  return out;
+})();
 
 const SEED={
  picks:[
@@ -322,12 +392,48 @@ const SEED={
  ],
 };
 
-const KEY='milkies-demo-v2';
+
+// グループ・カテゴリの付与と、他グループのサンプル追加
+(()=>{
+  const M={p1:['milk','media',3],p2:['milk','event',4],p3:['milk','goods',5],p4:['milk','media',6],p5:['milk','release',8],p6:['milk','other',8]};
+  SEED.picks.forEach(p=>{ [p.g,p.cat,p.r]=M[p.id]; });
+  const P=(id,g,cat,pf,acct,text,img,by,note,tags,likes,shares,ago,r)=>({id,g,cat,pf,acct,text,img,by,note,tags,likes,shares,ago,r,url:{X:'https://x.com/',Instagram:'https://www.instagram.com/',Threads:'https://www.threads.com/',YouTube:'https://www.youtube.com/'}[pf],comments:[]});
+  SEED.picks.push(
+    P('p7','chotokkyu','event','X','@8gousha_tokyo','ツアー追加公演の会場、座席ごとの見え方をまとめました',true,'8号車のひと','追加公演に行く人は必見です',['まとめ'],176,15,'1時間前',2),
+    P('p8','onenonly','media','Instagram','@non_diary','雑誌の特集ページ、衣装も写真も最高だった…',true,'のんのん','立ち読みでもいいから見てほしい',['オフショット'],121,9,'3時間前',4),
+    P('p9','superdragon','release','X','@sdragon_fan','新曲の振り付け、サビのポイントを解説してみました',true,'スパドラ推し','覚えたい人向け。すごくわかりやすい',['パフォーマンス'],143,11,'5時間前',5),
+    P('p10','buddiis','event','Threads','@buddiis.love','リリイベの整理券の流れ、初参加の人向けにまとめます',false,'ばでぃず初心者','初めてリリイベに行く人はこれを読めばOK',['まとめ'],88,7,'8時間前',6),
+    P('p11','genjibu','media','X','@genjibu_chan','ドラマ初回、演技が本当によかった…次回も楽しみ',false,'げんじぶ担','見逃し配信もあるみたいです',['テレビ'],95,4,'12時間前',7),
+    P('p12','icex','goods','X','@icex_cafe','コラボカフェのメニュー全部食べてきた！特典の絵柄一覧も',true,'あいすくりーむ','特典をコンプしたい人の参考に',['まとめ'],102,6,'昨日',8),
+    P('p13','sakurashimeji','release','YouTube','公式チャンネル','新しい弾き語り動画。ハモリが本当にきれい',true,'しめじ好き','イヤホン推奨です',[],67,3,'昨日',8),
+    P('p14','lienel','other','Threads','@lienel.fan','メンバー誕生日のお祝い企画、みんなでメッセージを集めています',false,'りえねるん','参加は自由です',[],54,2,'2日前',9),
+    P('p15','iiondo','release','X','@iiondo_love','新曲のMV、何回リピートしたかわからない',true,'おんど推し','ダンスがとにかくかっこいい',['パフォーマンス'],81,5,'2日前',9),
+  );
+  const TG={t1:'milk',t2:'milk',t3:null,t4:null,t5:null};
+  SEED.threads.forEach(t=>t.g=TG[t.id]);
+  SEED.threads[2].title='スタダ男子に最近ハマった人へ。どのグループから見るのがおすすめ？';
+  SEED.threads.push(
+    {id:'t6',g:'chotokkyu',cat:'ライブ',title:'超特急 ツアー参戦する人の雑談スレ',count:512,upd:'8分前',res:[{n:1,nm:'8号車さん',id:'Kc8a1',t:'ツアー参戦組の雑談スレです。チケットの譲渡・売買の話は禁止です'},{n:2,nm:'8号車さん',id:'Uu2mz',t:'>>1 乙です！追加公演うれしい'}]},
+    {id:'t7',g:'onenonly',cat:'新曲',title:"ONE N' ONLY 新曲の感想を語るスレ",count:164,upd:'40分前',res:[{n:1,nm:'ミルキーさん',id:'Aa1q0',t:'新曲の感想を語りましょう'}]},
+    {id:'t8',g:'superdragon',cat:'雑談',title:'スパドラのおすすめ曲を初心者に教えるスレ',count:98,upd:'2時間前',res:[{n:1,nm:'スパドラ推し',id:'Sd9x2',t:'最近気になり始めた人向けに、おすすめ曲を挙げていきましょう'}]},
+  );
+  const CG={c3:null,c1:'milk',c2:'milk',c4:null,c5:'milk',c6:null};
+  SEED.comms.forEach(c=>c.g=CG[c.id]);
+  const c4=SEED.comms.find(c=>c.id==='c4'); c4.name='40代からの推し活'; c4.desc='大人になってからスタダ男子にハマった人たちのコミュニティ。親子で参戦する人の話もどうぞ。';
+  const c6=SEED.comms.find(c=>c.id==='c6'); c6.name='関西のスタダ男子ファン'; c6.desc='大阪・京都・兵庫など、関西に住むファンのコミュニティ。グループを問わずどうぞ。';
+  SEED.comms.push(
+    {id:'c7',g:'chotokkyu',name:'8号車 関東の会',kind:'地域',members:860,join:'だれでも',admin:'8号車のひと',subs:[],created:'2025.05.05',desc:'関東に住む超特急ファンのコミュニティ。ライブの情報交換や、近くのコラボ情報に。',rules:['チケットの売買・譲渡は禁止','住所など個人が特定できる情報は書かない'],topics:[{t:'ツアー情報まとめ',n:204,upd:'30分前'}],events:[{id:'e5',t:'ツアー前のペンライト作戦会議',date:'2026-10-12',time:'14:00',place:'横浜駅近くのカフェ（参加者に連絡）',area:'神奈川県横浜市',cap:8,joined:4,target:'18歳以上',host:'8号車のひと',desc:'ペンライトの色の切り替えなどを確認しましょう。'}],sample:[['8号車のひと','30代','神奈川県']]},
+    {id:'c8',g:'onenonly',name:"ONE N' ONLY 箱推し",kind:'推しメン',members:430,join:'だれでも',admin:'のんのん',subs:[],created:'2025.10.01',desc:'メンバー全員を応援する人のコミュニティ。',rules:['他グループ・他メンバーへの悪口は禁止'],topics:[{t:'出演情報まとめ',n:88,upd:'1時間前'}],events:[],sample:[['のんのん','20代','東京都']]},
+    {id:'c9',g:null,name:'スタダ男子 箱推しの会',kind:'その他',members:1520,join:'だれでも',admin:'はこおし',subs:[],created:'2026.01.10',desc:'グループの垣根をこえて、スタダ男子みんなを応援する人のコミュニティ。合同イベントの情報交換に。',rules:['グループ同士を比べて下げる書き込みは禁止','チケットの売買・譲渡は禁止'],topics:[{t:'合同イベントの情報',n:310,upd:'15分前'},{t:'ハマった順番を語ろう',n:97,upd:'2時間前'}],events:[],sample:[['はこおし','20代','東京都']]},
+  );
+})();
+
+const KEY='milkies-demo-v3';
 let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[]};
+if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],follow:['milk','chotokkyu','onenonly']};
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false};
+let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -354,7 +460,7 @@ function pickCard(p){
     <div class="by"><span class="mini">${initial(p.by)}</span><span class="who">${esc(p.by)}</span><span class="meta">さんが持ち寄り · ${esc(p.ago)}</span></div>
     ${p.note?`<p class="note">${esc(p.note)}</p>`:''}
     ${embed(p)}
-    <div class="tags">${p.tags.map(t=>`<span class="chip ${MEMBERS.includes(t)?'fan':''}">${esc(t)}</span>`).join('')}</div>
+    <div class="tags">${gchip(p.g)}${cchip(p.cat)}${p.tags.map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
     <div class="foot">
       <button data-like="${p.id}" class="${liked?'liked':''}" aria-pressed="${liked}">${liked?'♥':'♡'} ${p.likes+(liked?1:0)}</button>
       <a href="#/pick/${p.id}">💬 ${p.comments.length}</a>
@@ -364,57 +470,136 @@ function pickCard(p){
 }
 
 function days(){
-  const w='日月火水木金土', out=[], now=new Date();
-  for(let i=0;i<7;i++){ const d=new Date(now); d.setDate(now.getDate()+i); out.push({md:`${d.getMonth()+1}/${d.getDate()}`,day:d.getDate(),w:i===0?'今日':w[d.getDay()]}); }
+  const out=[], now=new Date();
+  for(let i=0;i<7;i++){ const d=new Date(now); d.setDate(now.getDate()+i); out.push({day:d.getDate(),w:i===0?'今日':'日月火水木金土'[d.getDay()]}); }
   return out;
+}
+const dot=g=>GMAP[g]?`<i class="dot" style="--h:${GMAP[g].hue}"></i>`:'<i class="dot all"></i>';
+const gchip=g=>`<span class="gchip">${dot(g)}${esc(gshort(g))}</span>`;
+const cchip=c=>`<span class="chip cat-${c}">${CMAP[c].name}</span>`;
+function allItems(){ return [...OFFICIAL,...S.picks.map(p=>({...p,src:'fan'}))].sort((a,b)=>a.r-b.r); }
+function filtered(o){
+  return allItems().filter(it=>{
+    if(o.g==='follow'&&!S.follow.includes(it.g)) return false;
+    if(o.g&&o.g!=='all'&&o.g!=='follow'&&it.g!==o.g) return false;
+    if(o.c&&o.c!=='all'&&it.cat!==o.c) return false;
+    if(o.src&&o.src!=='all'&&it.src!==o.src) return false;
+    if(o.q&&!((it.t||'')+(it.text||'')+(it.note||'')+gname(it.g)+CMAP[it.cat].name).includes(o.q)) return false;
+    return true;
+  });
+}
+function oCard(it){
+  return `<article class="panel oitem"><span class="meta">${gchip(it.g)}<span class="chip official">公式 · ${esc(it.via)}</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
+    <span class="t">${esc(it.t)}</span>${it.sched?`<span class="meta">📅 ${days()[it.sched.d].w==='今日'?'今日':days()[it.sched.d].day+'日（'+days()[it.sched.d].w+'）'} ${it.sched.time}</span>`:''}</article>`;
+}
+const itemCard=it=>it.src==='official'?oCard(it):pickCard(S.picks.find(p=>p.id===it.id));
+
+function schedHTML(filter){
+  const ds=days();
+  const rows=ds.map((d,i)=>{
+    const it=OFFICIAL.filter(o=>o.sched&&o.sched.d===i&&filter(o)).sort((a,b)=>a.sched.time.localeCompare(b.sched.time));
+    if(!it.length) return '';
+    return `<div class="day"><div class="date ${i===0?'today':''}"><b>${d.day}</b><span>${d.w}</span></div><div class="items">${it.map(s=>`<div class="item"><span class="meta"><span class="time">${s.sched.time}</span>${gchip(s.g)}${cchip(s.cat)}</span><span class="t">${esc(s.t)}</span></div>`).join('')}</div></div>`;
+  }).join('');
+  return rows?`<div class="panel">${rows}</div>`:'<p class="hint">今週の予定はありません。</p>';
+}
+
+function matrixHTML(){
+  const gs=ui.mxAll?GROUPS:GROUPS.filter(g=>S.follow.includes(g.id));
+  const items=allItems();
+  const cnt=(g,c)=>items.filter(it=>it.g===g&&it.cat===c).length;
+  const max=Math.max(1,...gs.flatMap(g=>CATS.map(c=>cnt(g.id,c.id))));
+  return `<div class="mx-wrap"><table class="mx">
+    <thead><tr><th scope="col"><span class="sr">グループ</span></th>${CATS.map(c=>`<th scope="col"><button class="mx-h" data-mx=":${c.id}">${c.name}</button></th>`).join('')}</tr></thead>
+    <tbody>${gs.map(g=>`<tr><th scope="row"><a href="#/g/${g.id}">${dot(g.id)}${esc(g.short||g.name)}</a></th>${CATS.map(c=>{ const n=cnt(g.id,c.id); return `<td><button class="cell" data-mx="${g.id}:${c.id}" style="--a:${n/max}" ${n?'':'disabled'} aria-label="${esc(g.name)}の${c.name} ${n}件">${n||'·'}</button></td>`; }).join('')}</tr>`).join('')}</tbody>
+  </table></div>`;
 }
 
 const V={};
 V.home=()=>{
-  const ds=days();
-  const sched=ds.map((d,i)=>{ const it=SCHEDULE.filter(s=>s.d===i); if(!it.length) return ''; return `<div class="day"><div class="date ${i===0?'today':''}"><b>${d.day}</b><span>${d.w}</span></div><div class="items">${it.map(s=>`<div class="item"><span class="meta"><span class="time">${s.time}</span><span class="chip">${s.kind}</span>${s.src==='official'?'<span class="chip official">公式</span>':'<span class="chip fan">ファン情報</span>'}</span><span class="t">${esc(s.t)}</span></div>`).join('')}</div></div>`; }).join('');
-  const top=[...S.picks].sort((a,b)=>(b.likes+b.shares*5)-(a.likes+a.shares*5)).slice(0,3);
+  const fav=S.follow;
+  const top=[...S.picks].filter(p=>fav.includes(p.g)).sort((a,b)=>(b.likes+b.shares*5)-(a.likes+a.shares*5)).slice(0,3);
+  const news=OFFICIAL.filter(o=>fav.includes(o.g)).sort((a,b)=>a.r-b.r).slice(0,5);
   return `
   <div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>
   <section class="hero">
-    <h1>M!LKの情報、<em>ぜんぶここに。</em></h1>
-    <p>公式の発表も、ファンが見つけたいい投稿も。流れていかない、推し活のための広場（非公式）。</p>
-    <form class="search" id="search"><input id="q" placeholder="メンバー名・番組名・グッズなどで検索" aria-label="検索"><button class="btn sm">検索</button></form>
+    <h1>スタダ男子の情報、<em>ぜんぶここに。</em></h1>
+    <p>10グループの公式発表も、ファンが見つけたいい投稿も。カテゴリ別に仕分けて、流れていかないように。（非公式）</p>
+    <form class="search" id="search"><input id="q" placeholder="グループ名・番組名・グッズなどで検索" aria-label="検索"><button class="btn sm">検索</button></form>
   </section>
-  <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">テレビ・ラジオ・イベント</span></div><div class="panel">${sched}</div></section>
-  <section class="sec"><div class="sec-h"><h2>公式の新着</h2><span class="sub">公式サイト・YouTubeなどから自動で集めています</span></div>
-    <div class="panel rows">${NEWS.map(n=>`<div class="row"><div class="main"><span class="meta"><span class="chip official">${esc(n.src)}</span>${n.ago}</span><span class="t">${esc(n.t)}</span></div></div>`).join('')}</div></section>
-  <section class="sec"><div class="sec-h"><h2>今日の持ち寄りランキング</h2><a class="more" href="#/picks">もっと見る</a></div>
-    <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta"><span class="chip">${p.pf}</span>♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')}</div></section>
+  <section class="sec"><div class="sec-h"><h2>推しグループ</h2><button class="more linkbtn" id="follow-edit">編集</button></div>
+    <div class="filters">${fav.map(g=>`<a class="fchip" href="#/g/${g}">${dot(g)}${esc(gname(g))}</a>`).join('')}<button class="fchip add" id="follow-edit2">＋ 追加</button></div></section>
+  <section class="sec"><div class="sec-h"><h2>今週の新着マップ</h2><span class="sub">数字をタップでその情報だけ表示</span></div>
+    ${matrixHTML()}
+    <button class="linkbtn more" id="mx-toggle">${ui.mxAll?'推しグループだけ表示':'全10グループを表示'}</button></section>
+  <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>fav.includes(o.g))}</section>
+  <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
+    <div class="panel rows">${news.map(n=>`<div class="row"><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></div>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
+  <section class="sec"><div class="sec-h"><h2>今日の持ち寄りランキング</h2><a class="more" href="#/info" data-src="fan">もっと見る</a></div>
+    <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
-    <div class="panel rows">${S.threads.slice(0,3).map(threadRow).join('')}</div></section>
-  <section class="sec"><div class="sec-h"><h2>コミュニティ</h2><a class="more" href="#/community">さがす</a></div>
-    <div class="grid">${S.comms.slice(0,2).map(commCard).join('')}</div></section>`;
+    <div class="panel rows">${S.threads.filter(t=>!t.g||fav.includes(t.g)).slice(0,3).map(threadRow).join('')}</div></section>`;
 };
 
-V.picks=()=>{
-  const fs=['すべて',...MEMBERS,...TOPICS];
-  let list=S.picks.filter(p=>ui.pickFilter==='すべて'||p.tags.includes(ui.pickFilter));
-  if(ui.q) list=list.filter(p=>(p.text+p.note+p.tags.join()+p.acct).includes(ui.q));
-  return `
-  <div class="page-h"><h1>持ち寄り</h1><p>XやThreads、Instagramで見つけたいい投稿を、みんなでここに集めよう。</p></div>
-  <form class="panel compose" id="pickform">
-    <h3>投稿のURLを貼る</h3>
+V.info=()=>{
+  const gOpts=[['all','すべて'],['follow','推しだけ'],...GROUPS.map(g=>[g.id,g.short||g.name])];
+  const base={g:ui.ig,src:ui.src,q:ui.q};
+  const list=filtered({...base,c:ui.ic});
+  const n=c=>filtered({...base,c}).length;
+  return `<div class="page-h"><h1>情報</h1><p>公式とファンの情報を、グループ×カテゴリで仕分けて表示します。</p></div>
+  <div class="filters" role="group" aria-label="グループ">${gOpts.map(([id,l])=>`<button class="fchip" data-ig="${id}" aria-pressed="${ui.ig===id}">${GMAP[id]?dot(id):''}${esc(l)}</button>`).join('')}</div>
+  <nav class="ctabs cats" aria-label="カテゴリ">${[['all','すべて'],...CATS.map(c=>[c.id,c.name])].map(([id,l])=>`<button data-ic="${id}" aria-current="${ui.ic===id?'page':'false'}">${l}<span class="cnt">${n(id)}</span></button>`).join('')}</nav>
+  <div class="bar-row">
+    <div class="seg mini" role="group" aria-label="情報元">${[['all','すべて'],['official','公式'],['fan','ファン持ち寄り']].map(([id,l])=>`<button data-src="${id}" aria-pressed="${ui.src===id}">${l}</button>`).join('')}</div>
+    <button class="btn sm" id="pick-toggle">${ui.pickOpen?'閉じる':'＋ 持ち寄る'}</button>
+  </div>
+  ${ui.pickOpen?pickFormHTML():''}
+  ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/info" id="clearq">解除</a></div>`:''}
+  <p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けています（本番ではAIが判定）。</p>
+  <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>`;
+};
+function pickFormHTML(){
+  const g0=GMAP[ui.ig]?ui.ig:(S.follow[0]||'milk'), c0=CMAP[ui.ic]?ui.ic:'media';
+  return `<form class="panel compose" id="pickform">
+    <h3>いい投稿を持ち寄る</h3>
     <input class="field" id="pick-url" inputmode="url" placeholder="https://x.com/…/status/…" aria-label="投稿のURL">
+    <div class="two"><label class="lb">グループ<select class="field" id="pick-g">${GROUPS.map(g=>`<option value="${g.id}" ${g.id===g0?'selected':''}>${esc(g.name)}</option>`).join('')}</select></label>
+    <label class="lb">カテゴリ<select class="field" id="pick-c">${CATS.map(c=>`<option value="${c.id}" ${c.id===c0?'selected':''}>${c.name}（${c.desc}）</option>`).join('')}</select></label></div>
     <textarea class="field" id="pick-note" placeholder="ひとこと（任意）例：このオフショット最高すぎる" aria-label="ひとこと"></textarea>
-    <div class="filters" role="group" aria-label="タグ">${[...MEMBERS,...TOPICS].map(t=>`<button type="button" class="fchip" data-ptag="${esc(t)}" aria-pressed="${ui.pickTags.includes(t)}">${esc(t)}</button>`).join('')}</div>
     <p class="hint">X・Threads・Instagram・YouTube・TikTokに対応。元の投稿は「埋め込み」で表示され、コピーはしません。</p>
     <p class="err" id="pick-err" hidden></p>
     <div class="actions"><button class="btn">持ち寄る</button></div>
-  </form>
-  ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/picks" id="clearq">解除</a></div>`:''}
-  <div class="filters" role="group" aria-label="絞り込み">${fs.map(f=>`<button class="fchip" data-pf="${esc(f)}" aria-pressed="${ui.pickFilter===f}">${esc(f)}</button>`).join('')}</div>
-  <div class="feed">${list.map(pickCard).join('')||'<p class="hint">まだ投稿がありません。最初のひとつを持ち寄ってみよう。</p>'}</div>`;
-};
+  </form>`;
+}
 
+V.g=id=>{
+  const g=GMAP[id]; if(!g) return V.info();
+  const f=S.follow.includes(id);
+  const cnt=c=>filtered({g:id,c}).length;
+  const list=filtered({g:id,c:ui.gc});
+  const comms=S.comms.filter(c=>c.g===id);
+  const ths=S.threads.filter(t=>t.g===id);
+  return `<a class="back" href="#/home">← ホーム</a>
+  <div class="ghead" style="--h:${g.hue}"><div class="page-h"><span class="meta">${g.n}人組 · スターダスト所属</span><h1>${esc(g.name)}</h1></div>
+    <button class="btn ${f?'ghost':''}" id="follow-one" data-g="${id}">${f?'推しグループ登録中':'＋ 推しグループに追加'}</button></div>
+  <nav class="ctabs cats" aria-label="カテゴリ">${[['all','すべて'],...CATS.map(c=>[c.id,c.name])].map(([cid,l])=>`<button data-gc="${cid}" aria-current="${ui.gc===cid?'page':'false'}">${l}<span class="cnt">${cnt(cid)}</span></button>`).join('')}</nav>
+  ${ui.gc==='all'||ui.gc==='media'||ui.gc==='event'?`<section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2></div>${schedHTML(o=>o.g===id&&(ui.gc==='all'||o.cat===ui.gc))}</section>`:''}
+  <section class="sec"><div class="sec-h"><h2>${ui.gc==='all'?'新着':CMAP[ui.gc].name}</h2><span class="sub">${list.length}件</span></div>
+    <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div></section>
+  <section class="sec"><div class="sec-h"><h2>スレッド</h2><a class="more" href="#/board" data-bg="${id}">すべて見る</a></div>
+    <div class="panel rows">${ths.map(threadRow).join('')||'<div class="row"><p class="hint">まだスレッドはありません。</p></div>'}</div></section>
+  <section class="sec"><div class="sec-h"><h2>コミュニティ</h2><a class="more" href="#/community" data-cg="${id}">さがす</a></div>
+    <div class="grid">${comms.map(commCard).join('')||'<p class="hint">まだコミュニティはありません。つくってみませんか？</p>'}</div></section>`;
+};
+function openFollow(){
+  $('#login-body').innerHTML=`<h2 id="login-title">推しグループを選ぶ</h2><p>選んだグループの情報が、ホームに優先して表示されます。</p>
+  <div class="follow-list">${GROUPS.map(g=>`<label class="fl"><input type="checkbox" value="${g.id}" ${S.follow.includes(g.id)?'checked':''}>${dot(g.id)}${esc(g.name)}</label>`).join('')}</div>
+  <div class="actions"><button class="btn ghost sm" id="login-cancel">やめる</button><button class="btn" id="follow-save">保存する</button></div>`;
+  $('#login').showModal();
+}
 V.pick=id=>{
-  const p=S.picks.find(x=>x.id===id); if(!p) return V.picks();
-  return `<a class="back" href="#/picks">← 持ち寄り一覧</a>
+  const p=S.picks.find(x=>x.id===id); if(!p) return V.info();
+  return `<a class="back" href="#/info">← 情報一覧</a>
   ${pickCard(p)}
   <div class="notice">ここでのコメントはミルキーズ広場の中だけに表示されます。元の投稿には反映されず、投稿者に通知も届きません。</div>
   <section class="sec"><div class="sec-h"><h2>コメント ${p.comments.length}</h2></div>
@@ -427,18 +612,20 @@ V.pick=id=>{
   </section>`;
 };
 
-function threadRow(t){ return `<a class="row" href="#/thread/${t.id}"><div class="main"><span class="t">${esc(t.title)}</span><span class="meta"><span class="chip">${esc(t.cat)}</span>${t.count}レス · ${esc(t.upd)}</span></div></a>`; }
+function threadRow(t){ return `<a class="row" href="#/thread/${t.id}"><div class="main"><span class="t">${esc(t.title)}</span><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${t.count}レス · ${esc(t.upd)}</span></div></a>`; }
 V.board=()=>{
   const cats=['すべて','ライブ','新曲','初心者','グッズ','雑談'];
-  const list=S.threads.filter(t=>ui.boardCat==='すべて'||t.cat===ui.boardCat);
+  const list=S.threads.filter(t=>(ui.boardCat==='すべて'||t.cat===ui.boardCat)&&(ui.bg==='all'||(ui.bg==='none'?!t.g:t.g===ui.bg)));
   return `<div class="page-h"><h1>掲示板</h1><p>誰でもスレッドを立てて、語り合える場所。</p></div>
   <div class="safety panel"><b>書き込みのルール</b><ul><li>チケットの売買・譲渡の書き込みは禁止</li><li>メンバーのプライベート（住所・熱愛など）の書き込みは禁止</li><li>ファン同士の叩きや晒しは禁止</li></ul></div>
+  <div class="filters" role="group" aria-label="グループ">${[['all','すべて'],['none','全体・横断'],...GROUPS.map(g=>[g.id,g.short||g.name])].map(([id,l])=>`<button class="fchip" data-bg="${id}" aria-pressed="${ui.bg===id}">${GMAP[id]?dot(id):''}${esc(l)}</button>`).join('')}</div>
   <div class="actions" style="justify-content:space-between">
     <div class="filters" role="group" aria-label="カテゴリ">${cats.map(c=>`<button class="fchip" data-bc="${c}" aria-pressed="${ui.boardCat===c}">${c}</button>`).join('')}</div>
   </div>
   <button class="btn ghost" id="newthread-toggle">${ui.newThread?'閉じる':'＋ スレッドを立てる'}</button>
   ${ui.newThread?`<form class="panel compose" id="threadform">
     <input class="field" id="th-title" placeholder="スレッドのタイトル" aria-label="スレッドのタイトル">
+    <select class="field" id="th-g" aria-label="グループ"><option value="">全体・グループ横断</option>${GROUPS.map(g=>`<option value="${g.id}" ${ui.bg===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select>
     <select class="field" id="th-cat" aria-label="カテゴリ">${cats.slice(1).map(c=>`<option>${c}</option>`).join('')}</select>
     <textarea class="field" id="th-body" placeholder="最初の書き込み" aria-label="最初の書き込み"></textarea>
     <p class="err" id="th-err" hidden></p>
@@ -449,7 +636,7 @@ V.thread=id=>{
   const t=S.threads.find(x=>x.id===id); if(!t) return V.board();
   const shown=t.res.map(r=>`<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p></div>`).join('');
   return `<a class="back" href="#/board">← 掲示板</a>
-  <div class="page-h"><span class="meta"><span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
+  <div class="page-h"><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
   ${t.count>t.res.length?`<p class="hint">※モックのため、最初の数件だけ表示しています</p>`:''}
   <div class="panel">${shown}</div>
   <form class="panel compose" id="resform" data-id="${t.id}">
@@ -474,11 +661,11 @@ const STATUS_CHIP={admin:'<span class="chip ok">管理人</span>',member:'<span 
 function commCard(c){
   const st=status(c);
   return `<a class="panel comm" href="#/c/${c.id}"><div class="comm-h"><h3>${esc(c.name)}</h3>${st?STATUS_CHIP[st]:''}</div>
-  <span class="meta"><span class="chip">${esc(c.kind)}</span>${memberCount(c).toLocaleString()}人${c.join==='承認制'?' · <span class="chip warn">承認制</span>':''}${c.only?` · ${esc(c.only)}のみ`:''}${c.events.length?` · イベント${c.events.length}件`:''}</span><p>${esc(c.desc)}</p></a>`;
+  <span class="meta">${gchip(c.g)}<span class="chip">${esc(c.kind)}</span>${memberCount(c).toLocaleString()}人${c.join==='承認制'?' · <span class="chip warn">承認制</span>':''}${c.only?` · ${esc(c.only)}のみ`:''}${c.events.length?` · イベント${c.events.length}件`:''}</span><p>${esc(c.desc)}</p></a>`;
 }
 function commGrid(){
   const q=ui.cq.trim();
-  const list=S.comms.filter(c=>(ui.commKind==='すべて'||c.kind===ui.commKind)&&(!q||(c.name+c.desc+c.kind+c.admin).includes(q)));
+  const list=S.comms.filter(c=>(ui.commKind==='すべて'||c.kind===ui.commKind)&&(ui.cg==='all'||(ui.cg==='none'?!c.g:c.g===ui.cg))&&(!q||(c.name+c.desc+c.kind+c.admin).includes(q)));
   return list.map(commCard).join('')||`<p class="hint">「${esc(q)}」に一致するコミュニティはありません。つくってみませんか？</p>`;
 }
 function commSeg(active){
@@ -487,10 +674,11 @@ function commSeg(active){
 }
 V.community=()=>{
   const kinds=['すべて','公演','地域','年代','推しメン','その他'];
-  return `<div class="page-h"><h1>コミュニティ</h1><p>地域・年代・公演・推しメンでつながろう。コミュニティの中でイベントもひらけます。</p></div>
+  return `<div class="page-h"><h1>コミュニティ</h1><p>グループ・地域・年代・公演でつながろう。コミュニティの中でイベントもひらけます。</p></div>
   ${commSeg('find')}
   <form class="search" id="comm-search" role="search"><input id="comm-q" value="${esc(ui.cq)}" placeholder="コミュニティをさがす（例：千葉、10代、ドーム）" aria-label="コミュニティ検索"></form>
   <div class="filters" role="group" aria-label="種類">${kinds.map(k=>`<button class="fchip" data-ck="${k}" aria-pressed="${ui.commKind===k}">${k}</button>`).join('')}</div>
+  <div class="filters" role="group" aria-label="グループ">${[['all','すべて'],['none','全体・横断'],...GROUPS.map(g=>[g.id,g.short||g.name])].map(([id,l])=>`<button class="fchip" data-cg="${id}" aria-pressed="${ui.cg===id}">${GMAP[id]?dot(id):''}${esc(l)}</button>`).join('')}</div>
   <div class="grid" id="comm-grid">${commGrid()}</div>
   <a class="btn ghost center" href="#/newcomm">＋ コミュニティをつくる</a>`;
 };
@@ -568,7 +756,7 @@ V.c=(id,tab='top')=>{
       <p class="hint">ほか ${Math.max(0,memberCount(c)-c.sample.length).toLocaleString()}人が参加しています。表示されるのは年代と都道府県までです。</p>`;
   }
   return `<a class="back" href="#/community">← コミュニティ</a>
-  <div class="page-h"><span class="meta"><span class="chip">${esc(c.kind)}</span>${memberCount(c).toLocaleString()}人が参加${c.join==='承認制'?' · <span class="chip warn">承認制</span>':' · だれでも参加OK'}${c.only?` · <span class="chip fan">${esc(c.only)}のみ</span>`:''}</span>
+  <div class="page-h"><span class="meta">${gchip(c.g)}<span class="chip">${esc(c.kind)}</span>${memberCount(c).toLocaleString()}人が参加${c.join==='承認制'?' · <span class="chip warn">承認制</span>':' · だれでも参加OK'}${c.only?` · <span class="chip fan">${esc(c.only)}のみ</span>`:''}</span>
     <h1>${esc(c.name)}</h1><p>${esc(c.desc)}</p>
     <span class="meta">管理人 <b style="color:var(--ink)">${esc(c.admin)}</b>${c.subs.length?` · 副管理人 ${c.subs.map(esc).join('、')}`:''} · 開設 ${esc(c.created)}</span></div>
   <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">${joinArea(c)}</div>
@@ -611,6 +799,7 @@ V.newcomm=()=>{
   <div class="page-h"><h1>コミュニティをつくる</h1><p>あなたが管理人になります。参加のしかたやルールを決めましょう。</p></div>
   <form class="panel compose" id="commform">
     <label class="lb">コミュニティ名<input class="field" id="cm-name" placeholder="例：八千代のミルキー" required></label>
+    <label class="lb">グループ<select class="field" id="cm-g"><option value="">全体・グループ横断</option>${GROUPS.map(g=>`<option value="${g.id}" ${ui.cg===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</select></label>
     <div class="two"><label class="lb">種類<select class="field" id="cm-kind">${['地域','年代','公演','推しメン','その他'].map(k=>`<option>${k}</option>`).join('')}</select></label>
     <label class="lb">参加できる人<select class="field" id="cm-only">${onlys.map(o=>`<option>${o}</option>`).join('')}</select></label></div>
     <fieldset class="lb radios"><legend>参加のしかた</legend>
@@ -632,6 +821,8 @@ V.me=()=>{
   const u=S.user;
   return `<div class="page-h"><h1>マイページ</h1></div>
   <div class="panel profile"><span class="avatar">${initial(u.name)}</span><div class="main"><b style="font-size:17px">${esc(u.name)}</b><div class="meta"><span class="chip">${u.age}</span><span class="chip">${u.pref}</span><span class="chip fan">${esc(u.oshi)}推し</span>${esc(u.via)}でログイン</div></div></div>
+  <section class="sec"><div class="sec-h"><h2>推しグループ</h2><button class="more linkbtn" id="follow-edit3">編集</button></div>
+    <div class="filters">${S.follow.map(g=>`<a class="fchip" href="#/g/${g}">${dot(g)}${esc(gname(g))}</a>`).join('')||'<span class="hint">まだありません</span>'}</div></section>
   ${myCommsHTML()}
   <div class="panel compose"><h3>表示を切り替えて試す（デモ用）</h3>
     <label class="lb">年代<select class="field" id="me-age">${AGES.map(a=>`<option ${a===u.age?'selected':''}>${a}</option>`).join('')}</select></label>
@@ -653,10 +844,10 @@ function openLogin(){
 function profileStep(via){
   $('#login-body').innerHTML=`<h2 id="login-title">プロフィールを作成</h2><p>${esc(via)}で認証しました（デモ）。広場で表示される情報を決めてください。</p>
   <form id="profform" class="providers" data-via="${esc(via)}">
-    <label class="lb">ハンドルネーム<input class="field" id="pf-name" value="はじめてのミルキー" required></label>
+    <label class="lb">ハンドルネーム<input class="field" id="pf-name" value="はじめての推し活" required></label>
     <label class="lb">年代<select class="field" id="pf-age">${AGES.map(a=>`<option>${a}</option>`).join('')}</select></label>
     <label class="lb">都道府県<select class="field" id="pf-pref">${PREFS.map(p=>`<option ${p==='東京都'?'selected':''}>${p}</option>`).join('')}</select></label>
-    <label class="lb">推しメン<select class="field" id="pf-oshi">${[...MEMBERS,'箱'].map(m=>`<option>${m}</option>`).join('')}</select></label>
+    <label class="lb">いちばんの推しグループ<select class="field" id="pf-oshi">${GROUPS.map(g=>`<option>${esc(g.name)}</option>`).join('')}<option>箱</option></select></label>
     <p>本番では生年月日で年代を確認し、公開は「年代」のみになります。</p>
     <div class="actions"><button class="btn">はじめる</button></div></form>`;
   const d=$('#login'); if(!d.open) d.showModal();
@@ -683,7 +874,7 @@ function render(){
   const [r,id,sub]=h.split('/');
   const view=V[r]?V[r](id,sub):V.home();
   $('#app').innerHTML=view;
-  const tab={pick:'picks',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
+  const tab={pick:'info',g:'home',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
 }
@@ -697,8 +888,18 @@ document.addEventListener('click',e=>{
   else if(t.id==='login-cancel'){ $('#login').close(); }
   else if(d.prov){ profileStep(d.prov); }
   else if(d.like){ if(!need()) return; const i=S.likes.indexOf(d.like); i<0?S.likes.push(d.like):S.likes.splice(i,1); save(); render(); }
-  else if(d.pf){ ui.pickFilter=d.pf; render(); }
-  else if(d.ptag){ const i=ui.pickTags.indexOf(d.ptag); i<0?ui.pickTags.push(d.ptag):ui.pickTags.splice(i,1); t.setAttribute('aria-pressed',i<0); }
+  else if(d.mx){ const [g,c]=d.mx.split(':'); ui.ig=g||(ui.mxAll?'all':'follow'); ui.ic=c; ui.src='all'; ui.q=''; if(location.hash==='#/info') go(); else location.hash='#/info'; }
+  else if(d.ig){ ui.ig=d.ig; render(); }
+  else if(d.ic){ ui.ic=d.ic; render(); }
+  else if(d.gc){ ui.gc=d.gc; render(); }
+  else if(d.src){ ui.src=d.src; if(t.tagName==='A'){ ui.ig='follow'; ui.ic='all'; ui.q=''; } else render(); }
+  else if(d.bg){ ui.bg=d.bg; if(t.tagName!=='A') render(); }
+  else if(d.cg){ ui.cg=d.cg; if(t.tagName!=='A') render(); }
+  else if(t.id==='mx-toggle'){ ui.mxAll=!ui.mxAll; render(); }
+  else if(t.id==='pick-toggle'){ if(!ui.pickOpen&&!need()) return; ui.pickOpen=!ui.pickOpen; render(); }
+  else if(/^follow-edit/.test(t.id)){ openFollow(); }
+  else if(t.id==='follow-save'){ S.follow=[...document.querySelectorAll('.follow-list input:checked')].map(x=>x.value); save(); $('#login').close(); render(); toast('推しグループを保存しました'); }
+  else if(t.id==='follow-one'){ const g=d.g, i=S.follow.indexOf(g); i<0?S.follow.push(g):S.follow.splice(i,1); save(); render(); toast(i<0?'推しグループに追加しました':'推しグループから外しました'); }
   else if(t.id==='clearq'){ e.preventDefault(); ui.q=''; render(); }
   else if(d.bc){ ui.boardCat=d.bc; render(); }
   else if(d.ck){ ui.commKind=d.ck; render(); }
@@ -733,7 +934,7 @@ function detect(u){
 document.addEventListener('submit',e=>{
   e.preventDefault();
   const f=e.target;
-  if(f.id==='search'){ ui.q=$('#q').value.trim(); ui.pickFilter='すべて'; location.hash='#/picks'; }
+  if(f.id==='search'){ ui.q=$('#q').value.trim(); ui.ig='all'; ui.ic='all'; ui.src='all'; location.hash='#/info'; }
   else if(f.id==='profform'){
     S.user={name:$('#pf-name').value.trim()||'ミルキー',age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
     save(); $('#login').close(); render(); toast(`ようこそ、${S.user.name}さん`);
@@ -746,8 +947,8 @@ document.addEventListener('submit',e=>{
     const dup=S.picks.find(p=>p.url.replace(/[?#].*$/,'')===url.replace(/[?#].*$/,''));
     if(dup&&dup.url.length>25){ dup.shares++; save(); location.hash='#/pick/'+dup.id; toast('すでに持ち寄られていた投稿です。持ち寄った人数に+1しました'); return; }
     const acct=(url.match(/\.com\/@?([^/?#]+)/)||[])[1];
-    S.picks.unshift({id:'p'+Date.now(),pf,acct:acct?'@'+acct:pf+'の投稿',text:'',img:false,by:S.user.name,note,tags:ui.pickTags.length?[...ui.pickTags]:['まとめ'],likes:0,shares:1,ago:'たった今',url,comments:[]});
-    ui.pickTags=[]; ui.pickFilter='すべて'; save(); render(); toast('持ち寄りました！');
+    S.picks.unshift({id:'p'+Date.now(),g:$('#pick-g').value,cat:$('#pick-c').value,r:-1,pf,acct:acct?'@'+acct:pf+'の投稿',text:'',img:false,by:S.user.name,note,tags:[],likes:0,shares:1,ago:'たった今',url,comments:[]});
+    ui.pickOpen=false; ui.src='all'; save(); render(); toast('持ち寄りました！');
   }
   else if(f.id==='cmform'){
     if(!need()) return;
@@ -780,7 +981,7 @@ document.addEventListener('submit',e=>{
     const join=f.querySelector('[name="cm-join"]:checked').value;
     const a=only==='10代'?['10代','10代']:only?['20代','30代']:['10代','40代'];
     const now=new Date();
-    const c={id:'c'+Date.now(),mine:true,name,kind:$('#cm-kind').value,members:1,only,join,admin:S.user.name,subs:[],created:`${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()}`,
+    const c={id:'c'+Date.now(),mine:true,g:$('#cm-g').value||null,name,kind:$('#cm-kind').value,members:1,only,join,admin:S.user.name,subs:[],created:`${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()}`,
       desc:desc||'（説明はまだありません）',rules:$('#cm-rules').value.split('\n').map(x=>x.trim()).filter(Boolean),topics:[{t:'自己紹介トピック',n:0,upd:'—'}],events:[],
       sample:[[S.user.name,S.user.age,S.user.pref]],reqs:join==='承認制'?[['ゆずみるく',a[0],'東京都'],['いちごみるく',a[1],'千葉県']]:[]};
     S.comms.unshift(c); save(); location.hash='#/c/'+c.id; toast(join==='承認制'?'コミュニティをつくりました。デモ用に参加申請が2件届いています':'コミュニティをつくりました');
@@ -790,7 +991,7 @@ document.addEventListener('submit',e=>{
     if(!title||!body) return showErr('#th-err','タイトルと最初の書き込みを入れてください');
     const bad=ng(title+body); if(bad) return showErr('#th-err',bad);
     const id='t'+Date.now();
-    S.threads.unshift({id,cat:$('#th-cat').value,title,count:1,upd:'たった今',res:[{n:1,nm:S.user.name,id:Math.random().toString(36).slice(2,7),t:body}]});
+    S.threads.unshift({id,g:$('#th-g').value||null,cat:$('#th-cat').value,title,count:1,upd:'たった今',res:[{n:1,nm:S.user.name,id:Math.random().toString(36).slice(2,7),t:body}]});
     ui.newThread=false; save(); location.hash='#/thread/'+id;
   }
 });
