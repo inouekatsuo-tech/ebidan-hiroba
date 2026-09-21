@@ -1,0 +1,798 @@
+<title>ミルキーズ広場</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#F5F6FB; --surface:#FFFFFF; --sunk:#EEF0F8; --ink:#1C1F3A; --muted:#666B8C; --line:#E1E4F0;
+  --accent:#D94873; --accent-soft:#FCE7EE; --accent-ink:#FFFFFF;
+  --official:#4D5FE0; --official-soft:#E7EAFD;
+  --warn:#A55F00; --warn-soft:#FFF1DC; --ok:#17855A; --ok-soft:#E0F4EA;
+  --shadow:0 6px 24px rgba(28,31,58,.08);
+  --display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",system-ui,sans-serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11121D; --surface:#1A1C2B; --sunk:#222537; --ink:#ECEDF8; --muted:#9A9EBD; --line:#2B2E45;
+    --accent:#FF7C9E; --accent-soft:#3A1F2C; --accent-ink:#1A0D13;
+    --official:#8F9BFF; --official-soft:#232849;
+    --warn:#F2B25C; --warn-soft:#3A2B14; --ok:#5ED3A0; --ok-soft:#143126;
+    --shadow:0 6px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11121D; --surface:#1A1C2B; --sunk:#222537; --ink:#ECEDF8; --muted:#9A9EBD; --line:#2B2E45;
+  --accent:#FF7C9E; --accent-soft:#3A1F2C; --accent-ink:#1A0D13;
+  --official:#8F9BFF; --official-soft:#232849;
+  --warn:#F2B25C; --warn-soft:#3A2B14; --ok:#5ED3A0; --ok-soft:#143126;
+  --shadow:0 6px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.35;margin:0}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.top-in{max-width:680px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.02em}
+.logo small{font-family:var(--body);font-weight:500;font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 7px;letter-spacing:.08em}
+.btn{border:0;border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px;cursor:pointer;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:5px 12px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:14px;border:0;cursor:pointer}
+
+.wrap{max-width:680px;margin:0 auto;padding-inline:16px;padding-block:14px 110px;display:flex;flex-direction:column;gap:26px}
+.demo-note{font-size:12px;color:var(--warn);background:var(--warn-soft);border-radius:10px;padding:8px 12px}
+
+.hero{display:flex;flex-direction:column;gap:10px;padding-top:4px}
+.hero h1{font-size:clamp(24px,6.4vw,32px);font-weight:700}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{margin:0;color:var(--muted);font-size:14px}
+.search{display:flex;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 5px 5px 16px}
+.search input{flex:1;min-width:0;border:0;background:transparent;outline:none}
+
+.sec{display:flex;flex-direction:column;gap:12px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sec-h h2{font-size:18px}
+.sec-h .sub{font-size:12px;color:var(--muted)}
+.more{font-size:13px;color:var(--accent);text-decoration:none;font-weight:700}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.rows{display:flex;flex-direction:column}
+.row{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid var(--line);text-decoration:none}
+.row:first-child{border-top:0}
+a.row:hover{background:var(--sunk)}
+.row .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.row .t{font-weight:700;font-size:14.5px;line-height:1.5}
+.meta{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;border-radius:999px;padding:1px 9px;background:var(--sunk);color:var(--muted);white-space:nowrap;letter-spacing:.02em}
+.chip.official{background:var(--official-soft);color:var(--official)}
+.chip.fan{background:var(--accent-soft);color:var(--accent)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+
+.day{display:grid;grid-template-columns:52px 1fr;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+.day:first-child{border-top:0}
+.date{display:flex;flex-direction:column;align-items:center;line-height:1.2;padding-top:2px}
+.date b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.date span{font-size:11px;color:var(--muted)}
+.date.today b{color:var(--accent)}
+.items{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;flex-direction:column;gap:2px}
+.item .t{font-size:14px;font-weight:500}
+.time{font-variant-numeric:tabular-nums}
+
+.rank{font-family:var(--display);font-weight:700;font-size:20px;width:22px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.rank.r1{color:var(--accent)}
+
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fchip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.fchip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.compose{padding:14px;display:flex;flex-direction:column;gap:10px}
+.compose h3{font-size:15px}
+.field{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 12px;outline:none}
+.field:focus{border-color:var(--accent)}
+textarea.field{resize:vertical;min-height:64px}
+.hint{font-size:12px;color:var(--muted);margin:0}
+.err{font-size:13px;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:6px 10px;margin:0}
+.actions{display:flex;justify-content:flex-end;gap:8px;align-items:center}
+
+.feed{display:flex;flex-direction:column;gap:14px}
+.pick{padding:14px;display:flex;flex-direction:column;gap:10px}
+.by{display:flex;align-items:center;gap:8px;font-size:13px}
+.by .mini{width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+.by .who{font-weight:700}
+.note{margin:0;font-size:15px}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.foot{display:flex;gap:16px;align-items:center;font-size:13px;color:var(--muted)}
+.foot button,.foot a{background:none;border:0;padding:0;cursor:pointer;color:inherit;text-decoration:none;display:inline-flex;gap:5px;align-items:center}
+.foot .liked{color:var(--accent);font-weight:700}
+.foot .push{margin-left:auto}
+
+.embed{border:1px solid var(--line);border-radius:12px;background:var(--bg);padding:12px;display:flex;flex-direction:column;gap:8px}
+.embed-h{display:flex;align-items:center;gap:8px;font-size:13px}
+.pf{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;background:var(--ink);color:var(--bg);font-weight:700;font-size:11px;flex:none}
+.embed-h .acct{font-weight:700}
+.embed-h .src{margin-left:auto;font-size:11px;color:var(--muted)}
+.embed p{margin:0;font-size:14px}
+.ph{aspect-ratio:16/10;max-width:100%;border-radius:10px;display:grid;place-items:center;font-size:12px;color:var(--muted);background:repeating-linear-gradient(135deg,var(--sunk) 0 10px,var(--surface) 10px 20px);border:1px dashed var(--line);text-align:center;padding:12px}
+.embed .open{font-size:12px;color:var(--official);text-decoration:none;font-weight:700}
+
+.comments{display:flex;flex-direction:column}
+.cm{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.cm:first-child{border-top:0}
+.cm .meta b{color:var(--ink)}
+.cm p{margin:0;font-size:14px}
+.notice{font-size:12px;color:var(--official);background:var(--official-soft);border-radius:10px;padding:8px 12px}
+
+.back{align-self:flex-start;text-decoration:none;font-size:13px;color:var(--muted);font-weight:700}
+.page-h{display:flex;flex-direction:column;gap:6px}
+.page-h h1{font-size:22px}
+.page-h p{margin:0;color:var(--muted);font-size:14px}
+
+.res{padding:12px 14px;border-top:1px solid var(--line)}
+.res:first-child{border-top:0}
+.res .hd{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.res .no{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.res .nm{color:var(--ok);font-weight:700}
+.res p{margin:4px 0 0;font-size:14.5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.anc{color:var(--official);font-weight:700}
+
+.comm{padding:14px;display:flex;flex-direction:column;gap:8px;text-decoration:none}
+.comm-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.comm-h h3{font-size:16px}
+.comm p{margin:0;font-size:13.5px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+
+.offkai{padding:14px;display:flex;flex-direction:column;gap:8px}
+.offkai h3{font-size:15.5px}
+.bar{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.lock{font-size:12.5px;color:var(--warn)}
+
+.safety{display:flex;flex-direction:column;gap:6px;padding:12px 14px;font-size:13px}
+.safety b{font-family:var(--display)}
+.safety ul{margin:0;padding-left:1.2em;color:var(--muted)}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs-in{max-width:680px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:1px;padding:8px 0 7px;font-size:10.5px;color:var(--muted);text-decoration:none;font-weight:700}
+.tab svg{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--accent)}
+
+dialog{border:0;border-radius:20px;padding:0;width:min(420px,calc(100% - 32px));background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(10,10,25,.45)}
+.dlg{padding:22px;display:flex;flex-direction:column;gap:14px}
+.dlg h2{font-size:20px}
+.dlg p{margin:0;font-size:13px;color:var(--muted)}
+.providers{display:flex;flex-direction:column;gap:8px}
+.prov{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:700;text-align:left}
+.prov:hover{border-color:var(--ink)}
+.prov .pf{width:26px;height:26px}
+.x-close{position:absolute;top:10px;right:12px;background:none;border:0;font-size:22px;cursor:pointer;color:var(--muted)}
+label.lb{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700}
+
+.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:13px;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--sunk);border-radius:12px;padding:4px;gap:4px}
+.seg a{text-align:center;text-decoration:none;padding:7px;border-radius:9px;font-weight:700;font-size:14px;color:var(--muted)}
+.seg a[aria-current="page"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.ctabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.ctabs a{padding:8px 12px;text-decoration:none;font-weight:700;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;margin-bottom:-1px}
+.ctabs a[aria-current="page"]{color:var(--accent);border-color:var(--accent)}
+.rules{margin:0;padding:12px 14px 12px 34px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.info{margin:0;padding:14px;display:grid;grid-template-columns:4.5em 1fr;gap:10px 12px;font-size:14.5px}
+.info dt{color:var(--muted);font-size:13px;font-weight:700}
+.info dd{margin:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.radios{border:0;padding:0;margin:0;gap:6px}
+.radios legend{padding:0;margin-bottom:4px}
+.radios label{font-weight:500;display:flex;gap:8px;align-items:flex-start}
+.agree{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:700}
+.req{display:flex;gap:10px;align-items:center}
+.req .main{flex:1;min-width:0;display:flex;flex-direction:column}
+.mini-av{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+a.offkai{text-decoration:none}
+a.offkai:hover{border-color:var(--accent)}
+.center{align-self:center}
+a.btn{text-decoration:none;display:inline-block}
+.profile{padding:16px;display:flex;gap:14px;align-items:center}
+.profile .avatar{width:52px;height:52px;font-size:20px}
+@media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,8px);opacity:0}} }
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <a class="logo" href="#/home">
+      <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true"><path d="M11 1C11 1 2 11.5 2 17a9 9 0 0 0 18 0C20 11.5 11 1 11 1z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><circle cx="7.5" cy="17" r="1.8" fill="var(--accent)"/></svg>
+      ミルキーズ広場 <small>非公式</small>
+    </a>
+    <div id="acct"></div>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+
+<nav class="tabs" aria-label="メインメニュー">
+  <div class="tabs-in">
+    <a class="tab" href="#/home" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>ホーム</a>
+    <a class="tab" href="#/picks" data-tab="picks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>持ち寄り</a>
+    <a class="tab" href="#/board" data-tab="board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>掲示板</a>
+    <a class="tab" href="#/community" data-tab="community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M3 19c.6-3.4 3-5 6-5s5.4 1.6 6 5M15 14.6c2.8-.3 5.2 1 6 4.4"/></svg>コミュニティ</a>
+    <a class="tab" href="#/me" data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.2-6.5 8-6.5s7 2 8 6.5"/></svg>マイページ</a>
+  </div>
+</nav>
+
+<dialog id="login" aria-labelledby="login-title">
+  <div class="dlg" id="login-body"></div>
+</dialog>
+
+<script>
+const MEMBERS=['吉田仁人','佐野勇斗','塩﨑太智','曽野舜太','山中柔太朗'];
+const TOPICS=['パフォーマンス','グッズ','ラジオ','テレビ','東京ドーム','まとめ','オフショット','親子参戦'];
+const AGES=['10代','20代','30代','40代','50代以上'];
+const PREFS='北海道 青森県 岩手県 宮城県 秋田県 山形県 福島県 茨城県 栃木県 群馬県 埼玉県 千葉県 東京都 神奈川県 新潟県 富山県 石川県 福井県 山梨県 長野県 岐阜県 静岡県 愛知県 三重県 滋賀県 京都府 大阪府 兵庫県 奈良県 和歌山県 鳥取県 島根県 岡山県 広島県 山口県 徳島県 香川県 愛媛県 高知県 福岡県 佐賀県 長崎県 熊本県 大分県 宮崎県 鹿児島県 沖縄県'.split(' ');
+const PF={X:'X',Threads:'@',Instagram:'IG',YouTube:'▶',TikTok:'♪'};
+const PROVIDERS=[['Google','G'],['Apple',''],['X','X'],['LINE','L'],['Facebook','f'],['メールアドレス','✉']];
+
+const SCHEDULE=[
+  {d:0,time:'19:00',kind:'テレビ',t:'音楽番組 生出演',src:'official'},
+  {d:0,time:'24:00',kind:'ラジオ',t:'レギュラーラジオ 放送回',src:'official'},
+  {d:1,time:'発売日',kind:'雑誌',t:'ファッション誌 表紙・巻頭特集',src:'official'},
+  {d:2,time:'20:00',kind:'配信',t:'YouTube 新企画 公開予定',src:'official'},
+  {d:3,time:'22:00',kind:'テレビ',t:'バラエティ番組 ゲスト出演',src:'fan'},
+  {d:5,time:'17:00',kind:'イベント',t:'ファンミーティング 大阪公演',src:'official'},
+  {d:6,time:'終日',kind:'チケット',t:'11月 東京ドーム公演 一般販売',src:'official'},
+];
+const NEWS=[
+  {src:'公式サイト',t:'11月 東京ドーム公演 一般販売のお知らせ',ago:'2時間前'},
+  {src:'YouTube',t:'新曲MV メイキング映像を公開',ago:'5時間前'},
+  {src:'X（公式）',t:'今夜の音楽番組 出演情報',ago:'8時間前'},
+  {src:'Instagram（公式）',t:'撮影オフショットを投稿',ago:'昨日'},
+];
+
+const SEED={
+ picks:[
+  {id:'p1',pf:'X',acct:'@milky_chiba_17',text:'今日の音楽番組のパフォーマンス、ダンスそろいすぎて鳥肌…！何回でも見返せる',img:true,by:'いちごみるく',note:'これ見てない人いたら絶対見て！サビのフォーメーションやばい',tags:['吉田仁人','パフォーマンス','テレビ'],likes:214,shares:12,ago:'2時間前',url:'https://x.com/',
+   comments:[{by:'ゆずみるく',t:'2番のサビで全員の目線そろうとこ好きすぎる',ago:'1時間前'},{by:'港区のミルキー',t:'録画し忘れたので助かりました…！',ago:'40分前'}]},
+  {id:'p2',pf:'X',acct:'@tokyodome_sanka',text:'東京ドームの座席ブロックと見え方まとめを作りました。これから参戦する人どうぞ',img:true,by:'ドーム参戦組',note:'11月行く人は保存推奨です',tags:['東京ドーム','まとめ'],likes:188,shares:21,ago:'4時間前',url:'https://x.com/',
+   comments:[{by:'はじめてのミルキー',t:'ドーム初めてなので本当にありがたい',ago:'3時間前'}]},
+  {id:'p3',pf:'Instagram',acct:'@miruku_diary',text:'ツアーグッズのペンライト、メンバーカラーの切り替えが全員分できるの最高すぎる',img:true,by:'ぺんらいと部',note:'グッズの実物写真がいちばんわかりやすかった投稿',tags:['グッズ'],likes:132,shares:8,ago:'6時間前',url:'https://www.instagram.com/',comments:[]},
+  {id:'p4',pf:'Threads',acct:'@yuzu.milk',text:'昨日のラジオで話してた裏話、メモしたのでまとめます（ネタバレなし）',img:false,by:'ゆずみるく',note:'聞き逃した人向け。ラジオの内容がまとまってる',tags:['山中柔太朗','ラジオ','まとめ'],likes:97,shares:5,ago:'9時間前',url:'https://www.threads.com/',
+   comments:[{by:'いちごみるく',t:'聞き逃してたので助かる〜',ago:'8時間前'}]},
+  {id:'p5',pf:'YouTube',acct:'公式チャンネル',text:'新曲MVのメイキング映像。5人のわちゃわちゃが見られる',img:true,by:'箱推しのひと',note:'12:30あたりからが特におすすめ',tags:['佐野勇斗','塩﨑太智','曽野舜太','オフショット'],likes:156,shares:17,ago:'昨日',url:'https://www.youtube.com/',comments:[]},
+  {id:'p6',pf:'X',acct:'@minato_milk40',text:'娘と一緒にハマって1年。親子で参戦する人の話も聞きたいな',img:false,by:'港区のミルキー',note:'親子で推し活してる方、つながりましょう',tags:['親子参戦'],likes:64,shares:3,ago:'昨日',url:'https://x.com/',
+   comments:[{by:'千葉のママ',t:'うちも娘に誘われてハマりました！',ago:'20時間前'}]},
+ ],
+ threads:[
+  {id:'t1',cat:'ライブ',title:'【11月】東京ドーム参戦する人の雑談スレ Part3',count:342,upd:'3分前',res:[
+    {n:1,nm:'ミルキーさん',id:'xK3a9',t:'11月の東京ドーム公演に参戦する人の雑談スレです。\n※チケットの譲渡・売買の話は禁止です'},
+    {n:2,nm:'ミルキーさん',id:'Pq81z',t:'>>1 スレ立て乙です！初ドームなのでドキドキ'},
+    {n:3,nm:'ドーム参戦組',id:'aa2Lm',t:'>>2 双眼鏡は8倍くらいがおすすめ。持ち寄りに座席の見え方まとめ上がってたよ'},
+    {n:4,nm:'ミルキーさん',id:'Rt6yh',t:'グッズ列って何時くらいから並ぶんだろう'},
+  ]},
+  {id:'t2',cat:'新曲',title:'新曲の好きなパートを語るスレ',count:128,upd:'15分前',res:[
+    {n:1,nm:'ミルキーさん',id:'Mk20b',t:'新曲で好きなパートを語りましょう'},
+    {n:2,nm:'ゆずみるく',id:'yZ9d1',t:'Cメロからラスサビへの入りがずるい'},
+  ]},
+  {id:'t3',cat:'初心者',title:'最近ハマった人のための「まず見て」動画を教えてください',count:87,upd:'1時間前',res:[
+    {n:1,nm:'はじめてのミルキー',id:'Nw4pp',t:'先月ハマりました！まず何を見ればいいですか？'},
+    {n:2,nm:'箱推しのひと',id:'Hb77s',t:'>>1 ようこそ！YouTubeの企画動画から入るのがおすすめ'},
+  ]},
+  {id:'t4',cat:'グッズ',title:'うちわ・ペンライトの作り方相談スレ',count:56,upd:'2時間前',res:[
+    {n:1,nm:'ぺんらいと部',id:'Ul3ka',t:'手作りうちわの文字の作り方など、相談しましょう'},
+  ]},
+  {id:'t5',cat:'雑談',title:'推し活と勉強（仕事）両立してる人いる？',count:210,upd:'4時間前',res:[
+    {n:1,nm:'ミルキーさん',id:'Ee5tq',t:'テスト前なのに新曲が良すぎて勉強が進まない'},
+  ]},
+ ],
+ comms:[
+  {id:'c3',name:'10代ファン集まれ',kind:'年代',members:2140,only:'10代',join:'承認制',admin:'ももみるく',subs:['ゆずみるく'],created:'2025.04.12',
+   desc:'10代だけのコミュニティです。学校と推し活の両立の話や、近くに住むファン同士の情報交換にどうぞ。参加は管理人の承認制です。',
+   rules:['参加は10代のみ（プロフィールの年代で確認します）','本名・学校名・最寄り駅など、個人が特定できる情報は書かない','チケットの売買・譲渡は禁止','メンバーのプライベートの話題は禁止','イベントは昼間に、人の多いお店で開催する'],
+   topics:[{t:'自己紹介トピック',n:812,upd:'10分前'},{t:'テスト期間の推し活どうしてる？',n:143,upd:'1時間前'},{t:'推しメンの好きなところを語ろう',n:529,upd:'3時間前'}],
+   events:[{id:'e1',t:'推しメンの情報交換会',date:'2026-10-03',time:'14:00',place:'スタバ 八千代台店',area:'千葉県八千代市',cap:10,joined:6,target:'10代限定',host:'ももみるく',desc:'推しメンのおすすめ動画や、最近の出演情報を交換しましょう！飲み物代は各自でお願いします。'},
+           {id:'e2',t:'放課後のグッズ交換会',date:'2026-10-10',time:'16:30',place:'原宿駅近くのカフェ（参加者に連絡）',area:'東京都渋谷区',cap:8,joined:5,target:'10代限定',host:'ゆずみるく',desc:'ダブったトレカや缶バッジを交換しましょう。お金のやりとりは禁止です。'}],
+   sample:[['ももみるく','10代','千葉県'],['ゆずみるく','10代','東京都'],['いちごみるく','10代','神奈川県'],['ぺんらいと部','10代','埼玉県']]},
+  {id:'c1',name:'東京ドーム参戦組',kind:'公演',members:1284,join:'だれでも',admin:'ドーム参戦組',subs:[],created:'2026.06.01',
+   desc:'11月の東京ドーム公演に行く人のコミュニティ。当日の持ち物、グッズ列、アクセスなどの情報交換に。',
+   rules:['チケットの売買・譲渡は禁止','公演のネタバレは「ネタバレ」トピックの中だけで'],
+   topics:[{t:'持ち物チェックリスト',n:233,upd:'5分前'},{t:'グッズ列の情報',n:190,upd:'30分前'},{t:'ネタバレ（公演後）',n:0,upd:'—'}],
+   events:[{id:'e3',t:'参戦前の作戦会議',date:'2026-10-25',time:'13:00',place:'水道橋駅近くのカフェ（参加者に連絡）',area:'東京都文京区',cap:8,joined:3,target:'18歳以上',host:'ドーム参戦組',desc:'初めてドームに行く人向けに、持ち物や当日の動き方を共有します。'}],
+   sample:[['ドーム参戦組','30代','東京都'],['はじめてのミルキー','20代','埼玉県'],['港区のミルキー','40代','東京都']]},
+  {id:'c2',name:'千葉県のミルキー',kind:'地域',members:326,join:'だれでも',admin:'千葉のママ',subs:[],created:'2025.11.03',
+   desc:'千葉県に住んでいるファンのコミュニティ。近くのコラボカフェや展示の情報などを共有しましょう。',
+   rules:['チケットの売買・譲渡は禁止','住所など個人が特定できる情報は書かない'],
+   topics:[{t:'千葉のコラボ・展示情報',n:61,upd:'2時間前'}],
+   events:[{id:'e4',t:'コラボカフェに行く会',date:'2026-10-18',time:'13:00',place:'船橋駅近くのコラボカフェ',area:'千葉県船橋市',cap:6,joined:3,target:'18歳以上',host:'千葉のママ',desc:'コラボメニューをみんなで楽しみましょう。'}],
+   sample:[['千葉のママ','40代','千葉県'],['いちごみるく','10代','千葉県']]},
+  {id:'c4',name:'40代からのM!LK',kind:'年代',members:412,join:'承認制',admin:'港区のミルキー',subs:[],created:'2026.02.20',
+   desc:'大人になってからハマった人たちのコミュニティ。親子で参戦する人の話もどうぞ。',
+   rules:['年齢を理由にした揶揄は禁止','チケットの売買・譲渡は禁止'],topics:[{t:'親子参戦あるある',n:88,upd:'1時間前'}],events:[],sample:[['港区のミルキー','40代','東京都']]},
+  {id:'c5',name:'吉田仁人推し',kind:'推しメン',members:980,join:'だれでも',admin:'じんとくん担',subs:[],created:'2025.08.08',
+   desc:'推しメン別のコミュニティ。出演情報やおすすめの投稿を共有しましょう。',rules:['他メンバーへの悪口は禁止'],topics:[{t:'出演情報まとめ',n:301,upd:'20分前'}],events:[],sample:[['じんとくん担','20代','大阪府']]},
+  {id:'c6',name:'関西のミルキー',kind:'地域',members:540,join:'だれでも',admin:'なにわのミルキー',subs:[],created:'2025.09.14',
+   desc:'大阪・京都・兵庫など、関西に住むファンのコミュニティ。',rules:['チケットの売買・譲渡は禁止'],topics:[{t:'大阪公演の情報交換',n:120,upd:'3時間前'}],events:[],sample:[['なにわのミルキー','30代','大阪府']]},
+ ],
+};
+
+const KEY='milkies-demo-v2';
+let S;
+try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[]};
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false};
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){ const d=document.createElement('div'); d.className='toast'; d.textContent=m; document.body.appendChild(d); setTimeout(()=>d.remove(),2600); }
+function ng(t){
+  if(/譲|定価|売ります|買います|求む|交換.*チケ|チケ.*(交換|取引)/.test(t)) return 'チケットの売買・譲渡に関する書き込みはできません（ミルキーズ広場のルール）';
+  if(/住所|自宅|熱愛|彼女|彼氏|実家/.test(t)) return 'メンバーのプライベートに関する書き込みはできません（ミルキーズ広場のルール）';
+  return null;
+}
+function need(){ if(S.user) return true; openLogin(); return false; }
+function initial(n){ return esc((n||'?').slice(0,1)); }
+
+function embed(p){
+  return `<div class="embed">
+    <div class="embed-h"><span class="pf">${PF[p.pf]}</span><span class="acct">${esc(p.acct)}</span><span class="src">${esc(p.pf)}の投稿を埋め込み表示</span></div>
+    ${p.text?`<p>${esc(p.text)}</p>`:`<p style="color:var(--muted)">（本番では、ここに元の投稿がそのまま表示されます）</p>`}
+    ${p.img?`<div class="ph">写真・動画（本番では元の投稿のものが表示されます）</div>`:''}
+    <a class="open" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">元の投稿を開く ↗</a>
+  </div>`;
+}
+function pickCard(p){
+  const liked=S.likes.includes(p.id);
+  return `<article class="panel pick">
+    <div class="by"><span class="mini">${initial(p.by)}</span><span class="who">${esc(p.by)}</span><span class="meta">さんが持ち寄り · ${esc(p.ago)}</span></div>
+    ${p.note?`<p class="note">${esc(p.note)}</p>`:''}
+    ${embed(p)}
+    <div class="tags">${p.tags.map(t=>`<span class="chip ${MEMBERS.includes(t)?'fan':''}">${esc(t)}</span>`).join('')}</div>
+    <div class="foot">
+      <button data-like="${p.id}" class="${liked?'liked':''}" aria-pressed="${liked}">${liked?'♥':'♡'} ${p.likes+(liked?1:0)}</button>
+      <a href="#/pick/${p.id}">💬 ${p.comments.length}</a>
+      <span class="push">${p.shares}人が持ち寄り</span>
+    </div>
+  </article>`;
+}
+
+function days(){
+  const w='日月火水木金土', out=[], now=new Date();
+  for(let i=0;i<7;i++){ const d=new Date(now); d.setDate(now.getDate()+i); out.push({md:`${d.getMonth()+1}/${d.getDate()}`,day:d.getDate(),w:i===0?'今日':w[d.getDay()]}); }
+  return out;
+}
+
+const V={};
+V.home=()=>{
+  const ds=days();
+  const sched=ds.map((d,i)=>{ const it=SCHEDULE.filter(s=>s.d===i); if(!it.length) return ''; return `<div class="day"><div class="date ${i===0?'today':''}"><b>${d.day}</b><span>${d.w}</span></div><div class="items">${it.map(s=>`<div class="item"><span class="meta"><span class="time">${s.time}</span><span class="chip">${s.kind}</span>${s.src==='official'?'<span class="chip official">公式</span>':'<span class="chip fan">ファン情報</span>'}</span><span class="t">${esc(s.t)}</span></div>`).join('')}</div></div>`; }).join('');
+  const top=[...S.picks].sort((a,b)=>(b.likes+b.shares*5)-(a.likes+a.shares*5)).slice(0,3);
+  return `
+  <div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>
+  <section class="hero">
+    <h1>M!LKの情報、<em>ぜんぶここに。</em></h1>
+    <p>公式の発表も、ファンが見つけたいい投稿も。流れていかない、推し活のための広場（非公式）。</p>
+    <form class="search" id="search"><input id="q" placeholder="メンバー名・番組名・グッズなどで検索" aria-label="検索"><button class="btn sm">検索</button></form>
+  </section>
+  <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">テレビ・ラジオ・イベント</span></div><div class="panel">${sched}</div></section>
+  <section class="sec"><div class="sec-h"><h2>公式の新着</h2><span class="sub">公式サイト・YouTubeなどから自動で集めています</span></div>
+    <div class="panel rows">${NEWS.map(n=>`<div class="row"><div class="main"><span class="meta"><span class="chip official">${esc(n.src)}</span>${n.ago}</span><span class="t">${esc(n.t)}</span></div></div>`).join('')}</div></section>
+  <section class="sec"><div class="sec-h"><h2>今日の持ち寄りランキング</h2><a class="more" href="#/picks">もっと見る</a></div>
+    <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta"><span class="chip">${p.pf}</span>♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')}</div></section>
+  <section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
+    <div class="panel rows">${S.threads.slice(0,3).map(threadRow).join('')}</div></section>
+  <section class="sec"><div class="sec-h"><h2>コミュニティ</h2><a class="more" href="#/community">さがす</a></div>
+    <div class="grid">${S.comms.slice(0,2).map(commCard).join('')}</div></section>`;
+};
+
+V.picks=()=>{
+  const fs=['すべて',...MEMBERS,...TOPICS];
+  let list=S.picks.filter(p=>ui.pickFilter==='すべて'||p.tags.includes(ui.pickFilter));
+  if(ui.q) list=list.filter(p=>(p.text+p.note+p.tags.join()+p.acct).includes(ui.q));
+  return `
+  <div class="page-h"><h1>持ち寄り</h1><p>XやThreads、Instagramで見つけたいい投稿を、みんなでここに集めよう。</p></div>
+  <form class="panel compose" id="pickform">
+    <h3>投稿のURLを貼る</h3>
+    <input class="field" id="pick-url" inputmode="url" placeholder="https://x.com/…/status/…" aria-label="投稿のURL">
+    <textarea class="field" id="pick-note" placeholder="ひとこと（任意）例：このオフショット最高すぎる" aria-label="ひとこと"></textarea>
+    <div class="filters" role="group" aria-label="タグ">${[...MEMBERS,...TOPICS].map(t=>`<button type="button" class="fchip" data-ptag="${esc(t)}" aria-pressed="${ui.pickTags.includes(t)}">${esc(t)}</button>`).join('')}</div>
+    <p class="hint">X・Threads・Instagram・YouTube・TikTokに対応。元の投稿は「埋め込み」で表示され、コピーはしません。</p>
+    <p class="err" id="pick-err" hidden></p>
+    <div class="actions"><button class="btn">持ち寄る</button></div>
+  </form>
+  ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/picks" id="clearq">解除</a></div>`:''}
+  <div class="filters" role="group" aria-label="絞り込み">${fs.map(f=>`<button class="fchip" data-pf="${esc(f)}" aria-pressed="${ui.pickFilter===f}">${esc(f)}</button>`).join('')}</div>
+  <div class="feed">${list.map(pickCard).join('')||'<p class="hint">まだ投稿がありません。最初のひとつを持ち寄ってみよう。</p>'}</div>`;
+};
+
+V.pick=id=>{
+  const p=S.picks.find(x=>x.id===id); if(!p) return V.picks();
+  return `<a class="back" href="#/picks">← 持ち寄り一覧</a>
+  ${pickCard(p)}
+  <div class="notice">ここでのコメントはミルキーズ広場の中だけに表示されます。元の投稿には反映されず、投稿者に通知も届きません。</div>
+  <section class="sec"><div class="sec-h"><h2>コメント ${p.comments.length}</h2></div>
+    <div class="panel comments">${p.comments.map(c=>`<div class="cm"><span class="meta"><b>${esc(c.by)}</b>${esc(c.ago)}</span><p>${esc(c.t)}</p></div>`).join('')||'<div class="cm"><p class="hint">まだコメントはありません。</p></div>'}</div>
+    <form class="panel compose" id="cmform" data-id="${p.id}">
+      <textarea class="field" id="cm-text" placeholder="${S.user?'コメントを書く':'コメントするにはログインしてください'}" aria-label="コメント"></textarea>
+      <p class="err" id="cm-err" hidden></p>
+      <div class="actions"><span class="hint">元の投稿者さんへの悪口は禁止です</span><button class="btn">コメントする</button></div>
+    </form>
+  </section>`;
+};
+
+function threadRow(t){ return `<a class="row" href="#/thread/${t.id}"><div class="main"><span class="t">${esc(t.title)}</span><span class="meta"><span class="chip">${esc(t.cat)}</span>${t.count}レス · ${esc(t.upd)}</span></div></a>`; }
+V.board=()=>{
+  const cats=['すべて','ライブ','新曲','初心者','グッズ','雑談'];
+  const list=S.threads.filter(t=>ui.boardCat==='すべて'||t.cat===ui.boardCat);
+  return `<div class="page-h"><h1>掲示板</h1><p>誰でもスレッドを立てて、語り合える場所。</p></div>
+  <div class="safety panel"><b>書き込みのルール</b><ul><li>チケットの売買・譲渡の書き込みは禁止</li><li>メンバーのプライベート（住所・熱愛など）の書き込みは禁止</li><li>ファン同士の叩きや晒しは禁止</li></ul></div>
+  <div class="actions" style="justify-content:space-between">
+    <div class="filters" role="group" aria-label="カテゴリ">${cats.map(c=>`<button class="fchip" data-bc="${c}" aria-pressed="${ui.boardCat===c}">${c}</button>`).join('')}</div>
+  </div>
+  <button class="btn ghost" id="newthread-toggle">${ui.newThread?'閉じる':'＋ スレッドを立てる'}</button>
+  ${ui.newThread?`<form class="panel compose" id="threadform">
+    <input class="field" id="th-title" placeholder="スレッドのタイトル" aria-label="スレッドのタイトル">
+    <select class="field" id="th-cat" aria-label="カテゴリ">${cats.slice(1).map(c=>`<option>${c}</option>`).join('')}</select>
+    <textarea class="field" id="th-body" placeholder="最初の書き込み" aria-label="最初の書き込み"></textarea>
+    <p class="err" id="th-err" hidden></p>
+    <div class="actions"><button class="btn">スレッドを立てる</button></div></form>`:''}
+  <div class="panel rows">${list.map(threadRow).join('')}</div>`;
+};
+V.thread=id=>{
+  const t=S.threads.find(x=>x.id===id); if(!t) return V.board();
+  const shown=t.res.map(r=>`<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p></div>`).join('');
+  return `<a class="back" href="#/board">← 掲示板</a>
+  <div class="page-h"><span class="meta"><span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
+  ${t.count>t.res.length?`<p class="hint">※モックのため、最初の数件だけ表示しています</p>`:''}
+  <div class="panel">${shown}</div>
+  <form class="panel compose" id="resform" data-id="${t.id}">
+    <textarea class="field" id="res-text" placeholder="${S.user?'書き込む（>>番号 で返信）':'書き込むにはログインしてください'}" aria-label="書き込み"></textarea>
+    <p class="err" id="res-err" hidden></p>
+    <div class="actions"><button class="btn">書き込む</button></div>
+  </form>`;
+};
+
+const WD='日月火水木金土';
+function fmtDate(s,t){ const d=new Date(s+'T00:00'); if(isNaN(d)) return s; return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}（${WD[d.getDay()]}）${t?' '+t:''}`; }
+function status(c){ if(c.mine) return 'admin'; if(S.joined.includes(c.id)) return 'member'; if(S.pending.includes(c.id)) return 'pending'; return null; }
+function memberCount(c){ return c.members+(!c.mine&&S.joined.includes(c.id)?1:0); }
+function ageBlock(c){
+  if(!S.user||!c.only) return null;
+  const teen=S.user.age==='10代';
+  if(c.only==='10代'&&!teen) return '10代の方のみ参加できます';
+  if(c.only==='18歳以上'&&teen) return '18歳以上の方のみ参加できます';
+  return null;
+}
+const STATUS_CHIP={admin:'<span class="chip ok">管理人</span>',member:'<span class="chip ok">参加中</span>',pending:'<span class="chip warn">申請中</span>'};
+function commCard(c){
+  const st=status(c);
+  return `<a class="panel comm" href="#/c/${c.id}"><div class="comm-h"><h3>${esc(c.name)}</h3>${st?STATUS_CHIP[st]:''}</div>
+  <span class="meta"><span class="chip">${esc(c.kind)}</span>${memberCount(c).toLocaleString()}人${c.join==='承認制'?' · <span class="chip warn">承認制</span>':''}${c.only?` · ${esc(c.only)}のみ`:''}${c.events.length?` · イベント${c.events.length}件`:''}</span><p>${esc(c.desc)}</p></a>`;
+}
+function commGrid(){
+  const q=ui.cq.trim();
+  const list=S.comms.filter(c=>(ui.commKind==='すべて'||c.kind===ui.commKind)&&(!q||(c.name+c.desc+c.kind+c.admin).includes(q)));
+  return list.map(commCard).join('')||`<p class="hint">「${esc(q)}」に一致するコミュニティはありません。つくってみませんか？</p>`;
+}
+function commSeg(active){
+  const n=S.comms.filter(c=>status(c)).length;
+  return `<div class="seg" role="tablist"><a href="#/community" aria-current="${active==='find'?'page':'false'}">さがす</a><a href="#/mycomm" aria-current="${active==='mine'?'page':'false'}">参加中（${n}）</a></div>`;
+}
+V.community=()=>{
+  const kinds=['すべて','公演','地域','年代','推しメン','その他'];
+  return `<div class="page-h"><h1>コミュニティ</h1><p>地域・年代・公演・推しメンでつながろう。コミュニティの中でイベントもひらけます。</p></div>
+  ${commSeg('find')}
+  <form class="search" id="comm-search" role="search"><input id="comm-q" value="${esc(ui.cq)}" placeholder="コミュニティをさがす（例：千葉、10代、ドーム）" aria-label="コミュニティ検索"></form>
+  <div class="filters" role="group" aria-label="種類">${kinds.map(k=>`<button class="fchip" data-ck="${k}" aria-pressed="${ui.commKind===k}">${k}</button>`).join('')}</div>
+  <div class="grid" id="comm-grid">${commGrid()}</div>
+  <a class="btn ghost center" href="#/newcomm">＋ コミュニティをつくる</a>`;
+};
+function myEvents(){
+  const out=[];
+  S.comms.forEach(c=>c.events.forEach(e=>{ if(S.going.includes(c.id+':'+e.id)) out.push([c,e]); }));
+  return out.sort((a,b)=>a[1].date.localeCompare(b[1].date));
+}
+function myCommsHTML(){
+  const mine=S.comms.filter(c=>status(c));
+  const evs=myEvents();
+  return `<section class="sec"><div class="sec-h"><h2>参加中のコミュニティ</h2><span class="sub">${mine.length}件</span></div>
+    ${mine.length?`<div class="panel rows">${mine.map(c=>`<a class="row" href="#/c/${c.id}"><div class="main"><span class="t">${esc(c.name)}</span><span class="meta">${STATUS_CHIP[status(c)]}${memberCount(c).toLocaleString()}人${c.reqs&&c.reqs.length?` · <b style="color:var(--accent)">参加申請 ${c.reqs.length}件</b>`:''}</span></div></a>`).join('')}</div>`:'<p class="hint">まだ参加していません。<a href="#/community">コミュニティをさがす</a></p>'}
+  </section>
+  <section class="sec"><div class="sec-h"><h2>参加予定のイベント</h2><span class="sub">${evs.length}件</span></div>
+    ${evs.length?`<div class="panel rows">${evs.map(([c,e])=>`<a class="row" href="#/e/${c.id}/${e.id}"><div class="main"><span class="meta"><span class="time">${fmtDate(e.date,e.time)}</span></span><span class="t">${esc(e.t)}</span><span class="meta">${esc(c.name)} · ${esc(e.place)}</span></div></a>`).join('')}</div>`:'<p class="hint">参加予定のイベントはありません。</p>'}
+  </section>`;
+}
+V.mycomm=()=>{
+  if(!S.user) return `<div class="page-h"><h1>コミュニティ</h1></div>${commSeg('mine')}<div class="panel compose"><p class="hint">参加中のコミュニティを見るにはログインしてください。</p><div class="actions"><button class="btn" id="login-open2">ログイン</button></div></div>`;
+  return `<div class="page-h"><h1>コミュニティ</h1></div>${commSeg('mine')}${myCommsHTML()}`;
+};
+
+function canSeeDetail(c){ const st=status(c); return st==='admin'||st==='member'; }
+function eventCard(c,e){
+  const k=c.id+':'+e.id, g=S.going.includes(k), n=e.joined+(g?1:0);
+  return `<a class="panel offkai" href="#/e/${c.id}/${e.id}">
+    <span class="meta"><span class="chip ${e.target==='10代限定'?'fan':'official'}">${esc(e.target)}</span><span class="time">${fmtDate(e.date,e.time)}</span>${g?'<span class="chip ok">参加予定</span>':''}</span>
+    <h3>${esc(e.t)}</h3>
+    <span class="meta">📍 ${canSeeDetail(c)?esc(e.place):esc(e.area)+' 周辺'} · 主催 ${esc(e.host)}</span>
+    <div class="bar"><i style="width:${Math.min(100,n/e.cap*100)}%"></i></div><span class="meta">${n} / ${e.cap}人${n>=e.cap?' · 満員':''}</span></a>`;
+}
+function joinArea(c){
+  const st=status(c), blk=ageBlock(c);
+  if(st==='admin') return `<span class="chip ok">あなたが管理人です</span>`;
+  if(st==='member') return `<span class="chip ok">参加中</span><button class="btn sm ghost" id="leave" data-id="${c.id}">退会する</button>`;
+  if(st==='pending') return `<span class="chip warn">申請中（管理人の承認待ち）</span><button class="btn sm ghost" id="cancel-req" data-id="${c.id}">申請を取り消す</button>`;
+  if(blk) return `<button class="btn" disabled>参加する</button><span class="lock">${blk}</span>`;
+  return `<button class="btn" id="join" data-id="${c.id}">${c.join==='承認制'?'参加を申請する':'参加する'}</button>`;
+}
+V.c=(id,tab='top')=>{
+  const c=S.comms.find(x=>x.id===id); if(!c) return V.community();
+  const see=canSeeDetail(c), closed=c.join==='承認制'&&!see;
+  const tabs=[['top','トップ'],['events',`イベント（${c.events.length}）`],['topics','トピック'],['members','メンバー']];
+  const lockMsg=`<div class="panel compose"><p class="hint">🔒 このコミュニティは承認制です。中の書き込みは参加者だけが見られます。</p></div>`;
+  let body='';
+  if(tab==='top'){
+    body=`<section class="sec"><div class="sec-h"><h2>コミュニティのルール</h2></div>
+      <ol class="panel rules">${c.rules.map(r=>`<li>${esc(r)}</li>`).join('')}</ol></section>
+      <section class="sec"><div class="sec-h"><h2>近日のイベント</h2><a class="more" href="#/c/${c.id}/events">すべて見る</a></div>
+      ${c.events.slice(0,2).map(e=>eventCard(c,e)).join('')||'<p class="hint">予定されているイベントはありません。</p>'}</section>`;
+  } else if(tab==='events'){
+    const teen=S.user&&S.user.age==='10代';
+    const targets=c.only==='10代'||teen?['10代限定']:['18歳以上','10代限定'];
+    body=`<div class="notice">未成年の安全のため、イベントは「10代限定」と「18歳以上」に分かれています。お店の名前など詳しい場所は、コミュニティの参加者にだけ表示されます。</div>
+      ${see?`<button class="btn ghost" id="evform-toggle">${ui.evForm?'閉じる':'＋ イベントをつくる'}</button>`:`<p class="hint">イベントをつくる・参加するには、このコミュニティに参加してください。</p>`}
+      ${see&&ui.evForm?`<form class="panel compose" id="evform" data-cid="${c.id}">
+        <label class="lb">イベント名<input class="field" id="ev-title" placeholder="例：推しメンの情報交換会" required></label>
+        <div class="two"><label class="lb">日付<input class="field" type="date" id="ev-date" value="2026-10-03" required></label><label class="lb">開始時間<input class="field" type="time" id="ev-time" value="14:00" required></label></div>
+        <label class="lb">場所（お店の名前など）<input class="field" id="ev-place" placeholder="例：スタバ 八千代台店" required></label>
+        <label class="lb">エリア（参加者以外にはここまで表示）<input class="field" id="ev-area" placeholder="例：千葉県八千代市" required></label>
+        <div class="two"><label class="lb">参加上限<input class="field" type="number" id="ev-cap" min="2" max="50" value="10" required></label>
+        <label class="lb">対象<select class="field" id="ev-target">${targets.map(t=>`<option>${t}</option>`).join('')}</select></label></div>
+        <label class="lb">内容<textarea class="field" id="ev-desc" placeholder="どんなことをするか、持ち物、費用など"></textarea></label>
+        <p class="err" id="ev-err" hidden></p>
+        <div class="actions"><button class="btn">イベントを公開する</button></div></form>`:''}
+      ${c.events.map(e=>eventCard(c,e)).join('')||'<p class="hint">予定されているイベントはありません。</p>'}`;
+  } else if(tab==='topics'){
+    body=closed?lockMsg:`<div class="panel rows">${c.topics.map(t=>`<div class="row"><div class="main"><span class="t">${esc(t.t)}</span><span class="meta">${t.n}件 · ${esc(t.upd)}</span></div></div>`).join('')}</div>
+      ${see?'<button class="btn ghost" id="newtopic">＋ トピックを立てる</button>':''}`;
+  } else if(tab==='members'){
+    const staff=[[c.admin,'管理人'],...c.subs.map(s=>[s,'副管理人'])];
+    body=closed?lockMsg:`<div class="panel rows">${staff.map(([n,r])=>`<div class="row"><span class="mini-av">${initial(n)}</span><div class="main"><span class="t">${esc(n)}</span><span class="meta"><span class="chip ok">${r}</span></span></div></div>`).join('')}
+      ${c.sample.filter(m=>!staff.some(s=>s[0]===m[0])).map(m=>`<div class="row"><span class="mini-av">${initial(m[0])}</span><div class="main"><span class="t">${esc(m[0])}</span><span class="meta"><span class="chip">${m[1]}</span><span class="chip">${m[2]}</span></span></div></div>`).join('')}</div>
+      <p class="hint">ほか ${Math.max(0,memberCount(c)-c.sample.length).toLocaleString()}人が参加しています。表示されるのは年代と都道府県までです。</p>`;
+  }
+  return `<a class="back" href="#/community">← コミュニティ</a>
+  <div class="page-h"><span class="meta"><span class="chip">${esc(c.kind)}</span>${memberCount(c).toLocaleString()}人が参加${c.join==='承認制'?' · <span class="chip warn">承認制</span>':' · だれでも参加OK'}${c.only?` · <span class="chip fan">${esc(c.only)}のみ</span>`:''}</span>
+    <h1>${esc(c.name)}</h1><p>${esc(c.desc)}</p>
+    <span class="meta">管理人 <b style="color:var(--ink)">${esc(c.admin)}</b>${c.subs.length?` · 副管理人 ${c.subs.map(esc).join('、')}`:''} · 開設 ${esc(c.created)}</span></div>
+  <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">${joinArea(c)}</div>
+  ${c.mine&&c.reqs&&c.reqs.length?`<section class="panel compose"><h3>参加申請（${c.reqs.length}件）</h3>
+    ${c.reqs.map((r,i)=>`<div class="req"><span class="mini-av">${initial(r[0])}</span><div class="main"><b>${esc(r[0])}</b><span class="meta"><span class="chip">${r[1]}</span><span class="chip">${r[2]}</span></span></div><button class="btn sm" data-approve="${c.id}:${i}">承認</button><button class="btn sm ghost" data-decline="${c.id}:${i}">見送る</button></div>`).join('')}</section>`:''}
+  <nav class="ctabs" aria-label="コミュニティ内メニュー">${tabs.map(([k,l])=>`<a href="#/c/${c.id}/${k}" aria-current="${tab===k?'page':'false'}">${l}</a>`).join('')}</nav>
+  ${body}`;
+};
+
+V.e=(cid,eid)=>{
+  const c=S.comms.find(x=>x.id===cid), e=c&&c.events.find(x=>x.id===eid); if(!e) return V.community();
+  const k=cid+':'+eid, g=S.going.includes(k), n=e.joined+(g?1:0), see=canSeeDetail(c), isHost=S.user&&e.host===S.user.name;
+  let act='';
+  if(isHost) act='<span class="chip ok">あなたが主催者です</span>';
+  else if(!S.user) act='<button class="btn" id="login-open2">ログインして参加する</button>';
+  else if(!see) act=`<a class="btn" href="#/c/${c.id}">まずコミュニティに参加する</a>`;
+  else if(e.target==='10代限定'&&S.user.age!=='10代') act='<button class="btn" disabled>参加する</button><span class="lock">このイベントは10代限定です</span>';
+  else if(e.target==='18歳以上'&&S.user.age==='10代') act='<button class="btn" disabled>参加する</button><span class="lock">安全のため、10代の方は「10代限定」のイベントのみ参加できます</span>';
+  else if(g) act=`<span class="chip ok">参加予定</span><button class="btn sm ghost" data-go="${k}">参加を取り消す</button>`;
+  else if(n>=e.cap) act='<button class="btn" disabled>満員です</button>';
+  else act=`<button class="btn" data-go="${k}">参加する</button>`;
+  return `<a class="back" href="#/c/${c.id}/events">← ${esc(c.name)}のイベント</a>
+  <div class="page-h"><span class="meta"><span class="chip ${e.target==='10代限定'?'fan':'official'}">${esc(e.target)}</span>${esc(c.name)}</span><h1>${esc(e.t)}</h1></div>
+  <dl class="panel info">
+    <dt>日時</dt><dd class="time">${fmtDate(e.date,e.time)}〜</dd>
+    <dt>場所</dt><dd>${see?esc(e.place)+`<br><span class="meta">${esc(e.area)}</span>`:esc(e.area)+' 周辺<br><span class="lock">お店の名前は、コミュニティの参加者にだけ表示されます</span>'}</dd>
+    <dt>参加者</dt><dd>${n} / ${e.cap}人<div class="bar" style="margin-top:6px"><i style="width:${Math.min(100,n/e.cap*100)}%"></i></div></dd>
+    <dt>主催</dt><dd>${esc(e.host)}</dd>
+  </dl>
+  ${e.desc?`<div class="panel compose"><p class="note" style="white-space:pre-wrap">${esc(e.desc)}</p></div>`:''}
+  <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">${act}</div>
+  <div class="notice">知らない人と会うときは、明るい時間に人の多いお店で。困ったことがあれば、すぐに運営へ通報してください。</div>`;
+};
+
+V.newcomm=()=>{
+  if(!S.user) return `<a class="back" href="#/community">← コミュニティ</a><div class="page-h"><h1>コミュニティをつくる</h1></div><div class="panel compose"><p class="hint">コミュニティをつくるにはログインしてください。</p><div class="actions"><button class="btn" id="login-open2">ログイン</button></div></div>`;
+  const teen=S.user.age==='10代';
+  const onlys=teen?['全年代','10代のみ']:['全年代','10代のみ','18歳以上のみ'];
+  return `<a class="back" href="#/community">← コミュニティ</a>
+  <div class="page-h"><h1>コミュニティをつくる</h1><p>あなたが管理人になります。参加のしかたやルールを決めましょう。</p></div>
+  <form class="panel compose" id="commform">
+    <label class="lb">コミュニティ名<input class="field" id="cm-name" placeholder="例：八千代のミルキー" required></label>
+    <div class="two"><label class="lb">種類<select class="field" id="cm-kind">${['地域','年代','公演','推しメン','その他'].map(k=>`<option>${k}</option>`).join('')}</select></label>
+    <label class="lb">参加できる人<select class="field" id="cm-only">${onlys.map(o=>`<option>${o}</option>`).join('')}</select></label></div>
+    <fieldset class="lb radios"><legend>参加のしかた</legend>
+      <label><input type="radio" name="cm-join" value="承認制" checked> 承認制（管理人が承認した人だけ参加できる）</label>
+      <label><input type="radio" name="cm-join" value="だれでも"> だれでも参加OK</label></fieldset>
+    <label class="lb">説明<textarea class="field" id="cm-desc" placeholder="どんな人に来てほしいか、どんな話をしたいか"></textarea></label>
+    <label class="lb">ルール（1行に1つ）<textarea class="field" id="cm-rules" rows="4">チケットの売買・譲渡は禁止
+本名・学校名など、個人が特定できる情報は書かない
+メンバーのプライベートの話題は禁止</textarea></label>
+    <p class="hint">広場全体のルールは、どのコミュニティにも自動で適用されます。</p>
+    <p class="err" id="cm-err" hidden></p>
+    <div class="actions"><button class="btn">コミュニティをつくる</button></div>
+  </form>`;
+};
+
+V.me=()=>{
+  if(!S.user) return `<div class="page-h"><h1>マイページ</h1><p>ログインすると、コメント・スレッド作成・コミュニティ参加ができます。見るだけならログインは不要です。</p></div>
+    <div class="panel dlg">${providersHTML()}</div>`;
+  const u=S.user;
+  return `<div class="page-h"><h1>マイページ</h1></div>
+  <div class="panel profile"><span class="avatar">${initial(u.name)}</span><div class="main"><b style="font-size:17px">${esc(u.name)}</b><div class="meta"><span class="chip">${u.age}</span><span class="chip">${u.pref}</span><span class="chip fan">${esc(u.oshi)}推し</span>${esc(u.via)}でログイン</div></div></div>
+  ${myCommsHTML()}
+  <div class="panel compose"><h3>表示を切り替えて試す（デモ用）</h3>
+    <label class="lb">年代<select class="field" id="me-age">${AGES.map(a=>`<option ${a===u.age?'selected':''}>${a}</option>`).join('')}</select></label>
+    <p class="hint">「10代」にすると、10代限定のコミュニティやイベントの見え方が変わります。</p></div>
+  <div class="panel safety"><b>安全のための設定</b><ul>
+    <li>公開されるのは「年代」と「都道府県」まで。生年月日や市区町村は表示されません</li>
+    <li>${u.age==='10代'?'10代の方は、同じ10代からのメッセージだけ受け取れます':'10代の方へのメッセージは送れません'}</li>
+    <li>困ったときは、どの投稿からも「通報」「ブロック」ができます</li></ul></div>
+  <button class="btn ghost" id="logout">ログアウト</button>`;
+};
+function providersHTML(){
+  return `<div class="providers">${PROVIDERS.map(([n,m])=>`<button class="prov" data-prov="${n}"><span class="pf">${m||''}</span>${n}でログイン</button>`).join('')}</div>
+  <p>※モックのため、どれを押しても実際のログインは行われません。</p>`;
+}
+function openLogin(){
+  $('#login-body').innerHTML=`<h2 id="login-title">ミルキーズ広場にログイン</h2><p>見るだけならログインは不要です。コメントや書き込み、コミュニティ参加にはアカウントが必要です。</p>${providersHTML()}<div class="actions"><button class="btn ghost sm" id="login-cancel">あとで</button></div>`;
+  const d=$('#login'); if(!d.open) d.showModal();
+}
+function profileStep(via){
+  $('#login-body').innerHTML=`<h2 id="login-title">プロフィールを作成</h2><p>${esc(via)}で認証しました（デモ）。広場で表示される情報を決めてください。</p>
+  <form id="profform" class="providers" data-via="${esc(via)}">
+    <label class="lb">ハンドルネーム<input class="field" id="pf-name" value="はじめてのミルキー" required></label>
+    <label class="lb">年代<select class="field" id="pf-age">${AGES.map(a=>`<option>${a}</option>`).join('')}</select></label>
+    <label class="lb">都道府県<select class="field" id="pf-pref">${PREFS.map(p=>`<option ${p==='東京都'?'selected':''}>${p}</option>`).join('')}</select></label>
+    <label class="lb">推しメン<select class="field" id="pf-oshi">${[...MEMBERS,'箱'].map(m=>`<option>${m}</option>`).join('')}</select></label>
+    <p>本番では生年月日で年代を確認し、公開は「年代」のみになります。</p>
+    <div class="actions"><button class="btn">はじめる</button></div></form>`;
+  const d=$('#login'); if(!d.open) d.showModal();
+}
+
+function openJoin(id){
+  const c=S.comms.find(x=>x.id===id);
+  $('#login-body').innerHTML=`<h2 id="login-title">「${esc(c.name)}」に${c.join==='承認制'?'参加を申請':'参加'}</h2>
+  <p>${c.join==='承認制'?`このコミュニティは承認制です。管理人の${esc(c.admin)}さんが承認すると参加できます。`:'このコミュニティにはすぐ参加できます。'}</p>
+  <ol class="rules" style="margin:0">${c.rules.map(r=>`<li>${esc(r)}</li>`).join('')}</ol>
+  <label class="agree"><input type="checkbox" id="agree"> ルールを読みました。守って参加します</label>
+  <div class="actions"><button class="btn ghost sm" id="join-cancel">やめる</button><button class="btn" id="join-confirm" data-id="${c.id}" disabled>${c.join==='承認制'?'申請する':'参加する'}</button></div>`;
+  $('#login').showModal();
+}
+function confirmJoin(id){
+  const c=S.comms.find(x=>x.id===id); $('#login').close();
+  if(c.join==='承認制'){
+    S.pending.push(id); save(); render(); toast('参加を申請しました。管理人の承認をお待ちください');
+    setTimeout(()=>{ if(!S.pending.includes(id)) return; S.pending=S.pending.filter(x=>x!==id); S.joined.push(id); save(); render(); toast(`（デモ）「${c.name}」の管理人が参加を承認しました`); },4000);
+  } else { S.joined.push(id); save(); render(); toast(`「${c.name}」に参加しました`); }
+}
+function render(){
+  const h=location.hash.replace(/^#\/?/,'')||'home';
+  const [r,id,sub]=h.split('/');
+  const view=V[r]?V[r](id,sub):V.home();
+  $('#app').innerHTML=view;
+  const tab={pick:'picks',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
+  document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
+}
+function go(){ render(); window.scrollTo(0,0); }
+window.addEventListener('hashchange',go);
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button,a'); if(!t) return;
+  const d=t.dataset;
+  if(t.id==='login-open'){ openLogin(); }
+  else if(t.id==='login-cancel'){ $('#login').close(); }
+  else if(d.prov){ profileStep(d.prov); }
+  else if(d.like){ if(!need()) return; const i=S.likes.indexOf(d.like); i<0?S.likes.push(d.like):S.likes.splice(i,1); save(); render(); }
+  else if(d.pf){ ui.pickFilter=d.pf; render(); }
+  else if(d.ptag){ const i=ui.pickTags.indexOf(d.ptag); i<0?ui.pickTags.push(d.ptag):ui.pickTags.splice(i,1); t.setAttribute('aria-pressed',i<0); }
+  else if(t.id==='clearq'){ e.preventDefault(); ui.q=''; render(); }
+  else if(d.bc){ ui.boardCat=d.bc; render(); }
+  else if(d.ck){ ui.commKind=d.ck; render(); }
+  else if(t.id==='newthread-toggle'){ if(!ui.newThread&&!need()) return; ui.newThread=!ui.newThread; render(); }
+  else if(t.id==='login-open2'){ openLogin(); }
+  else if(t.id==='join'){ if(!need()) return; openJoin(d.id); }
+  else if(t.id==='join-confirm'){ confirmJoin(d.id); }
+  else if(t.id==='join-cancel'){ $('#login').close(); }
+  else if(t.id==='leave'){ if(!confirm('このコミュニティを退会しますか？')) return; S.joined=S.joined.filter(x=>x!==d.id); S.going=S.going.filter(x=>!x.startsWith(d.id+':')); save(); render(); toast('退会しました'); }
+  else if(t.id==='cancel-req'){ S.pending=S.pending.filter(x=>x!==d.id); save(); render(); toast('参加申請を取り消しました'); }
+  else if(d.approve||d.decline){ const [cid,i]=(d.approve||d.decline).split(':'); const c=S.comms.find(x=>x.id===cid); const [r]=c.reqs.splice(+i,1); if(d.approve){ c.members++; c.sample.push(r); toast(`${r[0]}さんの参加を承認しました`); } else toast(`${r[0]}さんの申請を見送りました`); save(); render(); }
+  else if(t.id==='evform-toggle'){ ui.evForm=!ui.evForm; render(); }
+  else if(d.go){ if(!need()) return; const i=S.going.indexOf(d.go); i<0?S.going.push(d.go):S.going.splice(i,1); save(); render(); toast(i<0?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); }
+  else if(t.id==='newtopic'){ toast('モックではトピック作成画面は省略しています'); }
+  else if(t.id==='logout'){ S.user=null; save(); render(); toast('ログアウトしました'); }
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='agree'){ $('#join-confirm').disabled=!e.target.checked; return; }
+  if(e.target.id==='me-age'){ S.user.age=e.target.value; save(); render(); toast(`年代を「${S.user.age}」に切り替えました`); }
+});
+document.addEventListener('input',e=>{ if(e.target.id==='comm-q'){ ui.cq=e.target.value; $('#comm-grid').innerHTML=commGrid(); } });
+function showErr(sel,msg){ const el=$(sel); el.textContent=msg; el.hidden=false; }
+function detect(u){
+  let h; try{ h=new URL(u).hostname.replace(/^www\./,''); }catch(e){ return null; }
+  if(/^(x|twitter|mobile\.twitter)\.com$/.test(h)) return 'X';
+  if(/threads\.(net|com)$/.test(h)) return 'Threads';
+  if(/instagram\.com$/.test(h)) return 'Instagram';
+  if(/(youtube\.com|youtu\.be)$/.test(h)) return 'YouTube';
+  if(/tiktok\.com$/.test(h)) return 'TikTok';
+  return null;
+}
+document.addEventListener('submit',e=>{
+  e.preventDefault();
+  const f=e.target;
+  if(f.id==='search'){ ui.q=$('#q').value.trim(); ui.pickFilter='すべて'; location.hash='#/picks'; }
+  else if(f.id==='profform'){
+    S.user={name:$('#pf-name').value.trim()||'ミルキー',age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
+    save(); $('#login').close(); render(); toast(`ようこそ、${S.user.name}さん`);
+  }
+  else if(f.id==='pickform'){
+    if(!need()) return;
+    const url=$('#pick-url').value.trim(), note=$('#pick-note').value.trim(), pf=detect(url);
+    if(!pf) return showErr('#pick-err','X・Threads・Instagram・YouTube・TikTokの投稿URLを貼ってください');
+    const bad=ng(note); if(bad) return showErr('#pick-err',bad);
+    const dup=S.picks.find(p=>p.url.replace(/[?#].*$/,'')===url.replace(/[?#].*$/,''));
+    if(dup&&dup.url.length>25){ dup.shares++; save(); location.hash='#/pick/'+dup.id; toast('すでに持ち寄られていた投稿です。持ち寄った人数に+1しました'); return; }
+    const acct=(url.match(/\.com\/@?([^/?#]+)/)||[])[1];
+    S.picks.unshift({id:'p'+Date.now(),pf,acct:acct?'@'+acct:pf+'の投稿',text:'',img:false,by:S.user.name,note,tags:ui.pickTags.length?[...ui.pickTags]:['まとめ'],likes:0,shares:1,ago:'たった今',url,comments:[]});
+    ui.pickTags=[]; ui.pickFilter='すべて'; save(); render(); toast('持ち寄りました！');
+  }
+  else if(f.id==='cmform'){
+    if(!need()) return;
+    const tx=$('#cm-text').value.trim(); if(!tx) return;
+    const bad=ng(tx); if(bad) return showErr('#cm-err',bad);
+    S.picks.find(p=>p.id===f.dataset.id).comments.push({by:S.user.name,t:tx,ago:'たった今'}); save(); render();
+  }
+  else if(f.id==='resform'){
+    if(!need()) return;
+    const tx=$('#res-text').value.trim(); if(!tx) return;
+    const bad=ng(tx); if(bad) return showErr('#res-err',bad);
+    const t=S.threads.find(x=>x.id===f.dataset.id);
+    const n=Math.max(t.count,t.res.length)+1;
+    t.res.push({n,nm:S.user.name,id:Math.random().toString(36).slice(2,7),t:tx}); t.count=n; t.upd='たった今'; save(); render();
+  }
+  else if(f.id==='comm-search'){ }
+  else if(f.id==='evform'){
+    const g=x=>$(x).value.trim();
+    const ev={id:'e'+Date.now(),t:g('#ev-title'),date:g('#ev-date'),time:g('#ev-time'),place:g('#ev-place'),area:g('#ev-area'),cap:Math.max(2,Math.min(50,+g('#ev-cap')||10)),joined:0,target:g('#ev-target'),host:S.user.name,desc:g('#ev-desc')};
+    if(!ev.t||!ev.date||!ev.place||!ev.area) return showErr('#ev-err','イベント名・日付・場所・エリアを入れてください');
+    const bad=ng(ev.t+ev.desc); if(bad) return showErr('#ev-err',bad);
+    const c=S.comms.find(x=>x.id===f.dataset.cid); c.events.push(ev); c.events.sort((a,b)=>a.date.localeCompare(b.date));
+    S.going.push(c.id+':'+ev.id); ui.evForm=false; save(); location.hash=`#/e/${c.id}/${ev.id}`; toast('イベントを公開しました');
+  }
+  else if(f.id==='commform'){
+    const name=$('#cm-name').value.trim(), desc=$('#cm-desc').value.trim();
+    if(!name) return showErr('#cm-err','コミュニティ名を入れてください');
+    const bad=ng(name+desc); if(bad) return showErr('#cm-err',bad);
+    const only={'10代のみ':'10代','18歳以上のみ':'18歳以上'}[$('#cm-only').value]||null;
+    const join=f.querySelector('[name="cm-join"]:checked').value;
+    const a=only==='10代'?['10代','10代']:only?['20代','30代']:['10代','40代'];
+    const now=new Date();
+    const c={id:'c'+Date.now(),mine:true,name,kind:$('#cm-kind').value,members:1,only,join,admin:S.user.name,subs:[],created:`${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()}`,
+      desc:desc||'（説明はまだありません）',rules:$('#cm-rules').value.split('\n').map(x=>x.trim()).filter(Boolean),topics:[{t:'自己紹介トピック',n:0,upd:'—'}],events:[],
+      sample:[[S.user.name,S.user.age,S.user.pref]],reqs:join==='承認制'?[['ゆずみるく',a[0],'東京都'],['いちごみるく',a[1],'千葉県']]:[]};
+    S.comms.unshift(c); save(); location.hash='#/c/'+c.id; toast(join==='承認制'?'コミュニティをつくりました。デモ用に参加申請が2件届いています':'コミュニティをつくりました');
+  }
+  else if(f.id==='threadform'){
+    const title=$('#th-title').value.trim(), body=$('#th-body').value.trim();
+    if(!title||!body) return showErr('#th-err','タイトルと最初の書き込みを入れてください');
+    const bad=ng(title+body); if(bad) return showErr('#th-err',bad);
+    const id='t'+Date.now();
+    S.threads.unshift({id,cat:$('#th-cat').value,title,count:1,upd:'たった今',res:[{n:1,nm:S.user.name,id:Math.random().toString(36).slice(2,7),t:body}]});
+    ui.newThread=false; save(); location.hash='#/thread/'+id;
+  }
+});
+render();
+</script>
