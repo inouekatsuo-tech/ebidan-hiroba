@@ -249,6 +249,11 @@ button.more{font-size:13px;color:var(--accent);font-weight:700;align-self:flex-s
 .follow-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .fl{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:700;cursor:pointer}
 .fl input{margin:0 2px 0 0}
+.live-note{font-size:12px;color:var(--ok);background:var(--ok-soft);border-radius:10px;padding:8px 12px}
+a.item{text-decoration:none}
+a.oitem{text-decoration:none}
+a.oitem:hover{border-color:var(--official)}
+.src-link{font-size:12px;color:var(--official);font-weight:700}
 .profile{padding:16px;display:flex;gap:14px;align-items:center}
 .profile .avatar{width:52px;height:52px;font-size:20px}
 @media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,8px);opacity:0}} }
@@ -311,8 +316,8 @@ const PREFS='北海道 青森県 岩手県 宮城県 秋田県 山形県 福島�
 const PF={X:'X',Threads:'@',Instagram:'IG',YouTube:'▶',TikTok:'♪'};
 const PROVIDERS=[['Google','G'],['Apple',''],['X','X'],['LINE','L'],['Facebook','f'],['メールアドレス','✉']];
 
-// 公式情報のサンプル（自動収集・自動カテゴリ分けを想定した架空データ）
-const OFFICIAL=(()=>{
+// 公式情報のサンプル（items.json が読めないときに使う架空データ）
+let OFFICIAL=(()=>{
   let seed=20260921; const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647; const pick=a=>a[Math.floor(rnd()*a.length)];
   const TPL={
     media:['音楽番組 生出演','レギュラーラジオ 放送回','ファッション誌 表紙・特集','バラエティ番組 ゲスト出演','ドラマ 出演情報 解禁','YouTube 新企画 公開','Web番組 配信'],
@@ -491,7 +496,7 @@ const cchip=c=>`<span class="chip cat-${c}">${CMAP[c].name}</span>`;
 function allItems(){ return [...OFFICIAL,...S.picks.map(p=>({...p,src:'fan'}))].sort((a,b)=>a.r-b.r); }
 function filtered(o){
   return allItems().filter(it=>{
-    if(o.g==='follow'&&!S.follow.includes(it.g)) return false;
+    if(o.g==='follow'&&it.g&&!S.follow.includes(it.g)) return false;
     if(o.g&&o.g!=='all'&&o.g!=='follow'&&it.g!==o.g) return false;
     if(o.c&&o.c!=='all'&&it.cat!==o.c) return false;
     if(o.src&&o.src!=='all'&&it.src!==o.src) return false;
@@ -500,17 +505,19 @@ function filtered(o){
   });
 }
 function oCard(it){
-  return `<article class="panel oitem"><span class="meta">${gchip(it.g)}<span class="chip official">公式 · ${esc(it.via)}</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
-    <span class="t">${esc(it.t)}</span>${it.sched?`<span class="meta">📅 ${days()[it.sched.d].w==='今日'?'今日':days()[it.sched.d].day+'日（'+days()[it.sched.d].w+'）'} ${it.sched.time}</span>`:''}</article>`;
+  const tag=it.url?`a class="panel oitem" href="${esc(it.url)}" target="_blank" rel="noopener"`:'article class="panel oitem"';
+  return `<${tag}><span class="meta">${gchip(it.g)}<span class="chip official">公式 · ${esc(it.via)}</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
+    <span class="t">${esc(it.t)}</span>${it.sched?`<span class="meta">📅 ${days()[it.sched.d].w==='今日'?'今日':days()[it.sched.d].day+'日（'+days()[it.sched.d].w+'）'} ${it.sched.time}</span>`:''}${it.url?'<span class="src-link">公式サイトで見る ↗</span>':''}</${it.url?'a':'article'}>`;
 }
 const itemCard=it=>it.src==='official'?oCard(it):pickCard(S.picks.find(p=>p.id===it.id));
 
 function schedHTML(filter){
   const ds=days();
   const rows=ds.map((d,i)=>{
-    const it=OFFICIAL.filter(o=>o.sched&&o.sched.d===i&&filter(o)).sort((a,b)=>a.sched.time.localeCompare(b.sched.time));
+    const it=OFFICIAL.filter(o=>o.sched&&o.sched.d===i&&filter(o)).sort((a,b)=>(a.sched.time||'').localeCompare(b.sched.time||''));
     if(!it.length) return '';
-    return `<div class="day"><div class="date ${i===0?'today':''}"><b>${d.day}</b><span>${d.w}</span></div><div class="items">${it.map(s=>`<div class="item"><span class="meta"><span class="time">${s.sched.time}</span>${gchip(s.g)}${cchip(s.cat)}</span><span class="t">${esc(s.t)}</span></div>`).join('')}</div></div>`;
+    const more=it.length-6;
+    return `<div class="day"><div class="date ${i===0?'today':''}"><b>${d.day}</b><span>${d.w}</span></div><div class="items">${it.slice(0,6).map(s=>`<${s.url?`a href="${esc(s.url)}" target="_blank" rel="noopener"`:'div'} class="item"><span class="meta">${s.sched.time?`<span class="time">${s.sched.time}</span>`:''}${gchip(s.g)}${cchip(s.cat)}${s.via.startsWith('スケジュール')?`<span class="chip">${esc(s.via.replace('スケジュール · ',''))}</span>`:''}</span><span class="t">${esc(s.t)}</span></${s.url?'a':'div'}>`).join('')}${more>0?`<span class="hint">ほか${more}件（情報ページで見られます）</span>`:''}</div></div>`;
   }).join('');
   return rows?`<div class="panel">${rows}</div>`:'<p class="hint">今週の予定はありません。</p>';
 }
@@ -530,9 +537,9 @@ const V={};
 V.home=()=>{
   const fav=S.follow;
   const top=[...S.picks].filter(p=>fav.includes(p.g)).sort((a,b)=>(b.likes+b.shares*5)-(a.likes+a.shares*5)).slice(0,3);
-  const news=OFFICIAL.filter(o=>fav.includes(o.g)).sort((a,b)=>a.r-b.r).slice(0,5);
+  const news=OFFICIAL.filter(o=>o.kind!=='schedule'&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r).slice(0,6);
   return `
-  <div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>
+  ${LIVE?`<div class="live-note"><b>公式情報は自動更新中</b>：EBiDAN公式サイトのニュース・スケジュールを30分ごとに集めています（最終更新 ${new Date(LIVE.updated).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}）。ファンの投稿・掲示板・コミュニティは架空のサンプルです。</div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
   <section class="hero">
     <h1>スタダ男子の情報、<em>ぜんぶここに。</em></h1>
     <p>10グループの公式発表も、ファンが見つけたいい投稿も。カテゴリ別に仕分けて、流れていかないように。（非公式）</p>
@@ -543,9 +550,9 @@ V.home=()=>{
   <section class="sec"><div class="sec-h"><h2>今週の新着マップ</h2><span class="sub">数字をタップでその情報だけ表示</span></div>
     ${matrixHTML()}
     <button class="linkbtn more" id="mx-toggle">${ui.mxAll?'推しグループだけ表示':'全10グループを表示'}</button></section>
-  <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>fav.includes(o.g))}</section>
+  <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
-    <div class="panel rows">${news.map(n=>`<div class="row"><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></div>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
+    <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>今日の持ち寄りランキング</h2><a class="more" href="#/info" data-src="fan">もっと見る</a></div>
     <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
@@ -566,7 +573,7 @@ V.info=()=>{
   </div>
   ${ui.pickOpen?pickFormHTML():''}
   ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/info" id="clearq">解除</a></div>`:''}
-  <p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けています（本番ではAIが判定）。</p>
+  <p class="hint">${LIVE?'公式情報はEBiDAN公式サイトから30分ごとに自動で集め、キーワードでカテゴリを仕分けています。':'公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。'}</p>
   <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>`;
 };
 function pickFormHTML(){
@@ -880,6 +887,32 @@ function confirmJoin(id){
     setTimeout(()=>{ if(!S.pending.includes(id)) return; S.pending=S.pending.filter(x=>x!==id); S.joined.push(id); save(); render(); toast(`（デモ）「${c.name}」の管理人が参加を承認しました`); },4000);
   } else { S.joined.push(id); save(); render(); toast(`「${c.name}」に参加しました`); }
 }
+// 公式情報：GitHub Actions が30分ごとに集めた data/items.json を読む
+let LIVE=null;
+function jstToday(){ const d=new Date(Date.now()+9*3600e3); return d.toISOString().slice(0,10); }
+function dayDiff(a,b){ return Math.round((new Date(a+'T00:00Z')-new Date(b+'T00:00Z'))/86400e3); }
+function relDate(date,today){ const n=dayDiff(today,date); return n<=0?'今日':n===1?'昨日':n+'日前'; }
+function toOfficial(items){
+  const today=jstToday(), out=[];
+  for(const it of items){
+    const n=dayDiff(it.date,today);
+    if(it.kind==='schedule'){
+      if(n<0||n>6) continue;
+      out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:''}});
+    } else {
+      if(n<-14) continue;
+      out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:'official',via:it.kind==='video'?'公式動画':'公式ニュース',t:it.t,url:it.url,r:-n,ago:relDate(it.date,today)});
+    }
+  }
+  return out;
+}
+async function loadLive(){
+  try{
+    const r=await fetch('data/items.json',{cache:'no-store'}); if(!r.ok) return;
+    const d=await r.json(); if(!d.items||!d.items.length) return;
+    LIVE=d; OFFICIAL=toOfficial(d.items); render();
+  }catch(e){}
+}
 function render(){
   const h=location.hash.replace(/^#\/?/,'')||'home';
   const [r,id,sub]=h.split('/');
@@ -1007,6 +1040,7 @@ document.addEventListener('submit',e=>{
   }
 });
 render();
+loadLive();
 </script>
 
 </html>
