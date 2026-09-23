@@ -8,6 +8,11 @@
 <meta property="og:title" content="えびだん広場（非公式・試作版）">
 <meta property="og:description" content="スタダ男子10グループの情報を、グループ×カテゴリで仕分け。公式もファンのいい投稿も、流れていかない推し活の広場（非公式）。">
 <meta property="og:type" content="website">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#D94873">
+<meta name="apple-mobile-web-app-title" content="えびだん広場">
+<meta name="mobile-web-app-capable" content="yes">
 <style>html{color-scheme:light dark}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;-webkit-text-size-adjust:100%}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>えびだん広場</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -254,6 +259,22 @@ a.item{text-decoration:none}
 a.oitem{text-decoration:none}
 a.oitem:hover{border-color:var(--official)}
 .src-link{font-size:12px;color:var(--official);font-weight:700}
+.install-h{align-items:flex-start}
+.app-icon{width:56px;height:56px;border-radius:14px;box-shadow:var(--shadow)}
+.install-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;text-decoration:none;position:relative}
+.install-banner img{width:40px;height:40px;border-radius:11px;flex:none}
+.install-banner b{display:block;font-size:14.5px}
+.install-banner span{font-size:12.5px;color:var(--muted)}
+.install-banner .x{position:absolute;top:4px;right:8px;background:none;border:0;font-size:18px;color:var(--muted);cursor:pointer;padding:4px}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.step{display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+.step .art{width:56px;height:56px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--accent-soft);color:var(--accent)}
+.step .art svg{width:32px;height:32px}
+.step .num{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent)}
+.step b{font-size:15px;line-height:1.5}
+.step p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+.ok-box{border-color:var(--ok)}
+.warn-box{border-color:var(--warn)}
 .profile{padding:16px;display:flex;gap:14px;align-items:center}
 .profile .avatar{width:52px;height:52px;font-size:20px}
 @media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,8px);opacity:0}} }
@@ -449,7 +470,7 @@ let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
 if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],follow:['milk','chotokkyu','onenonly']};
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
+let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -541,6 +562,7 @@ V.home=()=>{
   const news=OFFICIAL.filter(o=>o.kind!=='schedule'&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r).slice(0,6);
   return `
   ${LIVE?`<div class="live-note"><b>公式情報は自動更新中</b>：EBiDAN公式サイトのニュース・スケジュールを30分ごとに集めています（最終更新 ${new Date(LIVE.updated).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}）。ファンの投稿・掲示板・コミュニティは架空のサンプルです。</div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
+  ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>ホーム画面に追加しませんか？</b><span>アプリのように開けて、新着情報が通知で届きます</span></div><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
   <section class="hero">
     <h1>スタダ男子の情報、<em>ぜんぶここに。</em></h1>
     <p>10グループの公式発表も、ファンが見つけたいい投稿も。カテゴリ別に仕分けて、流れていかないように。（非公式）</p>
@@ -609,6 +631,58 @@ V.g=id=>{
     <div class="panel rows">${ths.map(threadRow).join('')||'<div class="row"><p class="hint">まだスレッドはありません。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>コミュニティ</h2><a class="more" href="#/community" data-cg="${id}">さがす</a></div>
     <div class="grid">${comms.map(commCard).join('')||'<p class="hint">まだコミュニティはありません。つくってみませんか？</p>'}</div></section>`;
+};
+// ===== ホーム画面に追加（PWA） =====
+function isStandalone(){ try{ return matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }catch(e){ return false; } }
+function isIOS(){ return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+function inApp(){ return /Line\/|FBAN|FBAV|Instagram|Twitter|MicroMessenger/i.test(navigator.userAgent); }
+let installPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installPrompt=e; if(location.hash==='#/install') render(); });
+
+const ART={
+  share:`<svg viewBox="0 0 64 64" fill="none"><rect x="14" y="16" width="36" height="40" rx="6" stroke="currentColor" stroke-width="3"/><path d="M32 40V12m0 0-8 8m8-8 8 8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  scroll:`<svg viewBox="0 0 64 64" fill="none"><rect x="12" y="14" width="40" height="36" rx="6" stroke="currentColor" stroke-width="3"/><path d="M20 24h24M20 32h24M20 40h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M46 44l5 5 5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  add:`<svg viewBox="0 0 64 64" fill="none"><rect x="12" y="20" width="40" height="28" rx="6" stroke="currentColor" stroke-width="3"/><path d="M32 26v16M24 34h16" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`,
+  bell:`<svg viewBox="0 0 64 64" fill="none"><path d="M32 12a12 12 0 0 1 12 12v10l4 7H16l4-7V24a12 12 0 0 1 12-12z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M27 47a5 5 0 0 0 10 0" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`,
+  menu:`<svg viewBox="0 0 64 64" fill="none"><rect x="16" y="10" width="32" height="44" rx="6" stroke="currentColor" stroke-width="3"/><circle cx="38" cy="20" r="2" fill="currentColor"/><circle cx="38" cy="27" r="2" fill="currentColor"/><circle cx="38" cy="34" r="2" fill="currentColor"/></svg>`,
+  safari:`<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="20" stroke="currentColor" stroke-width="3"/><path d="M40 24l-5 13-13 5 5-13z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>`,
+};
+const step=(n,art,t,d)=>`<li class="step"><span class="art">${ART[art]}</span><div><span class="num">STEP ${n}</span><b>${t}</b>${d?`<p>${d}</p>`:''}</div></li>`;
+
+V.install=()=>{
+  const done=isStandalone();
+  const perm=('Notification' in window)?Notification.permission:'unsupported';
+  let body;
+  if(done){
+    body=`<div class="panel compose ok-box"><b>ホーム画面に追加できています🎉</b>
+      <p class="hint">あとは通知をオンにすれば、推しの新着情報が届きます。</p>
+      ${perm==='granted'?'<span class="chip ok">通知はオンになっています</span>':perm==='denied'?'<p class="err">通知がオフになっています。iPhoneの「設定」→「通知」→「えびだん広場」からオンにできます。</p>':'<div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>'}
+      <p class="hint">※モックのため、実際の通知はまだ送られません。</p></div>`;
+  } else if(inApp()){
+    body=`<div class="panel compose warn-box"><b>このままでは追加できません</b>
+      <p class="hint">LINEやInstagramの中のブラウザで開いています。右上か右下の「…」から<b>「${isIOS()?'Safari':'Chrome'}で開く」</b>を選んで、もう一度この画面を開いてください。</p></div>
+      <ol class="steps">${step(1,'menu','「…」ボタンをタップ')}${step(2,'safari',`「${isIOS()?'Safari':'Chrome'}で開く」を選ぶ`)}</ol>`;
+  } else if(isIOS()){
+    body=`<ol class="steps">
+      ${step(1,'share','画面下の「共有」ボタンをタップ','四角から矢印が出ているマークです')}
+      ${step(2,'scroll','メニューを下にスクロール')}
+      ${step(3,'add','「ホーム画面に追加」をタップ')}
+      ${step(4,'bell','ホーム画面のアイコンから開いて、通知を「許可」','iPhoneは、ホーム画面に追加したアプリにしか通知を送れません')}
+    </ol>`;
+  } else {
+    body=`${installPrompt?`<div class="panel compose"><b>ワンタップで追加できます</b><div class="actions"><button class="btn" id="do-install">ホーム画面に追加</button></div></div>`:''}
+      <ol class="steps">
+      ${step(1,'menu','ブラウザ右上の「⋮」をタップ')}
+      ${step(2,'add','「アプリをインストール」または「ホーム画面に追加」をタップ')}
+      ${step(3,'bell','アイコンから開いて、通知を「許可」')}
+    </ol>`;
+  }
+  return `<a class="back" href="#/home">← ホーム</a>
+  <div class="page-h install-h"><img src="icon-192.png" alt="" class="app-icon" onerror="this.remove()">
+    <h1>アプリとして使う</h1>
+    <p>ホーム画面に追加すると、アプリのように開けて、<b>推しの新着情報が通知で届きます</b>。数十秒で終わります。</p></div>
+  ${body}
+  <div class="actions" style="justify-content:center"><a class="btn ghost" href="#/home" id="later">あとでやる</a></div>`;
 };
 function openFollow(){
   $('#login-body').innerHTML=`<h2 id="login-title">推しグループを選ぶ</h2><p>選んだグループの情報が、ホームに優先して表示されます。</p>
@@ -850,6 +924,7 @@ V.me=()=>{
     <li>公開されるのは「年代」と「都道府県」まで。生年月日や市区町村は表示されません</li>
     <li>${u.age==='10代'?'10代の方は、同じ10代からのメッセージだけ受け取れます':'10代の方へのメッセージは送れません'}</li>
     <li>困ったときは、どの投稿からも「通報」「ブロック」ができます</li></ul></div>
+  <a class="btn ghost center" href="#/install">${isStandalone()?'通知の設定':'ホーム画面に追加して通知を受け取る'}</a>
   <button class="btn ghost" id="logout">ログアウト</button>`;
 };
 function providersHTML(){
@@ -919,7 +994,7 @@ function render(){
   const [r,id,sub]=h.split('/');
   const view=V[r]?V[r](id,sub):V.home();
   $('#app').innerHTML=view;
-  const tab={pick:'info',g:'home',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
+  const tab={pick:'info',g:'home',install:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
 }
@@ -958,6 +1033,9 @@ document.addEventListener('click',e=>{
   else if(d.approve||d.decline){ const [cid,i]=(d.approve||d.decline).split(':'); const c=S.comms.find(x=>x.id===cid); const [r]=c.reqs.splice(+i,1); if(d.approve){ c.members++; c.sample.push(r); toast(`${r[0]}さんの参加を承認しました`); } else toast(`${r[0]}さんの申請を見送りました`); save(); render(); }
   else if(t.id==='evform-toggle'){ ui.evForm=!ui.evForm; render(); }
   else if(d.go){ if(!need()) return; const i=S.going.indexOf(d.go); i<0?S.going.push(d.go):S.going.splice(i,1); save(); render(); toast(i<0?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); }
+  else if(t.id==='hide-install'){ e.preventDefault(); ui.hideInstall=true; try{localStorage.setItem('hide-install','1');}catch(err){} render(); }
+  else if(t.id==='do-install'){ if(installPrompt){ installPrompt.prompt(); installPrompt=null; } }
+  else if(t.id==='ask-noti'){ Notification.requestPermission().then(p=>{ render(); toast(p==='granted'?'通知をオンにしました（モックのため実際の通知はまだ届きません）':'通知はオフのままです'); }); }
   else if(t.id==='newtopic'){ toast('モックではトピック作成画面は省略しています'); }
   else if(t.id==='logout'){ S.user=null; save(); render(); toast('ログアウトしました'); }
 });
@@ -982,7 +1060,8 @@ document.addEventListener('submit',e=>{
   if(f.id==='search'){ ui.q=$('#q').value.trim(); ui.ig='all'; ui.ic='all'; ui.src='all'; location.hash='#/info'; }
   else if(f.id==='profform'){
     S.user={name:$('#pf-name').value.trim()||'ミルキー',age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
-    save(); $('#login').close(); render(); toast(`ようこそ、${S.user.name}さん`);
+    save(); $('#login').close(); toast(`ようこそ、${S.user.name}さん`);
+    if(!isStandalone()){ location.hash='#/install'; } else { render(); }
   }
   else if(f.id==='pickform'){
     if(!need()) return;
@@ -1042,6 +1121,10 @@ document.addEventListener('submit',e=>{
 });
 render();
 loadLive();
+// ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）
+if('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
 </script>
 
 </html>
