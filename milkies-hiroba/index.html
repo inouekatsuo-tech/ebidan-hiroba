@@ -13,6 +13,7 @@
 <meta name="theme-color" content="#D94873">
 <meta name="apple-mobile-web-app-title" content="えびだん広場">
 <meta name="mobile-web-app-capable" content="yes">
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 <style>html{color-scheme:light dark}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;-webkit-text-size-adjust:100%}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>えびだん広場</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -250,6 +251,9 @@ button.more{font-size:13px;color:var(--accent);font-weight:700;align-self:flex-s
 .seg.mini button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .oitem{padding:12px 14px;display:flex;flex-direction:column;gap:4px}
 .oitem .t{font-weight:700;font-size:15px}
+.xitem .tw{min-height:60px}
+.xitem .twitter-tweet{margin:0!important}
+.xitem .tw:empty::after{content:"Xの投稿を読み込んでいます…";font-size:12px;color:var(--muted)}
 .ghead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:16px;border-radius:16px;background:linear-gradient(135deg,hsl(var(--h) 70% 55% / .16),hsl(var(--h) 70% 55% / .04));border:1px solid hsl(var(--h) 50% 55% / .3)}
 .follow-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .fl{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13.5px;font-weight:700;cursor:pointer}
@@ -550,7 +554,13 @@ function oCard(it){
   return `<${tag}><span class="meta">${gchip(it.g)}<span class="chip official">公式 · ${esc(it.via)}</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
     <span class="t">${esc(it.t)}</span>${it.sched?`<span class="meta">📅 ${days()[it.sched.d].w==='今日'?'今日':days()[it.sched.d].day+'日（'+days()[it.sched.d].w+'）'} ${it.sched.time}</span>`:''}${it.url?'<span class="src-link">公式サイトで見る ↗</span>':''}</${it.url?'a':'article'}>`;
 }
-const itemCard=it=>it.src==='official'?oCard(it):pickCard(S.picks.find(p=>p.id===it.id));
+function xCard(it){
+  return `<article class="panel oitem xitem">
+    <span class="meta">${gchip(it.g)}<span class="chip official">${esc(it.via)}</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
+    <div class="tw"><blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" data-conversation="none"><a href="${esc(it.url)}"></a></blockquote></div>
+    <a class="open" href="${esc(it.url)}" target="_blank" rel="noopener">Xで見る ↗</a></article>`;
+}
+const itemCard=it=>it.kind==='x'?xCard(it):it.src==='official'?oCard(it):pickCard(S.picks.find(p=>p.id===it.id));
 
 function schedHTML(filter){
   const ds=days();
@@ -1080,7 +1090,9 @@ function toOfficial(items){
       out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:''}});
     } else {
       if(n<-14) continue;
-      out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:'official',via:it.kind==='video'?'公式動画':'公式ニュース',t:it.t,url:it.url,r:-n,ago:relDate(it.date,today)});
+      out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:'official',
+        via:it.kind==='video'?'公式動画':it.kind==='x'?`公式X · @${it.author}`:'公式ニュース',
+        author:it.author,t:it.t||`@${it.author} の投稿`,url:it.url,r:-n,ago:relDate(it.date,today)});
     }
   }
   return out;
@@ -1102,6 +1114,7 @@ function render(){
   $('#app').innerHTML=view;
   const tab={pick:'info',g:'home',install:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  if(window.twttr&&twttr.widgets&&$('#app').querySelector('.twitter-tweet')) twttr.widgets.load($('#app'));
   $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
 }
 function go(){ render(); window.scrollTo(0,0); }
