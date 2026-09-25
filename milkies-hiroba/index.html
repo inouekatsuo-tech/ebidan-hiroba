@@ -573,11 +573,11 @@ function ensureLiveThreads(){
   // 同じ出演情報（複数グループが一緒に出るイベントなど）はひとつのスレッドにまとめる
   const seen=new Map();
   OFFICIAL.filter(o=>o.sched&&o.sched.d===0&&(o.cat==='media'||o.cat==='event')).forEach(o=>{
-    const key=o.url||o.t;
+    const key=o.t.replace(/^【[^】]+】/,'').trim(); // 【メンバー名】を外した番組名で重複判定
     if(seen.has(key)){ const e=seen.get(key); if(o.g&&!e.gs.includes(o.g)) e.gs.push(o.g); }
     else seen.set(key,{o,gs:o.g?[o.g]:[]});
   });
-  const live=[...seen.values()].slice(0,6).map(({o,gs})=>({...o,id:'lt-'+(o.url||o.t).replace(/\W/g,'').slice(-14),gs,
+  const live=[...seen.values()].slice(0,6).map(({o,gs})=>({...o,id:'lt-'+o.t.replace(/^【[^】]+】/,'').replace(/\W/g,'').slice(0,18),gs,
     t:o.t.replace(/^【[^】]+】/,'')}));
   const todayIds=new Set(live.map(o=>o.id));
   // 昨日までの実況スレは、書き込みがなければ片づける
