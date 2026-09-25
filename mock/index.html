@@ -248,6 +248,14 @@ a.oitem:hover{border-color:var(--official)}
 .update-note span:not(.pulse),.live-note span:not(.pulse){color:var(--muted)}
 .pulse{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;margin-top:5px;box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}
 @media (prefers-reduced-motion:no-preference){.pulse{animation:pulse 2.4s infinite}@keyframes pulse{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}}
+.reax{display:flex;gap:6px;margin-top:8px}
+.rx{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:13px;cursor:pointer;line-height:1.4}
+.rx span{font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.rx:hover{border-color:var(--accent)}
+.rx.on{background:var(--accent-soft);border-color:var(--accent)}
+.rx.on span{color:var(--accent)}
+.noti-list{display:flex;flex-direction:column;gap:6px}
+.noti-list .fl{font-weight:500}
 .live-row{align-items:center}
 .live-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
 .live-row .join{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
@@ -463,7 +471,7 @@ const SEED={
 const KEY='milkies-demo-v3';
 let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],follow:['milk','chotokkyu','onenonly']};
+if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']};
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
 let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
@@ -576,6 +584,23 @@ function ensureLiveThreads(){
   });
   if(added||before!==S.threads.length) save();
   return added;
+}
+// ===== リアクション（3種） =====
+const REAX=[['wakaru','👍','わかる'],['suki','💖','すき'],['warota','😂','笑った']];
+function reaxHTML(key,seed){
+  const mine=S.myReax[key]||[];
+  return `<div class="reax">${REAX.map(([id,ic,label])=>{
+    const n=(S.reax[key]&&S.reax[key][id]||0)+((seed&&seed[id])||0)+(mine.includes(id)?1:0);
+    return `<button class="rx ${mine.includes(id)?'on':''}" data-rx="${key}:${id}" aria-pressed="${mine.includes(id)}" title="${label}">${ic}<span>${n||''}</span></button>`;
+  }).join('')}</div>`;
+}
+function toggleReax(v){
+  const i=v.lastIndexOf(':'), key=v.slice(0,i), id=v.slice(i+1);
+  const mine=S.myReax[key]||(S.myReax[key]=[]);
+  const at=mine.indexOf(id);
+  at<0?mine.push(id):mine.splice(at,1);
+  if(!mine.length) delete S.myReax[key];
+  save(); render();
 }
 const V={};
 V.home=()=>{
@@ -708,6 +733,27 @@ V.install=()=>{
   ${body}
   <div class="actions" style="justify-content:center"><a class="btn ghost" href="#/home" id="later">あとでやる</a></div>`;
 };
+// ===== 通知 =====
+const notiSupported=()=>('Notification' in window)&&('serviceWorker' in navigator);
+function notiState(){ return notiSupported()?Notification.permission:'unsupported'; }
+async function askNoti(){
+  if(!notiSupported()) return toast('この環境では通知を使えません');
+  const p=await Notification.requestPermission();
+  render();
+  if(p==='granted'){ showLocalNoti('通知をオンにしました','推しの出演がある日は、実況スレが立ったらお知らせします'); toast('通知をオンにしました'); }
+  else toast('通知はオフのままです');
+}
+async function showLocalNoti(title,body,url){
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    reg.showNotification(title,{body,icon:'icon-192.png',badge:'icon-192.png',tag:'ebidan',data:{url:url||location.href}});
+  }catch(e){ toast('通知を表示できませんでした'); }
+}
+// 新しく立った実況スレを、アプリを開いたときに知らせる（本番はサーバーから届く）
+function notifyNewLive(n,first){
+  if(!S.noti.live||notiState()!=='granted'||!n) return;
+  showLocalNoti(`今日の実況スレが立ちました（${n}件）`,first?`「${first}」ほか。見ながら語りましょう！`:'', location.origin+location.pathname+'#/board');
+}
 function openFollow(){
   $('#login-body').innerHTML=`<h2 id="login-title">推しグループを選ぶ</h2><p>選んだグループの情報が、ホームに優先して表示されます。</p>
   <div class="follow-list">${GROUPS.map(g=>`<label class="fl"><input type="checkbox" value="${g.id}" ${S.follow.includes(g.id)?'checked':''}>${dot(g.id)}${esc(g.name)}</label>`).join('')}</div>
@@ -720,7 +766,7 @@ V.pick=id=>{
   ${pickCard(p)}
   <div class="notice">ここでのコメントはえびだん広場の中だけに表示されます。元の投稿には反映されず、投稿者に通知も届きません。</div>
   <section class="sec"><div class="sec-h"><h2>コメント ${p.comments.length}</h2></div>
-    <div class="panel comments">${p.comments.map(c=>`<div class="cm"><span class="meta"><b>${esc(c.by)}</b>${esc(c.ago)}</span><p>${esc(c.t)}</p></div>`).join('')||'<div class="cm"><p class="hint">まだコメントはありません。</p></div>'}</div>
+    <div class="panel comments">${p.comments.map((c,i)=>`<div class="cm"><span class="meta"><b>${esc(c.by)}</b>${esc(c.ago)}</span><p>${esc(c.t)}</p>${reaxHTML(p.id+':c'+i,i===0?{wakaru:5,suki:2}:null)}</div>`).join('')||'<div class="cm"><p class="hint">まだコメントはありません。</p></div>'}</div>
     <form class="panel compose" id="cmform" data-id="${p.id}">
       <textarea class="field" id="cm-text" placeholder="${S.user?'コメントを書く':'コメントするにはログインしてください'}" aria-label="コメント"></textarea>
       <p class="err" id="cm-err" hidden></p>
@@ -751,7 +797,8 @@ V.board=()=>{
 };
 V.thread=id=>{
   const t=S.threads.find(x=>x.id===id); if(!t) return V.board();
-  const shown=t.res.map(r=>`<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p></div>`).join('');
+  const SEED={2:{wakaru:6,suki:2},3:{wakaru:11,warota:3},4:{suki:4}};
+  const shown=t.res.map(r=>`<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p>${r.nm==='広場の運営'?'':reaxHTML(t.id+':'+r.n,SEED[r.n])}</div>`).join('');
   return `<a class="back" href="#/board">← 掲示板</a>
   <div class="page-h"><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
   ${t.live?`<div class="notice">このスレッドは出演情報から自動で立ちました。${t.srcUrl?`<a href="${esc(t.srcUrl)}" target="_blank" rel="noopener">公式の情報を見る ↗</a>`:''}</div>`:''}
@@ -949,7 +996,14 @@ V.me=()=>{
     <li>公開されるのは「年代」と「都道府県」まで。生年月日や市区町村は表示されません</li>
     <li>${u.age==='10代'?'10代の方は、同じ10代からのメッセージだけ受け取れます':'10代の方へのメッセージは送れません'}</li>
     <li>困ったときは、どの投稿からも「通報」「ブロック」ができます</li></ul></div>
-  <a class="btn ghost center" href="#/install">${isStandalone()?'通知の設定':'ホーム画面に追加して通知を受け取る'}</a>
+  <div class="panel compose"><h3>通知</h3>
+    ${notiState()==='granted'?`<span class="chip ok">通知はオンです</span>
+      <div class="noti-list">${[['live','実況スレが立ったとき'],['news','推しグループの新着情報'],['comm','コミュニティ・イベントのお知らせ']].map(([k,l])=>`<label class="fl"><input type="checkbox" data-noti="${k}" ${S.noti[k]?'checked':''}> ${l}</label>`).join('')}</div>
+      <div class="actions"><button class="btn sm ghost" id="test-noti">テスト通知を送ってみる</button></div>`
+    : notiState()==='denied'?`<p class="err">通知がオフになっています。iPhoneは「設定」→「通知」→「えびだん広場」、Androidはブラウザのサイト設定からオンにできます。</p>`
+    : isStandalone()?`<p class="hint">実況スレや推しの新着をお知らせします。</p><div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>`
+    : `<p class="hint">iPhoneは<b>ホーム画面に追加すると</b>通知を受け取れます。</p><div class="actions"><a class="btn" href="#/install">ホーム画面に追加する</a></div>`}
+  </div>
   <button class="btn ghost" id="logout">ログアウト</button>`;
 };
 function providersHTML(){
@@ -1019,7 +1073,10 @@ async function loadLive(){
   try{
     const r=await fetch('data/items.json',{cache:'no-store'}); if(!r.ok) return;
     const d=await r.json(); if(!d.items||!d.items.length) return;
-    LIVE=d; OFFICIAL=toOfficial(d.items); ensureLiveThreads(); render();
+    LIVE=d; OFFICIAL=toOfficial(d.items);
+    const added=ensureLiveThreads(); render();
+    const lt=S.threads.find(t=>t.live);
+    notifyNewLive(added, lt&&lt.title.replace('【実況】',''));
   }catch(e){}
 }
 function render(){
@@ -1040,6 +1097,7 @@ document.addEventListener('click',e=>{
   if(t.id==='login-open'){ openLogin(); }
   else if(t.id==='login-cancel'){ $('#login').close(); }
   else if(d.prov){ profileStep(d.prov); }
+  else if(d.rx){ if(!need()) return; toggleReax(d.rx); }
   else if(d.like){ if(!need()) return; const i=S.likes.indexOf(d.like); i<0?S.likes.push(d.like):S.likes.splice(i,1); save(); render(); }
   else if(d.mx){ const [g,c]=d.mx.split(':'); ui.ig=g||(ui.mxAll?'all':'follow'); ui.ic=c; ui.src='all'; ui.q=''; if(location.hash==='#/info') go(); else location.hash='#/info'; }
   else if(d.ig){ ui.ig=d.ig; render(); }
@@ -1068,12 +1126,14 @@ document.addEventListener('click',e=>{
   else if(d.go){ if(!need()) return; const i=S.going.indexOf(d.go); i<0?S.going.push(d.go):S.going.splice(i,1); save(); render(); toast(i<0?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); }
   else if(t.id==='hide-install'){ e.preventDefault(); ui.hideInstall=true; try{localStorage.setItem('hide-install','1');}catch(err){} render(); }
   else if(t.id==='do-install'){ if(installPrompt){ installPrompt.prompt(); installPrompt=null; } }
-  else if(t.id==='ask-noti'){ Notification.requestPermission().then(p=>{ render(); toast(p==='granted'?'通知をオンにしました（モックのため実際の通知はまだ届きません）':'通知はオフのままです'); }); }
+  else if(t.id==='ask-noti'){ askNoti(); }
+  else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
   else if(t.id==='newtopic'){ toast('モックではトピック作成画面は省略しています'); }
   else if(t.id==='logout'){ S.user=null; save(); render(); toast('ログアウトしました'); }
 });
 document.addEventListener('change',e=>{
   if(e.target.id==='agree'){ $('#join-confirm').disabled=!e.target.checked; return; }
+  if(e.target.dataset.noti){ S.noti[e.target.dataset.noti]=e.target.checked; save(); toast('通知の設定を保存しました'); return; }
   if(e.target.id==='me-age'){ S.user.age=e.target.value; save(); render(); toast(`年代を「${S.user.age}」に切り替えました`); }
 });
 document.addEventListener('input',e=>{ if(e.target.id==='comm-q'){ ui.cq=e.target.value; $('#comm-grid').innerHTML=commGrid(); } });

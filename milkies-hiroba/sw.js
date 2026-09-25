@@ -1,6 +1,6 @@
 // ホーム画面アプリとして動くための最小限のService Worker。
 // 通信はそのまま通し、オフラインのときだけ最後に見たページを返す。
-const CACHE = 'ebidan-hiroba-v1';
+const CACHE = 'ebidan-hiroba-v2';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
@@ -18,4 +18,24 @@ self.addEventListener('fetch', e => {
       throw err;
     }
   })());
+});
+
+// 通知をタップしたら、アプリの該当ページを開く
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil((async () => {
+    const list = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of list) if ('focus' in c) { c.navigate(url); return c.focus(); }
+    return clients.openWindow(url);
+  })());
+});
+
+// サーバーから送られてくるプッシュ通知（送信側は今後実装）
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: 'えびだん広場', body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'えびだん広場', {
+    body: d.body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: d.tag || 'ebidan', data: { url: d.url || '/' },
+  }));
 });
