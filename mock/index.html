@@ -554,15 +554,23 @@ function matrixHTML(){
 function ensureLiveThreads(){
   const today=days()[0];
   let added=0;
-  const live=OFFICIAL.filter(o=>o.sched&&o.sched.d===0&&(o.cat==='media'||o.cat==='event')).slice(0,8);
-  const todayIds=new Set(live.map(o=>'lt-'+o.id));
+  // 同じ出演情報（複数グループが一緒に出るイベントなど）はひとつのスレッドにまとめる
+  const seen=new Map();
+  OFFICIAL.filter(o=>o.sched&&o.sched.d===0&&(o.cat==='media'||o.cat==='event')).forEach(o=>{
+    const key=o.url||o.t;
+    if(seen.has(key)){ const e=seen.get(key); if(o.g&&!e.gs.includes(o.g)) e.gs.push(o.g); }
+    else seen.set(key,{o,gs:o.g?[o.g]:[]});
+  });
+  const live=[...seen.values()].slice(0,6).map(({o,gs})=>({...o,id:'lt-'+(o.url||o.t).replace(/\W/g,'').slice(-14),gs,
+    t:o.t.replace(/^【[^】]+】/,'')}));
+  const todayIds=new Set(live.map(o=>o.id));
   // 昨日までの実況スレは、書き込みがなければ片づける
   const before=S.threads.length;
   S.threads=S.threads.filter(t=>!t.live||todayIds.has(t.id)||t.res.length>1);
   live.forEach(o=>{
-    const id='lt-'+o.id;
+    const id=o.id;
     if(S.threads.some(t=>t.id===id)) return;
-    S.threads.unshift({id,g:o.g,cat:'実況',live:true,title:`【実況】${o.t}`,srcUrl:o.url,when:`${today.day}日 ${o.sched.time||''}`.trim(),count:1,upd:'自動で作成',
+    S.threads.unshift({id,g:o.gs.length===1?o.gs[0]:null,gs:o.gs,cat:'実況',live:true,title:`【実況】${o.t}`,srcUrl:o.url,when:`${today.day}日 ${o.sched.time||''}`.trim(),count:1,upd:'自動で作成',
       res:[{n:1,nm:'広場の運営',id:'system',t:`このスレッドは出演情報から自動で立ちました。\n見ながらの実況・感想をどうぞ！\n\n※放送前の内容（ネタバレ）は伏せてください\n※チケットの売買・譲渡、メンバーのプライベートの話は禁止です`}]});
     added++;
   });
@@ -587,8 +595,8 @@ V.home=()=>{
   <section class="sec"><div class="sec-h"><h2>今週の新着マップ</h2><span class="sub">数字をタップでその情報だけ表示</span></div>
     ${matrixHTML()}
     <button class="linkbtn more" id="mx-toggle">${ui.mxAll?'推しグループだけ表示':'全10グループを表示'}</button></section>
-  ${(()=>{ const lt=S.threads.filter(t=>t.live&&(!t.g||fav.includes(t.g))); return `<section class="sec"><div class="sec-h"><h2>今日の実況スレ</h2><span class="sub">出演情報から自動で作成</span></div>
-    ${lt.length?`<div class="panel rows">${lt.slice(0,4).map(t=>`<a class="row live-row" href="#/thread/${t.id}"><span class="live-dot"></span><div class="main"><span class="t">${esc(t.title.replace('【実況】',''))}</span><span class="meta">${gchip(t.g)}${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count}レス</span></div><span class="join">実況に参加 →</span></a>`).join('')}</div>`:'<p class="hint">今日は推しグループの出演予定がありません。ほかのグループの実況スレは掲示板から見られます。</p>'}</section>`; })()}
+  ${(()=>{ const lt=S.threads.filter(t=>t.live&&(!t.g&&!(t.gs||[]).length||(t.gs||[t.g]).some(g=>!g||fav.includes(g)))); return `<section class="sec"><div class="sec-h"><h2>今日の実況スレ</h2><span class="sub">出演情報から自動で作成</span></div>
+    ${lt.length?`<div class="panel rows">${lt.slice(0,4).map(t=>`<a class="row live-row" href="#/thread/${t.id}"><span class="live-dot"></span><div class="main"><span class="t">${esc(t.title.replace('【実況】',''))}</span><span class="meta">${(t.gs&&t.gs.length?t.gs:[t.g]).slice(0,3).map(gchip).join('')}${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count}レス</span></div><span class="join">実況に参加 →</span></a>`).join('')}</div>`:'<p class="hint">今日は推しグループの出演予定がありません。ほかのグループの実況スレは掲示板から見られます。</p>'}</section>`; })()}
   <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
     <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
