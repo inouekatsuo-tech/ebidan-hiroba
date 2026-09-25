@@ -23,7 +23,8 @@ jobs:
           node-version: 22
       - name: EBiDAN公式サイトから集める
         run: node collector/collect.mjs
-      - name: 公式Xの新着を集める（X_BEARER_TOKEN があるときだけ）
+      - name: 公式Xの新着を集める（1時間に1回・X_BEARER_TOKEN があるときだけ）
+        if: github.event_name == 'workflow_dispatch' || fromJSON('true')
         env:
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
         run: node collector/collect-x.mjs

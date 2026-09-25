@@ -14,7 +14,9 @@ const OUT = new URL('../milkies-hiroba/data/items.json', import.meta.url);
 const CONF = new URL('./x-accounts.json', import.meta.url);
 const STATE = new URL('./x-state.json', import.meta.url);
 const TOKEN = process.env.X_BEARER_TOKEN;
-const MAX = +process.env.X_MAX || 25;   // 1回に取り込む上限（使いすぎ防止）
+const MAX = +process.env.X_MAX || 25;        // 1回に取り込む上限
+const BUDGET = +process.env.X_BUDGET || 3;   // 1か月に使う上限（ドル）。超えたらその月は取得を止める
+const PER_POST = 0.005;                      // 1投稿あたりの目安（ドル）
 
 async function main() {
   if (!TOKEN) { console.log('X_BEARER_TOKEN が未設定のため、Xの収集はスキップしました'); return; }
@@ -23,6 +25,15 @@ async function main() {
 
   let state = {};
   try { state = JSON.parse(await readFile(STATE, 'utf8')); } catch {}
+
+  // 今月の使用量チェック（予算を超えたら翌月まで止める）
+  const month = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 7);
+  if (state.month !== month) { state.month = month; state.posts = 0; }
+  const spent = (state.posts || 0) * PER_POST;
+  if (spent >= BUDGET) {
+    console.log(`今月のX取得は上限（$${BUDGET}）に達しています。使用 $${spent.toFixed(3)} / ${state.posts}件`);
+    return;
+  }
 
   const query = `(${accounts.map(a => `from:${a.user}`).join(' OR ')}) -is:retweet -is:reply`;
   const url = new URL('https://api.x.com/2/tweets/search/recent');
@@ -60,8 +71,9 @@ async function main() {
   await writeFile(OUT, JSON.stringify(data, null, 1) + '\n');
 
   const newest = tweets.reduce((a, t) => (BigInt(t.id) > BigInt(a) ? t.id : a), state.since_id || '0');
-  await writeFile(STATE, JSON.stringify({ since_id: newest, updated: seen }, null, 1) + '\n');
-  console.log(`Xの投稿を ${fresh.length} 件 取り込みました（おおよそ $${(fresh.length * 0.005).toFixed(3)}）`);
+  const posts = (state.posts || 0) + fresh.length;
+  await writeFile(STATE, JSON.stringify({ since_id: newest, month, posts, updated: seen }, null, 1) + '\n');
+  console.log(`Xの投稿を ${fresh.length} 件 取り込みました（おおよそ $${(fresh.length * PER_POST).toFixed(3)}）。今月の合計 ${posts}件 / 約$${(posts * PER_POST).toFixed(2)}（上限 $${BUDGET}）`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
