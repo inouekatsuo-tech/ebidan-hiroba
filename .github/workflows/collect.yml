@@ -24,10 +24,15 @@ jobs:
       - name: EBiDAN公式サイトから集める
         run: node collector/collect.mjs
       - name: 公式Xの新着を集める（1時間に1回・X_BEARER_TOKEN があるときだけ）
-        if: github.event_name == 'workflow_dispatch' || fromJSON('true')
         env:
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
-        run: node collector/collect-x.mjs
+          EVENT: ${{ github.event_name }}
+        run: |
+          # 定期実行のうち毎時1回だけ動かす（手動実行のときは毎回動かす）
+          if [ "$EVENT" != "workflow_dispatch" ] && [ "$(date -u +%M)" -ge 30 ]; then
+            echo "この回はXの取得を行いません（1時間に1回）"; exit 0
+          fi
+          node collector/collect-x.mjs
 
       - name: 変化があればコミット（Vercelが自動でサイトを更新）
         run: |
