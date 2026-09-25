@@ -243,6 +243,17 @@ a.item{text-decoration:none}
 a.oitem{text-decoration:none}
 a.oitem:hover{border-color:var(--official)}
 .src-link{font-size:12px;color:var(--official);font-weight:700}
+.live-note,.update-note{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--ok);background:var(--ok-soft);border-radius:10px;padding:9px 12px}
+.update-note b,.live-note b{display:block;font-size:13px}
+.update-note span:not(.pulse),.live-note span:not(.pulse){color:var(--muted)}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;margin-top:5px;box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 60%,transparent)}
+@media (prefers-reduced-motion:no-preference){.pulse{animation:pulse 2.4s infinite}@keyframes pulse{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}}
+.live-row{align-items:center}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+.live-row .join{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
+.inherit{background:var(--sunk);border-radius:10px;padding:8px 12px;font-size:12px;display:flex;flex-direction:column}
+.inherit b{font-size:12.5px}
+.inherit span{color:var(--muted)}
 .install-h{align-items:flex-start}
 .app-icon{width:56px;height:56px;border-radius:14px;box-shadow:var(--shadow)}
 .install-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;text-decoration:none;position:relative}
@@ -539,13 +550,32 @@ function matrixHTML(){
   </table></div>`;
 }
 
+// 出演情報から「実況スレ」を自動で立てる（情報 → 交流の入口）
+function ensureLiveThreads(){
+  const today=days()[0];
+  let added=0;
+  const live=OFFICIAL.filter(o=>o.sched&&o.sched.d===0&&(o.cat==='media'||o.cat==='event')).slice(0,8);
+  const todayIds=new Set(live.map(o=>'lt-'+o.id));
+  // 昨日までの実況スレは、書き込みがなければ片づける
+  const before=S.threads.length;
+  S.threads=S.threads.filter(t=>!t.live||todayIds.has(t.id)||t.res.length>1);
+  live.forEach(o=>{
+    const id='lt-'+o.id;
+    if(S.threads.some(t=>t.id===id)) return;
+    S.threads.unshift({id,g:o.g,cat:'実況',live:true,title:`【実況】${o.t}`,srcUrl:o.url,when:`${today.day}日 ${o.sched.time||''}`.trim(),count:1,upd:'自動で作成',
+      res:[{n:1,nm:'広場の運営',id:'system',t:`このスレッドは出演情報から自動で立ちました。\n見ながらの実況・感想をどうぞ！\n\n※放送前の内容（ネタバレ）は伏せてください\n※チケットの売買・譲渡、メンバーのプライベートの話は禁止です`}]});
+    added++;
+  });
+  if(added||before!==S.threads.length) save();
+  return added;
+}
 const V={};
 V.home=()=>{
   const fav=S.follow;
   const top=[...S.picks].filter(p=>fav.includes(p.g)).sort((a,b)=>(b.likes+b.shares*5)-(a.likes+a.shares*5)).slice(0,3);
   const news=OFFICIAL.filter(o=>o.kind!=='schedule'&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r).slice(0,6);
   return `
-  ${LIVE?`<div class="live-note"><b>公式情報は自動更新中</b>：EBiDAN公式サイトのニュース・スケジュールを30分ごとに集めています（最終更新 ${new Date(LIVE.updated).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}）。ファンの投稿・掲示板・コミュニティは架空のサンプルです。</div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
+  ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は30分ごとに自動更新</b>：EBiDAN公式サイトから集めています（最終更新 ${fmtUpdated(LIVE.updated)}）。ファンの投稿・掲示板・コミュニティは架空のサンプルです。</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
   ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>ホーム画面に追加しませんか？</b><span>アプリのように開けて、新着情報が通知で届きます</span></div><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
   <section class="hero">
     <h1>スタダ男子の情報、<em>ぜんぶここに。</em></h1>
@@ -557,13 +587,15 @@ V.home=()=>{
   <section class="sec"><div class="sec-h"><h2>今週の新着マップ</h2><span class="sub">数字をタップでその情報だけ表示</span></div>
     ${matrixHTML()}
     <button class="linkbtn more" id="mx-toggle">${ui.mxAll?'推しグループだけ表示':'全10グループを表示'}</button></section>
+  ${(()=>{ const lt=S.threads.filter(t=>t.live&&(!t.g||fav.includes(t.g))); return `<section class="sec"><div class="sec-h"><h2>今日の実況スレ</h2><span class="sub">出演情報から自動で作成</span></div>
+    ${lt.length?`<div class="panel rows">${lt.slice(0,4).map(t=>`<a class="row live-row" href="#/thread/${t.id}"><span class="live-dot"></span><div class="main"><span class="t">${esc(t.title.replace('【実況】',''))}</span><span class="meta">${gchip(t.g)}${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count}レス</span></div><span class="join">実況に参加 →</span></a>`).join('')}</div>`:'<p class="hint">今日は推しグループの出演予定がありません。ほかのグループの実況スレは掲示板から見られます。</p>'}</section>`; })()}
   <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
     <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>今日の持ち寄りランキング</h2><a class="more" href="#/info" data-src="fan">もっと見る</a></div>
     <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
-    <div class="panel rows">${S.threads.filter(t=>!t.g||fav.includes(t.g)).slice(0,3).map(threadRow).join('')}</div></section>`;
+    <div class="panel rows">${S.threads.filter(t=>!t.live&&(!t.g||fav.includes(t.g))).slice(0,3).map(threadRow).join('')}</div></section>`;
 };
 
 V.info=()=>{
@@ -580,7 +612,7 @@ V.info=()=>{
   </div>
   ${ui.pickOpen?pickFormHTML():''}
   ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/info" id="clearq">解除</a></div>`:''}
-  <p class="hint">${LIVE?'公式情報はEBiDAN公式サイトから30分ごとに自動で集め、キーワードでカテゴリを仕分けています。':'公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。'}</p>
+  ${LIVE?`<div class="update-note"><span class="pulse"></span><div><b>30分ごとに自動更新</b><span>EBiDAN公式サイトのニュース・動画・スケジュールを自動で集めて、カテゴリに仕分けています。最終更新 ${fmtUpdated(LIVE.updated)}（混み合うと少し遅れることがあります）</span></div></div>`:'<p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。</p>'}
   <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>`;
 };
 function pickFormHTML(){
@@ -689,9 +721,9 @@ V.pick=id=>{
   </section>`;
 };
 
-function threadRow(t){ return `<a class="row" href="#/thread/${t.id}"><div class="main"><span class="t">${esc(t.title)}</span><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${t.count}レス · ${esc(t.upd)}</span></div></a>`; }
+function threadRow(t){ return `<a class="row" href="#/thread/${t.id}"><div class="main"><span class="t">${esc(t.title)}</span><span class="meta">${gchip(t.g)}<span class="chip ${t.live?'fan':''}">${esc(t.cat)}</span>${t.count}レス · ${esc(t.upd)}</span></div></a>`; }
 V.board=()=>{
-  const cats=['すべて','ライブ','新曲','初心者','グッズ','雑談'];
+  const cats=['すべて','実況','ライブ','新曲','初心者','グッズ','雑談'];
   const list=S.threads.filter(t=>(ui.boardCat==='すべて'||t.cat===ui.boardCat)&&(ui.bg==='all'||(ui.bg==='none'?!t.g:t.g===ui.bg)));
   return `<div class="page-h"><h1>掲示板</h1><p>誰でもスレッドを立てて、語り合える場所。</p></div>
   <div class="safety panel"><b>書き込みのルール</b><ul><li>チケットの売買・譲渡の書き込みは禁止</li><li>メンバーのプライベート（住所・熱愛など）の書き込みは禁止</li><li>ファン同士の叩きや晒しは禁止</li></ul></div>
@@ -714,6 +746,7 @@ V.thread=id=>{
   const shown=t.res.map(r=>`<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p></div>`).join('');
   return `<a class="back" href="#/board">← 掲示板</a>
   <div class="page-h"><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
+  ${t.live?`<div class="notice">このスレッドは出演情報から自動で立ちました。${t.srcUrl?`<a href="${esc(t.srcUrl)}" target="_blank" rel="noopener">公式の情報を見る ↗</a>`:''}</div>`:''}
   ${t.count>t.res.length?`<p class="hint">※モックのため、最初の数件だけ表示しています</p>`:''}
   <div class="panel">${shown}</div>
   <form class="panel compose" id="resform" data-id="${t.id}">
@@ -922,11 +955,14 @@ function openLogin(){
 function profileStep(via){
   $('#login-body').innerHTML=`<h2 id="login-title">プロフィールを作成</h2><p>${esc(via)}で認証しました（デモ）。広場で表示される情報を決めてください。</p>
   <form id="profform" class="providers" data-via="${esc(via)}">
-    <label class="lb">ハンドルネーム<input class="field" id="pf-name" value="はじめての推し活" required></label>
+    <div class="inherit"><b>${esc(via)}から引き継いだ情報</b><span>メールアドレス（ログインにだけ使います・非公開）</span></div>
+    <label class="lb">ハンドルネーム<input class="field" id="pf-name" placeholder="例：みるくてぃー" maxlength="12" required autocomplete="off">
+      <span class="hint">広場で表示される名前です。2〜12文字。<b>本名やメールアドレスは、ほかの人には表示されません。</b></span></label>
+    <p class="err" id="pf-err" hidden></p>
     <label class="lb">年代<select class="field" id="pf-age">${AGES.map(a=>`<option>${a}</option>`).join('')}</select></label>
     <label class="lb">都道府県<select class="field" id="pf-pref">${PREFS.map(p=>`<option ${p==='東京都'?'selected':''}>${p}</option>`).join('')}</select></label>
     <label class="lb">いちばんの推しグループ<select class="field" id="pf-oshi">${GROUPS.map(g=>`<option>${esc(g.name)}</option>`).join('')}<option>箱</option></select></label>
-    <p>本番では生年月日で年代を確認し、公開は「年代」のみになります。</p>
+    <p>公開されるのは、ハンドルネーム・年代・都道府県だけです。生年月日や市区町村は表示されません。</p>
     <div class="actions"><button class="btn">はじめる</button></div></form>`;
   const d=$('#login'); if(!d.open) d.showModal();
 }
@@ -949,6 +985,11 @@ function confirmJoin(id){
 }
 // 公式情報：GitHub Actions が30分ごとに集めた data/items.json を読む
 let LIVE=null;
+function fmtUpdated(iso){
+  const d=new Date(iso), diff=Math.floor((Date.now()-d)/60000);
+  const t=d.toLocaleString('ja-JP',{timeZone:'Asia/Tokyo',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  return diff<60?`${t}（${diff<1?'たった今':diff+'分前'}）`:t;
+}
 function jstToday(){ const d=new Date(Date.now()+9*3600e3); return d.toISOString().slice(0,10); }
 function dayDiff(a,b){ return Math.round((new Date(a+'T00:00Z')-new Date(b+'T00:00Z'))/86400e3); }
 function relDate(date,today){ const n=dayDiff(today,date); return n<=0?'今日':n===1?'昨日':n+'日前'; }
@@ -970,7 +1011,7 @@ async function loadLive(){
   try{
     const r=await fetch('data/items.json',{cache:'no-store'}); if(!r.ok) return;
     const d=await r.json(); if(!d.items||!d.items.length) return;
-    LIVE=d; OFFICIAL=toOfficial(d.items); render();
+    LIVE=d; OFFICIAL=toOfficial(d.items); ensureLiveThreads(); render();
   }catch(e){}
 }
 function render(){
@@ -1043,7 +1084,10 @@ document.addEventListener('submit',e=>{
   const f=e.target;
   if(f.id==='search'){ ui.q=$('#q').value.trim(); ui.ig='all'; ui.ic='all'; ui.src='all'; location.hash='#/info'; }
   else if(f.id==='profform'){
-    S.user={name:$('#pf-name').value.trim()||'ミルキー',age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
+    const nm=$('#pf-name').value.trim();
+    if(nm.length<2||nm.length>12) return showErr('#pf-err','ハンドルネームは2〜12文字で入れてください');
+    if(/^(管理人|運営|公式|admin)$/i.test(nm)) return showErr('#pf-err','その名前は使えません');
+    S.user={name:nm,age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
     save(); $('#login').close(); toast(`ようこそ、${S.user.name}さん`);
     if(!isStandalone()){ location.hash='#/install'; } else { render(); }
   }
