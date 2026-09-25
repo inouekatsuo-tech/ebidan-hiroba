@@ -1,0 +1,16 @@
+{
+  "_comment": "各グループの公式Xアカウント（公式サイトのリンクから取得）。メンバー個人アカウントは含めない。",
+  "accounts": [
+    { "user": "sd_bt", "g": "chotokkyu" },
+    { "user": "milk_info", "g": "milk" },
+    { "user": "supdra_staff", "g": "superdragon" },
+    { "user": "sakurashimeji", "g": "sakurashimeji" },
+    { "user": "onenonly_tokyo", "g": "onenonly" },
+    { "user": "genjibu_sdr", "g": "genjibu" },
+    { "user": "buddiis", "g": "buddiis" },
+    { "user": "icex_official", "g": "icex" },
+    { "user": "Lienel_official", "g": "lienel" },
+    { "user": "iiondo_official", "g": "iiondo" },
+    { "user": "EBiDAN_official", "g": null }
+  ]
+}

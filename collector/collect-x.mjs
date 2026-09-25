@@ -1,0 +1,67 @@
+// 公式Xアカウントの新着投稿を集める。
+//
+// ・1回の実行で「検索APIを1リクエストだけ」使う（from:アカウント名 をORでつなぐ）ので、
+//   課金は返ってきた投稿の件数ぶん（1件 約0.005ドル）だけで済む。
+// ・投稿の本文はファイルに保存しない（サイトではXの公式埋め込みで表示する）。
+//   保存するのは 投稿ID・アカウント・日時・カテゴリ だけ。
+// ・環境変数 X_BEARER_TOKEN が無いときは、何もせずに正常終了する。
+//
+// 使い方: X_BEARER_TOKEN=xxx node collector/collect-x.mjs
+import { readFile, writeFile } from 'node:fs/promises';
+import { classify } from './collect.mjs';
+
+const OUT = new URL('../milkies-hiroba/data/items.json', import.meta.url);
+const CONF = new URL('./x-accounts.json', import.meta.url);
+const STATE = new URL('./x-state.json', import.meta.url);
+const TOKEN = process.env.X_BEARER_TOKEN;
+const MAX = +process.env.X_MAX || 25;   // 1回に取り込む上限（使いすぎ防止）
+
+async function main() {
+  if (!TOKEN) { console.log('X_BEARER_TOKEN が未設定のため、Xの収集はスキップしました'); return; }
+  const { accounts } = JSON.parse(await readFile(CONF, 'utf8'));
+  const byUser = Object.fromEntries(accounts.map(a => [a.user.toLowerCase(), a.g]));
+
+  let state = {};
+  try { state = JSON.parse(await readFile(STATE, 'utf8')); } catch {}
+
+  const query = `(${accounts.map(a => `from:${a.user}`).join(' OR ')}) -is:retweet -is:reply`;
+  const url = new URL('https://api.x.com/2/tweets/search/recent');
+  url.searchParams.set('query', query);
+  url.searchParams.set('max_results', String(Math.min(Math.max(MAX, 10), 100)));
+  url.searchParams.set('tweet.fields', 'created_at,text');
+  url.searchParams.set('expansions', 'author_id');
+  url.searchParams.set('user.fields', 'username');
+  if (state.since_id) url.searchParams.set('since_id', state.since_id);
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+  if (res.status === 429) { console.log('Xの利用制限にかかりました。次回に回します'); return; }
+  if (!res.ok) throw new Error(`X API ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const json = await res.json();
+  const tweets = json.data || [];
+  if (!tweets.length) { console.log('Xの新着はありません'); return; }
+
+  const users = Object.fromEntries((json.includes?.users || []).map(u => [u.id, u.username]));
+  const fresh = tweets.map(t => {
+    const user = users[t.author_id] || '';
+    return {
+      id: `x${t.id}`, kind: 'x', g: byUser[user.toLowerCase()] ?? null,
+      cat: classify(t.text),                 // 本文はここで仕分けに使うだけで、保存しない
+      t: '', author: user, date: t.created_at.slice(0, 10),
+      url: `https://x.com/${user}/status/${t.id}`,
+    };
+  });
+
+  const data = JSON.parse(await readFile(OUT, 'utf8'));
+  const byId = new Map(data.items.map(it => [it.id, it]));
+  const seen = new Date().toISOString();
+  for (const it of fresh) if (!byId.has(it.id)) byId.set(it.id, { ...it, seen });
+  data.items = [...byId.values()].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  data.updated = seen;
+  await writeFile(OUT, JSON.stringify(data, null, 1) + '\n');
+
+  const newest = tweets.reduce((a, t) => (BigInt(t.id) > BigInt(a) ? t.id : a), state.since_id || '0');
+  await writeFile(STATE, JSON.stringify({ since_id: newest, updated: seen }, null, 1) + '\n');
+  console.log(`Xの投稿を ${fresh.length} 件 取り込みました（おおよそ $${(fresh.length * 0.005).toFixed(3)}）`);
+}
+
+main().catch(e => { console.error(e); process.exit(1); });
