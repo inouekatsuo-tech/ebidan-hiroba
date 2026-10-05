@@ -3,7 +3,7 @@
 スターダスト男性アイドル（EBiDAN系10グループ）の非公式ファン広場のモック。グループ×カテゴリ（メディア/イベント/グッズ/リリース/お知らせ）で情報を仕分け。持ち寄り投稿／掲示板／コミュニティ（mixi型・イベント）。
 データはすべて架空のサンプルで、書き込みは各ブラウザの中だけに保存される。
 
-- 公開URL: https://milkies-hiroba.vercel.app （検索エンジン除外設定済み）
+- 公開URL: https://ositopia.com （検索エンジン除外設定済み。旧 https://milkies-hiroba.vercel.app も有効）
 - Claude上のモック: https://claude.ai/artifact/Rkbtt3YmKJauFBA2TStMzB
 
 ## ファイル

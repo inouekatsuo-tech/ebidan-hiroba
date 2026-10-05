@@ -11,7 +11,7 @@ import webpush from 'web-push';
 
 const ITEMS = new URL('../milkies-hiroba/data/items.json', import.meta.url);
 const STATE = new URL('./push-state.json', import.meta.url);
-const SITE = process.env.SITE_URL || 'https://milkies-hiroba.vercel.app';
+const SITE = process.env.SITE_URL || 'https://ositopia.com';
 const VAPID_PUBLIC = 'BBrg_UQ1b9l-BGpztBQmAnhQroZDk8NaZHuG-es6Wx4m_HKfEJhBkURR8IZuIv-dGOQArskgBFJsL_bnpMs9rxU';
 const MAX_PER_RUN = 3;   // 1回の実行で送る通知は最大3通まで（通知疲れを防ぐ）
 

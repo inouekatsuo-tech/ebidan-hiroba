@@ -8,7 +8,7 @@ import { dirname } from 'node:path';
 
 const BASE = 'https://ebidan.jp';
 const OUT = new URL('../milkies-hiroba/data/items.json', import.meta.url);
-const UA = 'Mozilla/5.0 (compatible; ebidan-hiroba-bot/1.0; unofficial fan site; +https://milkies-hiroba.vercel.app)';
+const UA = 'Mozilla/5.0 (compatible; ebidan-hiroba-bot/1.0; unofficial fan site; +https://ositopia.com)';
 const NEWS_PAGES = +process.env.NEWS_PAGES || 3; // 1ページ約12件。30分ごとに直近3ページを見る
 const KEEP_DAYS = 45;          // これより古いニュースは捨てる
 
