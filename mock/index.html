@@ -283,6 +283,27 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .inherit{background:var(--sunk);border-radius:10px;padding:8px 12px;font-size:12px;display:flex;flex-direction:column}
 .inherit b{font-size:12.5px}
 .inherit span{color:var(--muted)}
+.foot-links{border-top:1px solid var(--line);background:var(--surface);padding:18px 16px calc(96px + env(safe-area-inset-bottom,0px))}
+.foot-in{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.foot-in p{margin:0;font-size:12px;color:var(--muted);line-height:1.7}
+.foot-in nav{display:flex;flex-wrap:wrap;gap:14px}
+.foot-in nav a{font-size:12.5px;color:var(--ink);font-weight:700;text-decoration:none}
+.foot-in nav a:hover{color:var(--accent)}
+.legal{padding:18px 16px;line-height:1.9}
+.legal h2{font-size:16px;margin:22px 0 8px;padding-top:4px;border-top:1px solid var(--line)}
+.legal h2:first-child{margin-top:0;border-top:0;padding-top:0}
+.legal h3{font-size:14px;margin:14px 0 4px;color:var(--muted)}
+.legal p{margin:0 0 10px;font-size:14px}
+.legal ul{margin:0 0 12px;padding-left:1.3em;font-size:14px}
+.legal li{margin-bottom:5px}
+.legal a{color:var(--official)}
+.legal-dl{display:grid;grid-template-columns:5.5em 1fr;gap:6px 10px;margin:0 0 12px;font-size:14px}
+.legal-dl dt{color:var(--muted);font-weight:700;font-size:13px}
+.legal-dl dd{margin:0}
+.legal-date{margin-top:18px;font-size:12px;color:var(--muted)}
+.legal-h h1{font-size:22px}
+.legal-nav{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px}
+.legal-nav a{color:var(--muted);font-weight:700;text-decoration:none}
 .install-h{align-items:flex-start}
 .app-icon{width:56px;height:56px;border-radius:14px;box-shadow:var(--shadow)}
 .install-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;text-decoration:none;position:relative}
@@ -315,6 +336,12 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 </header>
 
 <main class="wrap" id="app"></main>
+<footer class="foot-links">
+  <div class="foot-in">
+    <p>推しトピアは、ファンが個人で運営する<b>非公式サイト</b>です。アーティスト・所属事務所とは関係ありません。</p>
+    <nav><a href="#/about">運営者情報</a><a href="#/privacy">プライバシーポリシー</a><a href="#/terms">利用規約</a><a href="mailto:info@ositopia.com">お問い合わせ</a></nav>
+  </div>
+</footer>
 
 <nav class="tabs" aria-label="メインメニュー">
   <div class="tabs-in">
@@ -1058,6 +1085,149 @@ V.newcomm=()=>{
   </form>`;
 };
 
+// ===== 運営者情報・プライバシーポリシー・利用規約 =====
+const CONTACT = 'info@ositopia.com';
+const LEGAL_UPDATED = '2026年10月5日';
+const legalPage = (title, lead, body) => `
+  <div class="page-h legal-h"><h1>${title}</h1><p>${lead}</p></div>
+  <article class="panel legal">${body}
+    <p class="legal-date">最終更新：${LEGAL_UPDATED}</p>
+  </article>
+  <nav class="legal-nav">${[['about','運営者情報'],['privacy','プライバシーポリシー'],['terms','利用規約']].map(([k,l])=>`<a href="#/${k}">${l}</a>`).join('')}</nav>`;
+
+V.about = () => legalPage('運営者情報',
+  '推しトピアは、ファンが個人で運営している非公式サイトです。',
+  `<h2>このサイトについて</h2>
+  <p><b>推しトピア（ositopia.com）は、ファンが個人で運営する非公式のサイトです。</b>アーティスト本人、所属事務所、レコード会社、その他の権利者とは一切関係がありません。公式の発表は、必ず各公式サイト・公式アカウントでご確認ください。</p>
+  <h2>運営者</h2>
+  <dl class="legal-dl">
+    <dt>運営</dt><dd>推しトピア運営（個人）</dd>
+    <dt>連絡先</dt><dd><a href="mailto:${CONTACT}">${CONTACT}</a></dd>
+    <dt>対応時間</dt><dd>原則として3日以内に返信します（個人運営のため、お時間をいただく場合があります）</dd>
+  </dl>
+  <h2>掲載している情報について</h2>
+  <ul>
+    <li>公式のお知らせは、公式サイトの<b>見出し・日付・リンク</b>のみを自動で取得し、本文や写真は転載していません。</li>
+    <li>SNSの投稿は、各サービスの公式な埋め込み機能で表示しています。元の投稿が削除されると、本サイトからも表示されなくなります。</li>
+    <li>ファンによる書き込みの内容は、その投稿者の意見であり、運営の見解ではありません。</li>
+  </ul>
+  <h2>権利者のみなさまへ（削除のご依頼）</h2>
+  <p>掲載内容について、権利者ご本人または代理人の方からご連絡をいただいた場合は、<b>速やかに確認し、必要な範囲で削除いたします。</b>下記までご連絡ください。</p>
+  <p><a href="mailto:${CONTACT}">${CONTACT}</a></p>
+  <h2>書き込みの削除をご希望の方へ</h2>
+  <p>ご自身や第三者に関する書き込みの削除をご希望の場合も、同じ連絡先までご連絡ください。該当するページのURLと、どの書き込みかをお知らせいただけると早く対応できます。</p>`);
+
+V.privacy = () => legalPage('プライバシーポリシー',
+  '取得する情報と、その使いみちをまとめています。',
+  `<h2>1. 取得する情報</h2>
+  <h3>アカウントを作らずに利用する場合</h3>
+  <ul>
+    <li>アクセス記録（IPアドレス、ブラウザの種類、閲覧した日時・ページ）</li>
+    <li>掲示板などに書き込んだ内容と、その投稿日時</li>
+    <li>ブラウザ内の保存領域（表示設定や下書きなど。端末の中だけに保存されます）</li>
+  </ul>
+  <h3>アカウントを作る場合（コミュニティ参加時）</h3>
+  <ul>
+    <li>ログインに使うサービス（Google・Apple・X・LINEなど）から受け取るメールアドレス</li>
+    <li>ご自身で入力した、ハンドルネーム・年代・都道府県・推しグループ・自己紹介・SNSのリンク</li>
+  </ul>
+  <p><b>ログインサービスから受け取った氏名やプロフィール画像は利用しません。</b>サイト上で他の方に表示されるのは、ご自身で入力した内容だけです。</p>
+  <h3>通知を受け取る場合</h3>
+  <ul><li>通知の送信先（ブラウザが発行する宛先情報）と、受け取りたい通知の種類・推しグループ</li></ul>
+  <h2>2. 使いみち</h2>
+  <ul>
+    <li>サイトの表示、書き込み・コミュニティ機能の提供</li>
+    <li>推しグループに合わせた情報や通知のお届け</li>
+    <li>迷惑行為・不正利用の防止、通報への対応</li>
+    <li>利用状況の把握によるサイトの改善</li>
+  </ul>
+  <h2>3. アクセス記録の保存</h2>
+  <p>書き込みに関するIPアドレス等の記録は、<b>原則として6か月間</b>保存します。これは、誹謗中傷などが起きた際に、法令に基づく開示請求や捜査機関からの照会に適切に対応するためです。通常の運営では、これらの記録を公開することはありません。</p>
+  <h2>4. 第三者への提供</h2>
+  <p>次の場合を除き、取得した情報を第三者へ提供することはありません。</p>
+  <ul>
+    <li>ご本人の同意がある場合</li>
+    <li>法令に基づく場合（裁判所の命令、捜査機関からの適法な照会、発信者情報開示請求への対応など）</li>
+    <li>人の生命・身体・財産の保護のために緊急の必要がある場合</li>
+  </ul>
+  <h2>5. 外部サービスの利用</h2>
+  <p>本サイトの運営には、次のサービスを利用しています。</p>
+  <ul>
+    <li>Vercel（サイトの配信・保存）</li>
+    <li>Cloudflare（ドメイン・DNS）</li>
+    <li>X、Instagram、YouTube などの埋め込み表示（表示の際、各社がCookie等を利用する場合があります）</li>
+  </ul>
+  <h2>6. Cookieと広告について</h2>
+  <p>本サイトでは、ログイン状態の保持や表示設定のためにCookie・ブラウザ内保存を利用します。</p>
+  <p><b>将来、本サイトに広告（Google AdSense等）を掲載する場合があります。</b>その際、広告配信事業者がCookieを使用して、利用者の興味に応じた広告を表示することがあります。広告のパーソナライズは、<a href="https://adssettings.google.com/" target="_blank" rel="noopener">Googleの広告設定</a>から無効にできます。広告の掲載を始める際は、本ページでお知らせします。</p>
+  <h2>7. 未成年の方の利用</h2>
+  <ul>
+    <li><b>13歳未満の方はご利用いただけません。</b></li>
+    <li>18歳未満の方は、保護者の方の同意を得てご利用ください。</li>
+    <li>18歳未満の方の安全のため、オフ会は年齢層ごとに分けており、メッセージ機能にも制限を設けています。</li>
+    <li>公開される居住地は都道府県までです。番地や市区町村、学校名などは入力しないでください。</li>
+  </ul>
+  <h2>8. 削除・開示のご請求</h2>
+  <p>ご自身の情報の削除・訂正・利用停止をご希望の場合は、<a href="mailto:${CONTACT}">${CONTACT}</a> までご連絡ください。アカウントは、マイページからいつでも削除できます。</p>
+  <h2>9. 改定</h2>
+  <p>内容を変更する場合は、本ページでお知らせします。重要な変更の場合は、サイト内のお知らせでもご案内します。</p>`);
+
+V.terms = () => legalPage('利用規約',
+  'みんなが気持ちよく使うためのルールです。',
+  `<h2>第1条（適用）</h2>
+  <p>本規約は、推しトピア（以下「本サイト」）の利用に関する条件を定めるものです。本サイトを利用した方は、本規約に同意したものとみなします。</p>
+  <h2>第2条（本サイトの性質）</h2>
+  <p>本サイトは<b>ファンが個人で運営する非公式のサイト</b>であり、アーティスト・所属事務所・その他の権利者とは一切関係がありません。掲載情報の正確性を保証するものではなく、公式の発表は必ず各公式サイトでご確認ください。</p>
+  <h2>第3条（アカウント）</h2>
+  <ul>
+    <li>情報の閲覧、掲示板への書き込みは、アカウントなしでご利用いただけます。</li>
+    <li>コミュニティへの参加、イベントへの参加、フォロー機能のご利用にはアカウントが必要です。</li>
+    <li>ハンドルネームは、他の方と誤認されるもの（運営・公式など）を使用できません。</li>
+    <li>アカウントの不正利用が疑われる場合、運営は利用を停止することがあります。</li>
+  </ul>
+  <h2>第4条（禁止事項）</h2>
+  <p>次の行為を禁止します。</p>
+  <ul>
+    <li><b>チケットの売買・譲渡・交換の呼びかけ</b>（定価・無償を問わず、本サイトでは一切禁止します）</li>
+    <li>グッズ等の転売を目的とした売買の呼びかけ</li>
+    <li>アーティスト・他の利用者に対する誹謗中傷、侮辱、差別的な表現</li>
+    <li><b>アーティストの私生活に関する詮索・憶測・暴露</b>（住所、交際、家族など）</li>
+    <li>個人を特定できる情報（本名、学校名、勤務先、住所、電話番号など）の書き込み</li>
+    <li>無断で撮影した写真や、他人の著作物の無断転載</li>
+    <li>なりすまし、晒し行為、しつこい付きまとい</li>
+    <li>出会い・勧誘・宣伝を目的とした利用</li>
+    <li>18歳未満の方に対する、交際や個別の接触を求める行為</li>
+    <li>法令に違反する行為、その他運営が不適切と判断する行為</li>
+  </ul>
+  <h2>第5条（書き込みの扱い）</h2>
+  <ul>
+    <li>書き込んだ内容の権利は投稿者に帰属します。運営は、本サイト上での表示に必要な範囲で利用します。</li>
+    <li>運営は、本規約に違反する書き込みを、事前の通知なく削除することがあります。</li>
+    <li>すべての書き込みには通報ボタンがあります。通報の内容は、通報された方には伝わりません。</li>
+    <li>悪質な違反があった場合、利用の停止や、法令に基づく発信者情報の開示に応じることがあります。</li>
+  </ul>
+  <h2>第6条（コミュニティとオフ会）</h2>
+  <ul>
+    <li>コミュニティの管理人は、参加の承認・ルールの設定・不適切な投稿への対応を行います。</li>
+    <li><b>オフ会は「10代限定」と「18歳以上」に分かれています。</b>年齢層をまたぐ参加はできません。</li>
+    <li>集合場所の詳細は、コミュニティの参加者にのみ表示されます。</li>
+    <li><b>オフ会は参加者同士の自主的な集まりであり、運営は主催・関与しません。</b>当日のトラブルについて運営は責任を負いません。明るい時間に、人の多い場所で開催してください。</li>
+  </ul>
+  <h2>第7条（免責）</h2>
+  <ul>
+    <li>本サイトの情報の正確性・完全性について保証しません。</li>
+    <li>システムの不具合や外部サービスの障害により、情報が表示できない場合があります。</li>
+    <li>利用者同士のトラブルについて、運営は責任を負いません。</li>
+  </ul>
+  <h2>第8条（サービスの変更・終了）</h2>
+  <p>運営は、本サイトの内容を変更し、または提供を終了することがあります。終了する場合は、可能な限り事前にお知らせします。</p>
+  <h2>第9条（規約の変更）</h2>
+  <p>本規約は変更されることがあります。変更後の規約は、本ページに掲載した時点から効力を生じます。</p>
+  <h2>第10条（準拠法・裁判管轄）</h2>
+  <p>本規約は日本法に準拠し、本サイトに関して紛争が生じた場合は、運営者の住所地を管轄する地方裁判所を第一審の専属的合意管轄裁判所とします。</p>
+  <h2>お問い合わせ</h2>
+  <p><a href="mailto:${CONTACT}">${CONTACT}</a></p>`);
+
 // ===== 運営からのお知らせ（受信箱） =====
 function ensureInbox(){
   if(S.inbox) return;
@@ -1180,6 +1350,7 @@ function profileStep(via){
     <label class="lb">都道府県<select class="field" id="pf-pref">${PREFS.map(p=>`<option ${p==='東京都'?'selected':''}>${p}</option>`).join('')}</select></label>
     <label class="lb">いちばんの推しグループ<select class="field" id="pf-oshi">${GROUPS.map(g=>`<option>${esc(g.name)}</option>`).join('')}<option>箱</option></select></label>
     <p>公開されるのは、ハンドルネーム・年代・都道府県だけです。生年月日や市区町村は表示されません。</p>
+    <label class="agree"><input type="checkbox" id="agree-terms"> <span><a href="#/terms" target="_blank">利用規約</a>と<a href="#/privacy" target="_blank">プライバシーポリシー</a>に同意します</span></label>
     <div class="actions"><button class="btn">はじめる</button></div></form>`;
   const d=$('#login'); if(!d.open) d.showModal();
 }
@@ -1241,7 +1412,7 @@ function render(){
   const [r,id,sub]=h.split('/');
   const view=V[r]?V[r](id,sub):V.home();
   $('#app').innerHTML=view;
-  const tab={pick:'info',g:'home',install:'me',inbox:'me',people:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
+  const tab={pick:'info',g:'home',install:'me',about:'',privacy:'',terms:'',inbox:'me',people:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(window.twttr&&twttr.widgets&&$('#app').querySelector('.twitter-tweet')) twttr.widgets.load($('#app'));
   if(S.user){ ensureInbox(); $('#tab-me').classList.toggle('has-new',unread()>0); }
@@ -1318,6 +1489,7 @@ document.addEventListener('submit',e=>{
   else if(f.id==='profform'){
     const nm=$('#pf-name').value.trim();
     if(nm.length<2||nm.length>12) return showErr('#pf-err','ハンドルネームは2〜12文字で入れてください');
+    if(!$('#agree-terms').checked) return showErr('#pf-err','利用規約とプライバシーポリシーへの同意が必要です');
     if(/^(管理人|運営|公式|admin)$/i.test(nm)) return showErr('#pf-err','その名前は使えません');
     S.user={name:nm,age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
     save(); $('#login').close(); toast(`ようこそ、${S.user.name}さん`);
