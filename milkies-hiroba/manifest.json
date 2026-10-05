@@ -1,7 +1,7 @@
 {
-  "name": "えびだん広場（非公式）",
-  "short_name": "えびだん広場",
-  "description": "スタダ男子10グループの情報を、グループ×カテゴリで仕分けて見られるファンの広場（非公式）",
+  "name": "推しトピア（非公式）",
+  "short_name": "推しトピア",
+  "description": "スタダ男子10グループの情報をグループ×カテゴリで仕分け。掲示板・コミュニティもあるファンの広場（非公式）",
   "start_url": "./?src=pwa",
   "scope": "./",
   "display": "standalone",
@@ -10,8 +10,21 @@
   "theme_color": "#D94873",
   "lang": "ja",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

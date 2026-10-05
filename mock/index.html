@@ -1,4 +1,4 @@
-<title>えびだん広場</title>
+<title>推しトピア</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700&display=swap">
@@ -307,8 +307,8 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 <header class="top">
   <div class="top-in">
     <a class="logo" href="#/home">
-      <svg width="22" height="26" viewBox="0 0 22 26" aria-hidden="true"><path d="M11 1C11 1 2 11.5 2 17a9 9 0 0 0 18 0C20 11.5 11 1 11 1z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><circle cx="7.5" cy="17" r="1.8" fill="var(--accent)"/></svg>
-      えびだん広場 <small>非公式</small>
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      推しトピア <small>非公式</small>
     </a>
     <div id="acct"></div>
   </div>
@@ -500,8 +500,8 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(m){ const d=document.createElement('div'); d.className='toast'; d.textContent=m; document.body.appendChild(d); setTimeout(()=>d.remove(),2600); }
 function ng(t){
-  if(/譲|定価|売ります|買います|求む|交換.*チケ|チケ.*(交換|取引)/.test(t)) return 'チケットの売買・譲渡に関する書き込みはできません（えびだん広場のルール）';
-  if(/住所|自宅|熱愛|彼女|彼氏|実家/.test(t)) return 'メンバーのプライベートに関する書き込みはできません（えびだん広場のルール）';
+  if(/譲|定価|売ります|買います|求む|交換.*チケ|チケ.*(交換|取引)/.test(t)) return 'チケットの売買・譲渡に関する書き込みはできません（推しトピアのルール）';
+  if(/住所|自宅|熱愛|彼女|彼氏|実家/.test(t)) return 'メンバーのプライベートに関する書き込みはできません（推しトピアのルール）';
   return null;
 }
 function need(){ if(S.user) return true; openLogin(); return false; }
@@ -740,7 +740,7 @@ V.install=()=>{
   if(done){
     body=`<div class="panel compose ok-box"><b>ホーム画面に追加できています🎉</b>
       <p class="hint">あとは通知をオンにすれば、推しの新着情報が届きます。</p>
-      ${perm==='granted'?'<span class="chip ok">通知はオンになっています</span>':perm==='denied'?'<p class="err">通知がオフになっています。iPhoneの「設定」→「通知」→「えびだん広場」からオンにできます。</p>':'<div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>'}
+      ${perm==='granted'?'<span class="chip ok">通知はオンになっています</span>':perm==='denied'?'<p class="err">通知がオフになっています。iPhoneの「設定」→「通知」→「推しトピア」からオンにできます。</p>':'<div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>'}
       <p class="hint">※モックのため、実際の通知はまだ送られません。</p></div>`;
   } else if(inApp()){
     body=`<div class="panel compose warn-box"><b>このままでは追加できません</b>
@@ -842,7 +842,7 @@ V.pick=id=>{
   const p=S.picks.find(x=>x.id===id); if(!p) return V.info();
   return `<a class="back" href="#/info">← 情報一覧</a>
   ${pickCard(p)}
-  <div class="notice">ここでのコメントはえびだん広場の中だけに表示されます。元の投稿には反映されず、投稿者に通知も届きません。</div>
+  <div class="notice">ここでのコメントは推しトピアの中だけに表示されます。元の投稿には反映されず、投稿者に通知も届きません。</div>
   <section class="sec"><div class="sec-h"><h2>コメント ${p.comments.length}</h2></div>
     <div class="panel comments">${p.comments.map((c,i)=>`<div class="cm"><span class="meta"><b>${esc(c.by)}</b>${esc(c.ago)}</span><p>${esc(c.t)}</p><div class="res-foot">${reaxHTML(p.id+':c'+i,i===0?{wakaru:5,suki:2}:null)}${reportBtn('comment:'+p.id+':'+i)}</div></div>`).join('')||'<div class="cm"><p class="hint">まだコメントはありません。</p></div>'}</div>
     <form class="panel compose" id="cmform" data-id="${p.id}">
@@ -1155,7 +1155,7 @@ V.me=()=>{
       <div class="noti-list">${[['live','実況スレが立ったとき'],['news','推しグループの新着情報'],['comm','コミュニティ・イベントのお知らせ']].map(([k,l])=>`<label class="fl"><input type="checkbox" data-noti="${k}" ${S.noti[k]?'checked':''}> ${l}</label>`).join('')}</div>
       <p class="hint">${S.pushOn?'この端末は「アプリを閉じていても届く通知」に登録済みです。':'この端末では、アプリを開いているときだけお知らせします。'}</p>
       <div class="actions">${S.pushOn?'<button class="btn sm ghost" id="push-off">通知を止める</button>':'<button class="btn sm ghost" id="push-on">閉じていても届くようにする</button>'}<button class="btn sm ghost" id="test-noti">テスト通知</button></div>`
-    : notiState()==='denied'?`<p class="err">通知がオフになっています。iPhoneは「設定」→「通知」→「えびだん広場」、Androidはブラウザのサイト設定からオンにできます。</p>`
+    : notiState()==='denied'?`<p class="err">通知がオフになっています。iPhoneは「設定」→「通知」→「推しトピア」、Androidはブラウザのサイト設定からオンにできます。</p>`
     : isStandalone()?`<p class="hint">実況スレや推しの新着をお知らせします。</p><div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>`
     : `<p class="hint">iPhoneは<b>ホーム画面に追加すると</b>通知を受け取れます。</p><div class="actions"><a class="btn" href="#/install">ホーム画面に追加する</a></div>`}
   </div>
@@ -1166,7 +1166,7 @@ function providersHTML(){
   <p>※モックのため、どれを押しても実際のログインは行われません。</p>`;
 }
 function openLogin(){
-  $('#login-body').innerHTML=`<h2 id="login-title">えびだん広場にログイン</h2><p>見るだけならログインは不要です。コメントや書き込み、コミュニティ参加にはアカウントが必要です。</p>${providersHTML()}<div class="actions"><button class="btn ghost sm" id="login-cancel">あとで</button></div>`;
+  $('#login-body').innerHTML=`<h2 id="login-title">推しトピアにログイン</h2><p>見るだけならログインは不要です。コメントや書き込み、コミュニティ参加にはアカウントが必要です。</p>${providersHTML()}<div class="actions"><button class="btn ghost sm" id="login-cancel">あとで</button></div>`;
   const d=$('#login'); if(!d.open) d.showModal();
 }
 function profileStep(via){
