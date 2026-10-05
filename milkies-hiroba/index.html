@@ -13,6 +13,7 @@
 <meta name="theme-color" content="#D94873">
 <meta name="apple-mobile-web-app-title" content="えびだん広場">
 <meta name="mobile-web-app-capable" content="yes">
+<script>window.VAPID_PUBLIC="BBrg_UQ1b9l-BGpztBQmAnhQroZDk8NaZHuG-es6Wx4m_HKfEJhBkURR8IZuIv-dGOQArskgBFJsL_bnpMs9rxU";</script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 <style>html{color-scheme:light dark}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;-webkit-text-size-adjust:100%}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>えびだん広場</title>
@@ -509,7 +510,7 @@ const SEED={
 const KEY='milkies-demo-v3';
 let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],inbox:null,following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']};
+if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],inbox:null,pushOn:false,following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']};
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
 let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
@@ -801,11 +802,41 @@ const reportBtn=target=>`<button class="report" data-report="${esc(target)}">通
 // ===== 通知 =====
 const notiSupported=()=>('Notification' in window)&&('serviceWorker' in navigator);
 function notiState(){ return notiSupported()?Notification.permission:'unsupported'; }
+function b64ToU8(b64){
+  const pad='='.repeat((4-b64.length%4)%4);
+  const raw=atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/'));
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+// この端末を「通知の送り先」として登録する（アプリを閉じていても届くようにする）
+async function subscribePush(){
+  if(!window.VAPID_PUBLIC||!('PushManager' in window)) return false;
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(window.VAPID_PUBLIC)});
+    const res=await fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({subscription:sub.toJSON(),follow:S.follow,noti:S.noti})});
+    S.pushOn=res.ok; save();
+    return res.ok;
+  }catch(e){ console.warn(e); return false; }
+}
+async function unsubscribePush(){
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.getSubscription();
+    if(sub){ await fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:sub.toJSON(),unsubscribe:true})}); await sub.unsubscribe(); }
+  }catch(e){}
+  S.pushOn=false; save(); render(); toast('この端末への通知を止めました');
+}
 async function askNoti(){
   if(!notiSupported()) return toast('この環境では通知を使えません');
   const p=await Notification.requestPermission();
   render();
-  if(p==='granted'){ showLocalNoti('通知をオンにしました','推しの出演がある日は、実況スレが立ったらお知らせします'); toast('通知をオンにしました'); }
+  if(p==='granted'){
+    const ok=await subscribePush(); render();
+    showLocalNoti('通知をオンにしました',ok?'推しの出演がある日は、実況スレが立ったらお知らせします':'この端末では、アプリを開いているときだけお知らせします');
+    toast(ok?'通知をオンにしました（アプリを閉じていても届きます）':'通知をオンにしました');
+  }
   else toast('通知はオフのままです');
 }
 async function showLocalNoti(title,body,url){
@@ -1100,7 +1131,7 @@ V.profile=()=>{
     <div class="two"><label class="lb">年代<select class="field" id="pr-age">${AGES.map(a=>`<option ${a===u.age?'selected':''}>${a}</option>`).join('')}</select></label>
     <label class="lb">都道府県<select class="field" id="pr-pref">${PREFS.map(p=>`<option ${p===u.pref?'selected':''}>${p}</option>`).join('')}</select></label></div>
     <label class="lb">いちばんの推しグループ<select class="field" id="pr-oshi">${[...GROUPS.map(g=>g.name),'箱'].map(m=>`<option ${m===u.oshi?'selected':''}>${esc(m)}</option>`).join('')}</select></label>
-    <div class="lb">SNSのリンク<span class="hint">ユーザー名だけ入れてください（@は不要）</span>
+    <div class="lb">SNSのリンク<span class="hint">ユーザー名だけ入れてください（@は不要）${u.age==='10代'?'<br><b>10代の方のリンクは、ログインしている人にだけ表示されます。</b>':''}</span>
       ${SNS.map(([k,label,base])=>`<label class="sns"><span class="sns-l">${label}</span><span class="sns-b">${base}</span><input class="field" id="pr-${k}" value="${esc(L[k]||'')}" placeholder="username" autocomplete="off"></label>`).join('')}</div>
     <p class="err" id="pr-err" hidden></p>
     <div class="actions"><button class="btn">保存する</button></div>
@@ -1113,7 +1144,8 @@ function profileCard(u){
     <b>${esc(u.name)}</b>
     <span class="meta"><span class="chip">${esc(u.age)}</span><span class="chip">${esc(u.pref)}</span><span class="chip fan">${esc(u.oshi)}推し</span></span>
     ${u.bio?`<p class="bio">${esc(u.bio)}</p>`:''}
-    <div class="snsrow">${SNS.filter(([k])=>L[k]).map(([k,label,base])=>`<a href="${esc(base+L[k])}" target="_blank" rel="noopener" class="chip">${label}</a>`).join('')}</div>
+    ${(u.age==='10代'&&!S.user)?'<span class="hint">SNSのリンクは、ログインしている人にだけ表示されます</span>'
+      :`<div class="snsrow">${SNS.filter(([k])=>L[k]).map(([k,label,base])=>`<a href="${esc(base+L[k])}" target="_blank" rel="noopener" class="chip">${label}</a>`).join('')}</div>`}
   </div></div>`;
 }
 V.me=()=>{
@@ -1139,7 +1171,8 @@ V.me=()=>{
   <div class="panel compose"><h3>通知</h3>
     ${notiState()==='granted'?`<span class="chip ok">通知はオンです</span>
       <div class="noti-list">${[['live','実況スレが立ったとき'],['news','推しグループの新着情報'],['comm','コミュニティ・イベントのお知らせ']].map(([k,l])=>`<label class="fl"><input type="checkbox" data-noti="${k}" ${S.noti[k]?'checked':''}> ${l}</label>`).join('')}</div>
-      <div class="actions"><button class="btn sm ghost" id="test-noti">テスト通知を送ってみる</button></div>`
+      <p class="hint">${S.pushOn?'この端末は「アプリを閉じていても届く通知」に登録済みです。':'この端末では、アプリを開いているときだけお知らせします。'}</p>
+      <div class="actions">${S.pushOn?'<button class="btn sm ghost" id="push-off">通知を止める</button>':'<button class="btn sm ghost" id="push-on">閉じていても届くようにする</button>'}<button class="btn sm ghost" id="test-noti">テスト通知</button></div>`
     : notiState()==='denied'?`<p class="err">通知がオフになっています。iPhoneは「設定」→「通知」→「えびだん広場」、Androidはブラウザのサイト設定からオンにできます。</p>`
     : isStandalone()?`<p class="hint">実況スレや推しの新着をお知らせします。</p><div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>`
     : `<p class="hint">iPhoneは<b>ホーム画面に追加すると</b>通知を受け取れます。</p><div class="actions"><a class="btn" href="#/install">ホーム画面に追加する</a></div>`}
@@ -1253,7 +1286,7 @@ document.addEventListener('click',e=>{
   else if(t.id==='mx-toggle'){ ui.mxAll=!ui.mxAll; render(); }
   else if(t.id==='pick-toggle'){ ui.pickOpen=!ui.pickOpen; render(); }
   else if(/^follow-edit/.test(t.id)){ openFollow(); }
-  else if(t.id==='follow-save'){ S.follow=[...document.querySelectorAll('.follow-list input:checked')].map(x=>x.value); save(); $('#login').close(); render(); toast('推しグループを保存しました'); }
+  else if(t.id==='follow-save'){ S.follow=[...document.querySelectorAll('.follow-list input:checked')].map(x=>x.value); save(); if(S.pushOn) subscribePush(); $('#login').close(); render(); toast('推しグループを保存しました'); }
   else if(t.id==='follow-one'){ const g=d.g, i=S.follow.indexOf(g); i<0?S.follow.push(g):S.follow.splice(i,1); save(); render(); toast(i<0?'推しグループに追加しました':'推しグループから外しました'); }
   else if(t.id==='clearq'){ e.preventDefault(); ui.q=''; render(); }
   else if(d.bc){ ui.boardCat=d.bc; render(); }
@@ -1271,6 +1304,8 @@ document.addEventListener('click',e=>{
   else if(t.id==='hide-install'){ e.preventDefault(); ui.hideInstall=true; try{localStorage.setItem('hide-install','1');}catch(err){} render(); }
   else if(t.id==='do-install'){ if(installPrompt){ installPrompt.prompt(); installPrompt=null; } }
   else if(t.id==='ask-noti'){ askNoti(); }
+  else if(t.id==='push-on'){ subscribePush().then(ok=>{ render(); toast(ok?'登録しました。アプリを閉じていても届きます':'この端末では登録できませんでした'); }); }
+  else if(t.id==='push-off'){ unsubscribePush(); }
   else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
   else if(d.report){ openReport(d.report); }
   else if(d.msg){ ui.openMsg=ui.openMsg===d.msg?null:d.msg; const m=S.inbox.find(x=>x.id===d.msg); if(m&&!m.read){ m.read=true; save(); } render(); }
@@ -1280,7 +1315,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('change',e=>{
   if(e.target.id==='agree'){ $('#join-confirm').disabled=!e.target.checked; return; }
-  if(e.target.dataset.noti){ S.noti[e.target.dataset.noti]=e.target.checked; save(); toast('通知の設定を保存しました'); return; }
+  if(e.target.dataset.noti){ S.noti[e.target.dataset.noti]=e.target.checked; save(); if(S.pushOn) subscribePush(); toast('通知の設定を保存しました'); return; }
   if(e.target.id==='me-age'){ S.user.age=e.target.value; save(); render(); toast(`年代を「${S.user.age}」に切り替えました`); }
 });
 document.addEventListener('input',e=>{ if(e.target.id==='comm-q'){ ui.cq=e.target.value; $('#comm-grid').innerHTML=commGrid(); } });
