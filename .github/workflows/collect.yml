@@ -47,7 +47,7 @@ jobs:
           # Vercel(Hobby)はリポジトリ所有者のコミットだけをデプロイするので、所有者名義でコミットする
           git config user.name "inouekatsuo-tech"
           git config user.email "260111723+inouekatsuo-tech@users.noreply.github.com"
-          git add milkies-hiroba/data collector/x-state.json collector/push-state.json
+          git add milkies-hiroba/data collector/x-state.json collector/push-state.json collector/collect-health.json
           if git diff --cached --quiet; then echo "変化なし"; exit 0; fi
           git commit -m "data: 公式情報を更新（自動収集）"
           git push

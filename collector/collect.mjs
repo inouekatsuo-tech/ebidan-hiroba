@@ -10,7 +10,9 @@ const BASE = 'https://ebidan.jp';
 const OUT = new URL('../milkies-hiroba/data/items.json', import.meta.url);
 const UA = 'Mozilla/5.0 (compatible; ebidan-hiroba-bot/1.0; unofficial fan site; +https://ositopia.com)';
 const NEWS_PAGES = +process.env.NEWS_PAGES || 3; // 1ページ約12件。30分ごとに直近3ページを見る
-const KEEP_DAYS = 45;          // これより古いニュースは捨てる
+const KEEP_DAYS = 45;
+const HEALTH = new URL('./collect-health.json', import.meta.url);   // 連続失敗の回数を覚えておく
+const MAX_TRANSIENT = 6;   // 30分おきなので、約3時間ずっと落ちていたら知らせる          // これより古いニュースは捨てる
 
 const GROUP_BY_TAG = {
   '超特急': 'chotokkyu', 'M!LK': 'milk', 'SUPER★DRAGON': 'superdragon',
@@ -43,11 +45,20 @@ const clean = s => decode(s.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim()
 const ymd = d => d.replace(/\./g, '-');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function get(path) {
-  const res = await fetch(BASE + path, { headers: { 'User-Agent': UA, 'Accept-Language': 'ja' } });
-  if (!res.ok) throw new Error(`${res.status} ${path}`);
-  await sleep(800); // 公式サイトに負荷をかけないよう間隔をあける
-  return res.text();
+// 相手のサイトが一時的に不調なことがあるので、少し待って3回まで試す
+class Transient extends Error {}
+async function get(path, tries = 3) {
+  let last;
+  for (let i = 1; i <= tries; i++) {
+    try {
+      const res = await fetch(BASE + path, { headers: { 'User-Agent': UA, 'Accept-Language': 'ja' }, signal: AbortSignal.timeout(20000) });
+      if (res.ok) { await sleep(800); return res.text(); }       // 負荷をかけないよう間隔をあける
+      last = new Error(`${res.status} ${path}`);
+      if (res.status < 500 && res.status !== 429) break;          // 404などは再試行しても無駄
+    } catch (e) { last = e; }
+    if (i < tries) { console.log(`取得に失敗（${last.message}）。${i * 5}秒待って再試行します`); await sleep(i * 5000); }
+  }
+  throw new Transient(`${last.message}（3回試しても取得できませんでした）`);
 }
 
 function groupFromTitle(title) {
@@ -128,6 +139,8 @@ async function main() {
     .filter(it => it.date >= cutoff)
     .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 
+  await writeFile(HEALTH, JSON.stringify({ transient: 0, ok: new Date().toISOString() }, null, 1) + '\n');
+
   const same = JSON.stringify(items) === JSON.stringify(prev.items);
   if (same) { console.log('変化なし', counts); return; }
   await mkdir(dirname(OUT.pathname), { recursive: true });
@@ -135,4 +148,20 @@ async function main() {
   console.log('更新しました', counts, '合計', items.length);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main().catch(e => { console.error(e); process.exit(1); });
+if (import.meta.url === `file://${process.argv[1]}`) main().catch(async e => {
+  if (e instanceof Transient) {
+    let h = { transient: 0 };
+    try { h = JSON.parse(await readFile(HEALTH, 'utf8')); } catch {}
+    h.transient = (h.transient || 0) + 1;
+    h.last = new Date().toISOString();
+    try { await writeFile(HEALTH, JSON.stringify(h, null, 1) + '\n'); } catch {}
+    if (h.transient >= MAX_TRANSIENT) {
+      console.error(`公式サイトに ${h.transient} 回連続でつながりません。サイトの移転や構成変更かもしれません: ${e.message}`);
+      process.exit(1);   // ここで初めて失敗通知を出す
+    }
+    console.log(`公式サイトが一時的に応答しませんでした（連続 ${h.transient} 回目）。次回の実行で取り直します`);
+    process.exit(0);
+  }
+  console.error(e);
+  process.exit(1);
+});
