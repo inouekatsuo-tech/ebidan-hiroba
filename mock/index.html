@@ -176,7 +176,8 @@ dialog::backdrop{background:rgba(10,10,25,.45)}
 .prov{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:700;text-align:left}
 .prov:hover{border-color:var(--ink)}
 .prov .pf{width:26px;height:26px}
-.x-close{position:absolute;top:10px;right:12px;background:none;border:0;font-size:22px;cursor:pointer;color:var(--muted)}
+.dlg{position:relative}
+.x-close{position:absolute;top:-6px;right:-4px;background:none;border:0;font-size:26px;line-height:1;cursor:pointer;color:var(--muted);padding:8px 10px;z-index:2}
 label.lb{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:700}
 
 .toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:13px;z-index:50;max-width:calc(100% - 32px);text-align:center}
@@ -353,7 +354,7 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
   </div>
 </nav>
 
-<dialog id="login" aria-labelledby="login-title">
+<dialog id="login" aria-labelledby="login-title" data-close-outside>
   <div class="dlg" id="login-body"></div>
 </dialog>
 
@@ -1336,11 +1337,13 @@ function providersHTML(){
   <p>※モックのため、どれを押しても実際のログインは行われません。</p>`;
 }
 function openLogin(){
-  $('#login-body').innerHTML=`<h2 id="login-title">推しトピアにログイン</h2><p>見るだけならログインは不要です。コメントや書き込み、コミュニティ参加にはアカウントが必要です。</p>${providersHTML()}<div class="actions"><button class="btn ghost sm" id="login-cancel">あとで</button></div>`;
+  $('#login-body').innerHTML=`<button class="x-close" id="login-cancel" aria-label="閉じる">×</button>
+  <h2 id="login-title">推しトピアにログイン</h2><p>見るだけならログインは不要です。コメントや書き込み、コミュニティ参加にはアカウントが必要です。</p>${providersHTML()}<div class="actions"><button class="btn ghost sm" id="login-cancel">あとで</button></div>`;
   const d=$('#login'); if(!d.open) d.showModal();
 }
 function profileStep(via){
-  $('#login-body').innerHTML=`<h2 id="login-title">プロフィールを作成</h2><p>${esc(via)}で認証しました（デモ）。広場で表示される情報を決めてください。</p>
+  $('#login-body').innerHTML=`<button class="x-close" id="login-cancel" aria-label="閉じる">×</button>
+  <h2 id="login-title">プロフィールを作成</h2><p>${esc(via)}で認証しました（デモ）。広場で表示される情報を決めてください。</p>
   <form id="profform" class="providers" data-via="${esc(via)}">
     <div class="inherit"><b>${esc(via)}から引き継いだ情報</b><span>メールアドレス（ログインにだけ使います・非公開）</span></div>
     <label class="lb">ハンドルネーム<input class="field" id="pf-name" placeholder="例：みるくてぃー" maxlength="12" required autocomplete="off">
@@ -1351,7 +1354,8 @@ function profileStep(via){
     <label class="lb">いちばんの推しグループ<select class="field" id="pf-oshi">${GROUPS.map(g=>`<option>${esc(g.name)}</option>`).join('')}<option>箱</option></select></label>
     <p>公開されるのは、ハンドルネーム・年代・都道府県だけです。生年月日や市区町村は表示されません。</p>
     <label class="agree"><input type="checkbox" id="agree-terms"> <span><a href="#/terms" target="_blank">利用規約</a>と<a href="#/privacy" target="_blank">プライバシーポリシー</a>に同意します</span></label>
-    <div class="actions"><button class="btn">はじめる</button></div></form>`;
+    <div class="actions"><button type="button" class="btn ghost sm" id="login-back">別の方法でログイン</button><button class="btn">はじめる</button></div></form>
+  <p class="hint" style="text-align:center">※通知を受け取るだけなら、ログインは必要ありません。<a href="#/me" id="login-close-link">閉じる</a></p>`;
   const d=$('#login'); if(!d.open) d.showModal();
 }
 
@@ -1421,11 +1425,14 @@ function render(){
 function go(){ render(); window.scrollTo(0,0); }
 window.addEventListener('hashchange',go);
 
+// ダイアログの外側をタップしたら閉じる（スマホで戻れなくなるのを防ぐ）
+$('#login').addEventListener('click',e=>{ if(e.target.id==='login') $('#login').close(); });
 document.addEventListener('click',e=>{
   const t=e.target.closest('button,a'); if(!t) return;
   const d=t.dataset;
   if(t.id==='login-open'){ openLogin(); }
-  else if(t.id==='login-cancel'){ $('#login').close(); }
+  else if(t.id==='login-cancel'||t.id==='login-close-link'){ $('#login').close(); render(); }
+  else if(t.id==='login-back'){ openLogin(); }
   else if(d.prov){ profileStep(d.prov); }
   else if(d.rx){ toggleReax(d.rx); }
   else if(d.like){ const i=S.likes.indexOf(d.like); i<0?S.likes.push(d.like):S.likes.splice(i,1); save(); render(); }
