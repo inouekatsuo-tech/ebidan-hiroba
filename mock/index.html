@@ -1579,19 +1579,24 @@ function openLogin(){
   <h2 id="login-title">推しトピアにログイン</h2><p>見るだけならログインは不要です。コメントや書き込み、コミュニティ参加にはアカウントが必要です。</p>${providersHTML()}<div class="actions"><button class="btn ghost sm" id="login-cancel">あとで</button></div>`;
   const d=$('#login'); if(!d.open) d.showModal();
 }
+function suggestName(){
+  const a=['みるく','ほしぞら','おしかつ','ぺんらいと','うちわ','まっしろ','きらきら','ゆめみ'];
+  return a[Math.floor(Math.random()*a.length)]+String(Math.floor(Math.random()*90)+10);
+}
 function profileStep(via){
   $('#login-body').innerHTML=`<button class="x-close" id="login-cancel" aria-label="閉じる">×</button>
   <h2 id="login-title">プロフィールを作成</h2><p>${esc(via)}で認証しました（デモ）。広場で表示される情報を決めてください。</p>
   <form id="profform" class="providers" data-via="${esc(via)}">
     <div class="inherit"><b>${esc(via)}から引き継いだ情報</b><span>メールアドレス（ログインにだけ使います・非公開）</span></div>
-    <label class="lb">ハンドルネーム<input class="field" id="pf-name" placeholder="例：みるくてぃー" maxlength="12" required autocomplete="off">
+    <label class="lb">ハンドルネーム<input class="field" id="pf-name" value="${suggestName()}" placeholder="例：みるくてぃー" maxlength="12" autocomplete="off">
       <span class="hint">広場で表示される名前です。2〜12文字。<b>本名やメールアドレスは、ほかの人には表示されません。</b></span></label>
     <p class="err" id="pf-err" hidden></p>
     <label class="lb">年代<select class="field" id="pf-age">${AGES.map(a=>`<option>${a}</option>`).join('')}</select></label>
     <label class="lb">都道府県<select class="field" id="pf-pref">${PREFS.map(p=>`<option ${p==='東京都'?'selected':''}>${p}</option>`).join('')}</select></label>
     <label class="lb">いちばんの推しグループ<select class="field" id="pf-oshi">${GROUPS.map(g=>`<option>${esc(g.name)}</option>`).join('')}<option>箱</option></select></label>
     <p>公開されるのは、ハンドルネーム・年代・都道府県だけです。生年月日や市区町村は表示されません。</p>
-    <label class="agree"><input type="checkbox" id="agree-terms"> <span><a href="#/terms" target="_blank">利用規約</a>と<a href="#/privacy" target="_blank">プライバシーポリシー</a>に同意します</span></label>
+    <label class="agree"><input type="checkbox" id="agree-terms"> <span><b>利用規約</b>と<b>プライバシーポリシー</b>に同意します</span></label>
+    <p class="hint" style="text-align:center"><a href="#/terms" id="see-terms">内容を読む</a>（読んだあと、この画面に戻ってきてください）</p>
     <div class="actions"><button type="button" class="btn ghost sm" id="login-back">別の方法でログイン</button><button class="btn">はじめる</button></div></form>
   <p class="hint" style="text-align:center">※通知を受け取るだけなら、ログインは必要ありません。<a href="#/me" id="login-close-link">閉じる</a></p>`;
   const d=$('#login'); if(!d.open) d.showModal();
@@ -1672,6 +1677,7 @@ document.addEventListener('click',e=>{
   if(t.id==='login-open'){ openLogin(); }
   else if(t.id==='login-cancel'||t.id==='login-close-link'){ $('#login').close(); render(); }
   else if(t.id==='login-back'){ openLogin(); }
+  else if(t.id==='see-terms'){ $('#login').close(); }
   else if(d.prov){ profileStep(d.prov); }
   else if(d.rx){ toggleReax(d.rx); }
   else if(d.like){ const i=S.likes.indexOf(d.like); i<0?S.likes.push(d.like):S.likes.splice(i,1); save(); render(); }
@@ -1736,7 +1742,10 @@ document.addEventListener('change',e=>{
   if(e.target.id==='me-age'){ S.user.age=e.target.value; save(); render(); toast(`年代を「${S.user.age}」に切り替えました`); }
 });
 document.addEventListener('input',e=>{ if(e.target.id==='comm-q'){ ui.cq=e.target.value; $('#comm-grid').innerHTML=commGrid(); } });
-function showErr(sel,msg){ const el=$(sel); el.textContent=msg; el.hidden=false; }
+function showErr(sel,msg){
+  const el=$(sel); if(el){ el.textContent=msg; el.hidden=false; el.scrollIntoView({block:'center',behavior:'smooth'}); }
+  toast(msg);
+}
 function detect(u){
   let h; try{ h=new URL(u).hostname.replace(/^www\./,''); }catch(e){ return null; }
   if(/^(x|twitter|mobile\.twitter)\.com$/.test(h)) return 'X';
