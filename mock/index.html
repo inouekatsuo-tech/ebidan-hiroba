@@ -259,6 +259,16 @@ a.oitem:hover{border-color:var(--official)}
 button.row{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);cursor:pointer;font:inherit}
 .msg-body{margin:6px 0 0;font-size:13.5px;white-space:pre-wrap;color:var(--muted)}
 .msg.new .t{font-weight:700}
+.stat{padding:14px;display:flex;flex-direction:column;gap:4px}
+.stat b{font-family:var(--display);font-size:22px}
+.quote{border-left:3px solid var(--line);padding-left:10px;margin:6px 0}
+.quote p{margin:4px 0 0;font-size:14px;white-space:pre-wrap}
+.hidden-post{opacity:.75}
+.ad{display:flex;flex-direction:column;gap:3px;padding:14px;text-decoration:none;border-style:dashed}
+.ad-label{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;align-self:flex-start}
+.ad b{font-size:15px}
+.ad span:not(.ad-label){font-size:13px;color:var(--muted)}
+.admin-link{color:var(--muted)!important;font-weight:500!important}
 .qr-card{padding:18px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 .memno{font-family:var(--display);font-size:26px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
 .memno-sm{color:var(--accent);font-variant-numeric:tabular-nums}
@@ -345,7 +355,7 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 <footer class="foot-links">
   <div class="foot-in">
     <p>推しトピアは、ファンが個人で運営する<b>非公式サイト</b>です。アーティスト・所属事務所とは関係ありません。</p>
-    <nav><a href="#/about">運営者情報</a><a href="#/privacy">プライバシーポリシー</a><a href="#/terms">利用規約</a><a href="mailto:info@ositopia.com">お問い合わせ</a></nav>
+    <nav><a href="#/about">運営者情報</a><a href="#/privacy">プライバシーポリシー</a><a href="#/terms">利用規約</a><a href="mailto:info@ositopia.com">お問い合わせ</a><a href="#/admin" class="admin-link">運営</a></nav>
   </div>
 </footer>
 
@@ -525,9 +535,9 @@ const SEED={
 const KEY='milkies-demo-v3';
 let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],inbox:null,pushOn:false,following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']};
+if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']};
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
+let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -540,6 +550,10 @@ function ng(t){
 function need(){ if(S.user) return true; openLogin(); return false; }
 // 書き込みはログイン不要。名前は「名無しさん」、IDは端末ごとに日替わりで作る
 function who(){ return S.user?S.user.name:'名無しさん'; }
+function blocked(){
+  if(S.user&&isBanned(S.user.name)){ toast('このアカウントは現在凍結されています。心当たりがない場合は運営までご連絡ください'); return true; }
+  return false;
+}
 function anonId(){
   const d=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
   if(S.anon&&S.anon.d===d) return S.anon.id;
@@ -695,6 +709,7 @@ V.home=()=>{
     <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>今日の持ち寄りランキング</h2><a class="more" href="#/info" data-src="fan">もっと見る</a></div>
     <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
+  ${['home','both'].includes(S.ads.slot)?adHTML():''}
   <section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
     <div class="panel rows">${S.threads.filter(t=>!t.live&&(!t.g||fav.includes(t.g))).slice(0,3).map(threadRow).join('')}</div></section>`;
 };
@@ -714,7 +729,8 @@ V.info=()=>{
   ${ui.pickOpen?pickFormHTML():''}
   ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/info" id="clearq">解除</a></div>`:''}
   ${LIVE?`<div class="update-note"><span class="pulse"></span><div><b>30分ごとに自動更新</b><span>EBiDAN公式サイトのニュース・動画・スケジュールを自動で集めて、カテゴリに仕分けています。最終更新 ${fmtUpdated(LIVE.updated)}（混み合うと少し遅れることがあります）</span></div></div>`:'<p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。</p>'}
-  <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>`;
+  <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>
+  ${['info','both'].includes(S.ads.slot)?adHTML():''}`;
 };
 function pickFormHTML(){
   const g0=GMAP[ui.ig]?ui.ig:(S.follow[0]||'milk'), c0=CMAP[ui.ic]?ui.ic:'media';
@@ -877,7 +893,9 @@ V.pick=id=>{
   ${pickCard(p)}
   <div class="notice">ここでのコメントは推しトピアの中だけに表示されます。元の投稿には反映されず、投稿者に通知も届きません。</div>
   <section class="sec"><div class="sec-h"><h2>コメント ${p.comments.length}</h2></div>
-    <div class="panel comments">${p.comments.map((c,i)=>`<div class="cm"><span class="meta"><b>${esc(c.by)}</b>${esc(c.ago)}</span><p>${esc(c.t)}</p><div class="res-foot">${reaxHTML(p.id+':c'+i,i===0?{wakaru:5,suki:2}:null)}${reportBtn('comment:'+p.id+':'+i)}</div></div>`).join('')||'<div class="cm"><p class="hint">まだコメントはありません。</p></div>'}</div>
+    <div class="panel comments">${p.comments.map((c,i)=>hiddenKey('comment:'+p.id+':'+i)
+      ? `<div class="cm hidden-post"><p class="hint">このコメントは、ルール違反のため運営が非表示にしました。</p></div>`
+      : `<div class="cm"><span class="meta"><b>${esc(c.by)}</b>${esc(c.ago)}</span><p>${esc(c.t)}</p><div class="res-foot">${reaxHTML(p.id+':c'+i,i===0?{wakaru:5,suki:2}:null)}${reportBtn('comment:'+p.id+':'+i)}</div></div>`).join('')||'<div class="cm"><p class="hint">まだコメントはありません。</p></div>'}</div>
     <form class="panel compose" id="cmform" data-id="${p.id}">
       <textarea class="field" id="cm-text" placeholder="${S.user?'コメントを書く':'名無しさんとしてコメントする'}" aria-label="コメント"></textarea>
       <p class="err" id="cm-err" hidden></p>
@@ -909,7 +927,9 @@ V.board=()=>{
 V.thread=id=>{
   const t=S.threads.find(x=>x.id===id); if(!t) return V.board();
   const SEED={2:{wakaru:6,suki:2},3:{wakaru:11,warota:3},4:{suki:4}};
-  const shown=t.res.map(r=>`<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p>${r.nm==='広場の運営'?'':`<div class="res-foot">${reaxHTML(t.id+':'+r.n,SEED[r.n])}${reportBtn('res:'+t.id+':'+r.n)}</div>`}</div>`).join('');
+  const shown=t.res.map(r=>hiddenKey('res:'+t.id+':'+r.n)
+    ? `<div class="res hidden-post"><div class="hd"><span class="no">${r.n}</span></div><p class="hint">この書き込みは、ルール違反のため運営が非表示にしました。</p></div>`
+    : `<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p>${r.nm==='広場の運営'?'':`<div class="res-foot">${reaxHTML(t.id+':'+r.n,SEED[r.n])}${reportBtn('res:'+t.id+':'+r.n)}</div>`}</div>`).join('');
   return `<a class="back" href="#/board">← 掲示板</a>
   <div class="page-h"><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
   ${t.live?`<div class="notice">このスレッドは出演情報から自動で立ちました。${t.srcUrl?`<a href="${esc(t.srcUrl)}" target="_blank" rel="noopener">公式の情報を見る ↗</a>`:''}</div>`:''}
@@ -1257,6 +1277,162 @@ V.inbox=()=>{
     ${ui.openMsg===m.id?`<p class="msg-body">${esc(m.body)}</p>`:''}</div></button>`).join('')}</div>`;
 };
 
+// ===== 運営の管理画面 =====
+// モックのため、合言葉はこの端末の中だけで確認しています。
+// 本番では、運営者だけがログインできる認証に置き換えます。
+const ADMIN_PASS = 'ositopia2026';
+const isAdmin = () => !!S.adminOn;
+const hiddenKey = k => S.hidden.includes(k);
+const isBanned = name => S.banned.some(b => b.name === name);
+
+function allPosts(){
+  const out = [];
+  S.threads.forEach(t => t.res.forEach(r => out.push({
+    key: `res:${t.id}:${r.n}`, where: `掲示板「${t.title}」`, link: `#/thread/${t.id}`,
+    name: r.nm, id: r.id, text: r.t,
+  })));
+  S.picks.forEach(p => p.comments.forEach((c, i) => out.push({
+    key: `comment:${p.id}:${i}`, where: '持ち寄りへのコメント', link: `#/pick/${p.id}`,
+    name: c.by, text: c.t,
+  })));
+  return out;
+}
+const findPost = key => allPosts().find(p => p.key === key);
+
+V.admin = (sub = 'home') => {
+  if (!isAdmin()) return `<div class="page-h"><h1>運営ログイン</h1><p>運営者だけが使う管理画面です。</p></div>
+    <form class="panel compose" id="adminlogin">
+      <label class="lb">合言葉<input class="field" type="password" id="adm-pass" autocomplete="off"></label>
+      <p class="err" id="adm-err" hidden></p>
+      <div class="actions"><button class="btn">入る</button></div>
+      <p class="hint">※モックのため合言葉は端末内で確認しています。本番では運営アカウントのログインに置き換えます。</p>
+    </form>`;
+
+  const tabs = [['home','ダッシュボード'],['reports',`通報（${S.reports.length}）`],['users','ユーザー'],['notice','お知らせ'],['ads','広告'],['settings','設定']];
+  let body = '';
+
+  if (sub === 'home') {
+    const posts = allPosts();
+    body = `<div class="grid">
+      ${[['登録ユーザー', sampleUsers().length + (S.user?1:0) + '人'],
+         ['書き込み', posts.length + '件'],
+         ['未対応の通報', S.reports.filter(r=>!r.done).length + '件'],
+         ['非表示にした投稿', S.hidden.length + '件'],
+         ['凍結中のアカウント', S.banned.length + '件'],
+         ['広告', S.ads.enabled ? '表示中' : '停止中']].map(([k,v]) =>
+        `<div class="panel stat"><span class="meta">${k}</span><b>${v}</b></div>`).join('')}
+    </div>
+    <div class="panel safety"><b>最近の書き込み</b>
+      <div class="rows">${posts.slice(-5).reverse().map(p=>`<div class="row"><div class="main"><span class="meta">${esc(p.where)} · ${esc(p.name)}</span><span class="t">${esc(p.text.slice(0,50))}</span></div><button class="btn sm ghost" data-hide="${esc(p.key)}">${hiddenKey(p.key)?'再表示':'非表示'}</button></div>`).join('')}</div>
+    </div>`;
+  }
+
+  if (sub === 'reports') {
+    body = S.reports.length ? S.reports.map((r, i) => {
+      const p = findPost(r.target);
+      return `<div class="panel compose">
+        <span class="meta"><span class="chip warn">${esc(r.reason)}</span>${new Date(r.at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}${r.done?'<span class="chip ok">対応済み</span>':''}</span>
+        ${p ? `<div class="quote"><span class="meta">${esc(p.where)} · ${esc(p.name)}${p.id?` ID:${esc(p.id)}`:''}</span><p>${esc(p.text)}</p></div>
+              <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">
+                <a class="btn sm ghost" href="${p.link}">該当ページを見る</a>
+                <button class="btn sm" data-hide="${esc(p.key)}">${hiddenKey(p.key)?'再表示する':'非表示にする'}</button>
+                <button class="btn sm ghost" data-warn="${esc(p.name)}">警告を送る</button>
+                <button class="btn sm ghost" data-ban="${esc(p.name)}">${isBanned(p.name)?'凍結を解除':'アカウントを凍結'}</button>
+              </div>` : '<p class="hint">対象の書き込みは見つかりませんでした（すでに削除された可能性があります）</p>'}
+        ${r.note?`<p class="hint">補足：${esc(r.note)}</p>`:''}
+        <div class="actions"><button class="btn sm ghost" data-report-done="${i}">${r.done?'未対応に戻す':'対応済みにする'}</button></div>
+      </div>`; }).join('') : '<p class="hint">通報はまだありません。</p>';
+  }
+
+  if (sub === 'users') {
+    const q = (ui.adminQ || '').trim();
+    const list = [...sampleUsers(), ...(S.user ? [{ ...S.user, me: true }] : [])]
+      .filter(u => !q || u.name.includes(q) || String(u.no || '').includes(q));
+    body = `<form class="search" id="adminusersearch"><input id="adm-q" value="${esc(q)}" placeholder="ハンドルネーム または 会員番号で検索" aria-label="ユーザー検索"><button class="btn sm">検索</button></form>
+    <div class="panel rows">${list.map(u => `<div class="row"><span class="mini-av">${initial(u.name)}</span>
+      <div class="main"><span class="t">${esc(u.name)}${u.me?' <span class="chip">自分</span>':''}${isBanned(u.name)?' <span class="chip warn">凍結中</span>':''}</span>
+        <span class="meta"><span class="chip">#${esc(u.no||'—')}</span><span class="chip">${esc(u.age)}</span><span class="chip">${esc(u.pref)}</span></span></div>
+      <button class="btn sm ghost" data-admin-user="${esc(u.name)}">操作</button></div>`).join('') || '<div class="row"><p class="hint">見つかりませんでした</p></div>'}</div>`;
+  }
+
+  if (sub === 'notice') {
+    body = `<form class="panel compose" id="noticeform">
+      <h3>全員にお知らせを送る</h3>
+      <input class="field" id="nt-title" placeholder="件名（例：オフ会のルールを更新しました）">
+      <textarea class="field" id="nt-body" placeholder="本文" rows="4"></textarea>
+      <label class="agree"><input type="checkbox" id="nt-push" checked> プッシュ通知でも知らせる</label>
+      <p class="err" id="nt-err" hidden></p>
+      <div class="actions"><button class="btn">送信する</button></div>
+      <p class="hint">※モックでは、この端末の受信箱にだけ届きます。本番では全ユーザーに届きます。</p>
+    </form>
+    <div class="panel safety"><b>送信したお知らせ</b>
+      <ul>${(S.inbox||[]).map(m=>`<li>${esc(m.date)}　${esc(m.title)}</li>`).join('')||'<li>まだありません</li>'}</ul></div>`;
+  }
+
+  if (sub === 'ads') {
+    const a = S.ads;
+    body = `<form class="panel compose" id="adsform">
+      <h3>広告の設定</h3>
+      <label class="agree"><input type="checkbox" id="ad-on" ${a.enabled?'checked':''}> 広告を表示する</label>
+      <label class="lb">表示する場所<select class="field" id="ad-slot">
+        ${[['info','情報ページの下'],['home','ホームの下'],['both','両方']].map(([v,l])=>`<option value="${v}" ${a.slot===v?'selected':''}>${l}</option>`).join('')}
+      </select></label>
+      <label class="lb">見出し<input class="field" id="ad-title" value="${esc(a.title||'')}" placeholder="例：推し活グッズ特集"></label>
+      <label class="lb">本文<input class="field" id="ad-text" value="${esc(a.text||'')}" placeholder="例：ペンライトやうちわの作り方グッズ"></label>
+      <label class="lb">リンク先<input class="field" id="ad-url" value="${esc(a.url||'')}" placeholder="https://…"></label>
+      <div class="actions"><button class="btn">保存する</button></div>
+      <p class="hint">掲示板と実況スレには広告を出しません（体験を壊さないため）。Google AdSenseを使う場合は、審査通過後にこの枠へ差し替えます。</p>
+    </form>
+    ${a.enabled?`<div class="panel compose"><h3>表示プレビュー</h3>${adHTML(true)}</div>`:''}`;
+  }
+
+  if (sub === 'settings') {
+    body = `<div class="panel safety">
+      <b>安全に関する設定</b>
+      <ul>
+        <li>ユーザー同士のダイレクトメッセージ：<b>無効</b>（運営からの一方向のみ）</li>
+        <li>オフ会：10代限定と18歳以上に分離</li>
+        <li>10代のSNSリンク：ログイン中の人にのみ表示</li>
+        <li>居住地の公開：都道府県まで</li>
+      </ul>
+      <p class="hint">DMを有効にすると、未成年への個別接触が可能になります。当面は無効のまま運用します。</p>
+    </div>
+    <div class="panel safety"><b>凍結中のアカウント</b>
+      <div class="rows">${S.banned.map(b=>`<div class="row"><div class="main"><span class="t">${esc(b.name)}</span><span class="meta">${esc(b.at.slice(0,10))}　理由：${esc(b.reason||'—')}</span></div><button class="btn sm ghost" data-ban="${esc(b.name)}">解除</button></div>`).join('')||'<div class="row"><p class="hint">ありません</p></div>'}</div>
+    </div>
+    <button class="btn ghost" id="admin-logout">管理画面からログアウト</button>`;
+  }
+
+  return `<div class="page-h"><span class="meta"><span class="chip warn">運営用</span></span><h1>管理画面</h1></div>
+  <nav class="ctabs cats" aria-label="管理メニュー">${tabs.map(([k,l])=>`<a href="#/admin/${k}" aria-current="${sub===k?'page':'false'}">${l}</a>`).join('')}</nav>
+  ${body}`;
+};
+
+function adHTML(preview){
+  const a = S.ads;
+  if (!a.enabled || !a.title) return '';
+  return `<a class="panel ad" ${a.url?`href="${esc(a.url)}" target="_blank" rel="noopener nofollow"`:''}>
+    <span class="ad-label">広告</span>
+    <b>${esc(a.title)}</b>${a.text?`<span>${esc(a.text)}</span>`:''}
+    ${preview?'<span class="hint">※これはプレビューです</span>':''}</a>`;
+}
+function openAdminUser(name){
+  const u = [...sampleUsers(), ...(S.user?[S.user]:[])].find(x => x.name === name);
+  if (!u) return;
+  $('#login-body').innerHTML = `<button class="x-close" id="login-cancel" aria-label="閉じる">×</button>
+  <h2 id="login-title">${esc(u.name)}</h2>
+  <p>会員番号 #${esc(u.no||'—')}　${esc(u.age)}・${esc(u.pref)}${isBanned(u.name)?'　<span class="chip warn">凍結中</span>':''}</p>
+  <form id="admuserform" class="providers" data-name="${esc(u.name)}">
+    <label class="lb">ハンドルネームを変更<input class="field" id="au-name" value="${esc(u.name)}" maxlength="12"></label>
+    <label class="lb">この人にメッセージを送る<textarea class="field" id="au-msg" rows="3" placeholder="例：チケットの譲渡に関する書き込みは禁止です。削除しました。"></textarea></label>
+    <div class="actions" style="flex-wrap:wrap">
+      <button type="button" class="btn sm ghost" data-ban="${esc(u.name)}">${isBanned(u.name)?'凍結を解除':'アカウントを凍結'}</button>
+      <button class="btn">保存して送信</button>
+    </div>
+  </form>`;
+  $('#login').showModal();
+}
+
 // ===== 会員番号とQRコード =====
 // 本番は登録順の通し番号。モックでは端末ごとに1つ発行する。
 function issueMemberNo(){
@@ -1478,7 +1654,7 @@ function render(){
   const [r,id,sub]=h.split('/');
   const view=V[r]?V[r](id,sub):V.home();
   $('#app').innerHTML=view;
-  const tab={pick:'info',g:'home',install:'me',card:'me',u:'me',about:'',privacy:'',terms:'',inbox:'me',people:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
+  const tab={pick:'info',g:'home',install:'me',card:'me',u:'me',admin:'',about:'',privacy:'',terms:'',inbox:'me',people:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(window.twttr&&twttr.widgets&&$('#app').querySelector('.twitter-tweet')) twttr.widgets.load($('#app'));
   if(S.user){ ensureInbox(); $('#tab-me').classList.toggle('has-new',unread()>0); }
@@ -1532,6 +1708,22 @@ document.addEventListener('click',e=>{
   else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
   else if(d.report){ openReport(d.report); }
   else if(d.msg){ ui.openMsg=ui.openMsg===d.msg?null:d.msg; const m=S.inbox.find(x=>x.id===d.msg); if(m&&!m.read){ m.read=true; save(); } render(); }
+  else if(d.hide){ const i=S.hidden.indexOf(d.hide); i<0?S.hidden.push(d.hide):S.hidden.splice(i,1); save(); render(); toast(i<0?'この書き込みを非表示にしました':'再表示しました'); }
+  else if(d.ban){
+    const i=S.banned.findIndex(b=>b.name===d.ban);
+    if(i<0){ S.banned.push({name:d.ban,at:new Date().toISOString(),reason:'ルール違反'}); toast(`${d.ban} を凍結しました`); }
+    else { S.banned.splice(i,1); toast(`${d.ban} の凍結を解除しました`); }
+    save(); if($('#login').open) $('#login').close(); render();
+  }
+  else if(d.warn){
+    ensureInbox();
+    S.inbox.unshift({id:'m'+Date.now(),from:'運営',title:'ルール違反についてのお知らせ',date:jstToday(),read:false,
+      body:`${d.warn} さんの書き込みについて、ルール違反の通報がありました。\n該当の書き込みは非表示にしています。\n\n繰り返される場合はアカウントを凍結します。利用規約をご確認ください。`});
+    save(); render(); toast('警告メッセージを送りました');
+  }
+  else if(d.reportDone!==undefined){ const r=S.reports[+d.reportDone]; r.done=!r.done; save(); render(); }
+  else if(d.adminUser){ openAdminUser(d.adminUser); }
+  else if(t.id==='admin-logout'){ S.adminOn=false; save(); location.hash='#/home'; toast('管理画面からログアウトしました'); }
   else if(t.id==='copy-no'){ navigator.clipboard?.writeText(S.user.no); toast('会員番号をコピーしました'); }
   else if(t.id==='copy-url'){ navigator.clipboard?.writeText(memberUrl(S.user.no)); toast('フォロー用のリンクをコピーしました'); }
   else if(d.follow){ if(!need()) return; const i=S.following.indexOf(d.follow); i<0?S.following.push(d.follow):S.following.splice(i,1); save(); render(); toast(i<0?`${d.follow}さんをフォローしました`:'フォローを解除しました'); }
@@ -1578,11 +1770,13 @@ document.addEventListener('submit',e=>{
     ui.pickOpen=false; ui.src='all'; save(); render(); toast('持ち寄りました！');
   }
   else if(f.id==='cmform'){
+    if(blocked()) return;
     const tx=$('#cm-text').value.trim(); if(!tx) return;
     const bad=ng(tx); if(bad) return showErr('#cm-err',bad);
     S.picks.find(p=>p.id===f.dataset.id).comments.push({by:who(),t:tx,ago:'たった今'}); save(); render();
   }
   else if(f.id==='resform'){
+    if(blocked()) return;
     const tx=$('#res-text').value.trim(); if(!tx) return;
     const bad=ng(tx); if(bad) return showErr('#res-err',bad);
     const t=S.threads.find(x=>x.id===f.dataset.id);
@@ -1601,6 +1795,29 @@ document.addEventListener('submit',e=>{
     const reason=f.querySelector('[name="rp"]:checked').value;
     S.reports.push({target:f.dataset.target,reason,note:$('#rp-note').value.trim(),at:new Date().toISOString()});
     save(); $('#login').close(); toast('通報を受け付けました。運営が確認します');
+  }
+  else if(f.id==='adminlogin'){
+    if($('#adm-pass').value!==ADMIN_PASS) return showErr('#adm-err','合言葉が違います');
+    S.adminOn=true; save(); location.hash='#/admin/home'; render(); toast('管理画面に入りました');
+  }
+  else if(f.id==='adminusersearch'){ ui.adminQ=$('#adm-q').value; render(); }
+  else if(f.id==='admuserform'){
+    const old=f.dataset.name, nm=$('#au-name').value.trim(), msg=$('#au-msg').value.trim();
+    if(S.user&&S.user.name===old&&nm&&nm!==old){ S.user.name=nm; }
+    if(msg){ ensureInbox(); S.inbox.unshift({id:'m'+Date.now(),from:'運営',title:'運営からのメッセージ',date:jstToday(),read:false,body:msg}); }
+    save(); $('#login').close(); render(); toast('保存しました'+(msg?'（メッセージを送信）':''));
+  }
+  else if(f.id==='noticeform'){
+    const title=$('#nt-title').value.trim(), body=$('#nt-body').value.trim();
+    if(!title||!body) return showErr('#nt-err','件名と本文を入れてください');
+    ensureInbox();
+    S.inbox.unshift({id:'m'+Date.now(),from:'運営',title,date:jstToday(),read:false,body});
+    if($('#nt-push').checked&&notiState()==='granted') showLocalNoti(title,body.slice(0,60));
+    save(); render(); toast('お知らせを送信しました');
+  }
+  else if(f.id==='adsform'){
+    S.ads={enabled:$('#ad-on').checked,slot:$('#ad-slot').value,title:$('#ad-title').value.trim(),text:$('#ad-text').value.trim(),url:$('#ad-url').value.trim()};
+    save(); render(); toast('広告の設定を保存しました');
   }
   else if(f.id==='nosearch'){
     const no=$('#no-q').value.replace(/[^0-9]/g,'');
