@@ -278,6 +278,11 @@ a.oitem:hover{border-color:var(--official)}
 button.row{width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);cursor:pointer;font:inherit}
 .msg-body{margin:6px 0 0;font-size:13.5px;white-space:pre-wrap;color:var(--muted)}
 .msg.new .t{font-weight:700}
+.qr-card{padding:18px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.memno{font-family:var(--display);font-size:26px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.memno-sm{color:var(--accent);font-variant-numeric:tabular-nums}
+.qrbox{background:#fff;padding:12px;border-radius:14px;min-height:120px;display:grid;place-items:center}
+.qrbox img,.qrbox canvas{display:block}
 .pcard{display:flex;gap:12px;align-items:flex-start}
 .pcard .main{display:flex;flex-direction:column;gap:4px}
 .bio{margin:4px 0 0;font-size:13.5px;color:var(--muted);white-space:pre-wrap}
@@ -1271,21 +1276,77 @@ V.inbox=()=>{
     ${ui.openMsg===m.id?`<p class="msg-body">${esc(m.body)}</p>`:''}</div></button>`).join('')}</div>`;
 };
 
+// ===== 会員番号とQRコード =====
+// 本番は登録順の通し番号。モックでは端末ごとに1つ発行する。
+function issueMemberNo(){
+  const base = 100000 + Math.floor(Math.random()*40000);   // #100001〜 のイメージ
+  return String(base);
+}
+const memberUrl = no => `${location.origin}${location.pathname}#/u/${no}`;
+function loadQR(){
+  if(window.QRCode) return Promise.resolve(true);
+  if(loadQR._p) return loadQR._p;
+  return loadQR._p = new Promise(res=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    sc.onload=()=>res(true); sc.onerror=()=>res(false);
+    document.head.appendChild(sc);
+  });
+}
+async function drawQR(el, text){
+  const ok = await loadQR();
+  if(!ok || !el) { if(el) el.innerHTML='<p class="hint">QRコードを読み込めませんでした</p>'; return; }
+  el.innerHTML='';
+  const dark=getComputedStyle(document.body).getPropertyValue('--ink').trim()||'#1C1F3A';
+  new QRCode(el,{text,width:200,height:200,colorDark:dark,colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+}
+V.card=()=>{
+  if(!S.user) return V.me();
+  const no=S.user.no;
+  return `<a class="back" href="#/me">← マイページ</a>
+  <div class="page-h"><h1>マイQRコード</h1><p>友達のカメラでこのQRを読み取ってもらうと、そのままフォローできます。</p></div>
+  <div class="panel qr-card">
+    <span class="meta">推しトピア 会員番号</span>
+    <b class="memno">#${esc(no)}</b>
+    <div id="qrbox" class="qrbox"><p class="hint">QRコードを作成しています…</p></div>
+    <p class="hint">${esc(S.user.name)}（${esc(S.user.age)}・${esc(S.user.pref)}）</p>
+    <div class="actions"><button class="btn sm ghost" id="copy-no">番号をコピー</button><button class="btn sm ghost" id="copy-url">リンクをコピー</button></div>
+  </div>
+  <div class="notice">iPhoneやAndroidの標準カメラでそのまま読み取れます。専用のアプリは必要ありません。</div>`;
+};
+V.u=(no)=>{
+  if(!no) return V.people();
+  const me=S.user&&S.user.no===no;
+  const u=me?S.user:sampleUsers().find(x=>x.no===no);
+  if(!u) return `<a class="back" href="#/people">← ファンをさがす</a>
+    <div class="page-h"><h1>見つかりませんでした</h1><p>会員番号 #${esc(no)} の人は見つかりませんでした。番号をもう一度確認してください。</p></div>`;
+  const f=S.following.includes(u.name);
+  return `<a class="back" href="#/people">← ファンをさがす</a>
+  <div class="panel compose">
+    ${profileCard(u)}
+    <span class="meta">会員番号 <b>#${esc(u.no)}</b></span>
+    <div class="actions">${me?'<span class="chip ok">あなたのプロフィールです</span>'
+      :`<button class="btn ${f?'ghost':''}" data-follow="${esc(u.name)}">${f?'フォロー中（解除する）':'フォローする'}</button>`}</div>
+  </div>`;
+};
 // ===== フォロー =====
 function sampleUsers(){
+  const no=name=>String(100000+[...name].reduce((a,c)=>(a*31+c.charCodeAt(0))%40000,7));
   const out=new Map();
-  S.comms.forEach(c=>(c.sample||[]).forEach(([name,age,pref])=>{ if(!out.has(name)) out.set(name,{name,age,pref,g:c.g}); }));
-  S.picks.forEach(p=>{ if(!out.has(p.by)) out.set(p.by,{name:p.by,age:'非公開',pref:'非公開',g:p.g}); });
+  S.comms.forEach(c=>(c.sample||[]).forEach(([name,age,pref])=>{ if(!out.has(name)) out.set(name,{name,age,pref,g:c.g,no:no(name)}); }));
+  S.picks.forEach(p=>{ if(!out.has(p.by)) out.set(p.by,{name:p.by,age:'非公開',pref:'非公開',g:p.g,no:no(p.by)}); });
   if(S.user) out.delete(S.user.name);
   return [...out.values()];
 }
 V.people=()=>{
   const list=sampleUsers();
   return `<a class="back" href="#/me">← マイページ</a>
-  <div class="page-h"><h1>ファンをさがす</h1><p>フォローすると、その人の持ち寄りや書き込みがホームに出ます。</p></div>
+  <div class="page-h"><h1>ファンをさがす</h1><p>会員番号で探すか、QRコードを読み取ってフォローできます。</p></div>
+  <form class="search" id="nosearch"><input id="no-q" inputmode="numeric" placeholder="会員番号で探す（例：112345）" aria-label="会員番号"><button class="btn sm">探す</button></form>
+  ${S.user?`<a class="btn ghost center" href="#/card">自分のQRコードを見せる</a>`:''}
   <div class="panel rows">${list.map(u=>{ const f=S.following.includes(u.name);
     return `<div class="row"><span class="mini-av">${initial(u.name)}</span><div class="main"><span class="t">${esc(u.name)}</span>
-      <span class="meta">${u.g?gchip(u.g):''}<span class="chip">${esc(u.age)}</span><span class="chip">${esc(u.pref)}</span></span></div>
+      <span class="meta">${u.g?gchip(u.g):''}<span class="chip">${esc(u.age)}</span><span class="chip">${esc(u.pref)}</span><span class="chip">#${esc(u.no)}</span></span></div>
       <button class="btn sm ${f?'ghost':''}" data-follow="${esc(u.name)}">${f?'フォロー中':'フォロー'}</button></div>`; }).join('')}</div>
   <p class="hint">※モックのため、表示されるのは架空のユーザーです。10代の方には、18歳以上からのメッセージは届きません。</p>`;
 };
@@ -1327,6 +1388,7 @@ V.me=()=>{
   return `<div class="page-h"><h1>マイページ</h1></div>
   <div class="panel profile"><span class="avatar">${initial(u.name)}</span><div class="main"><b style="font-size:17px">${esc(u.name)}</b><div class="meta"><span class="chip">${u.age}</span><span class="chip">${u.pref}</span><span class="chip fan">${esc(u.oshi)}推し</span>${esc(u.via)}でログイン</div>${u.bio?`<p class="bio">${esc(u.bio)}</p>`:''}</div><a class="btn sm ghost" href="#/profile">編集</a></div>
   <div class="panel rows">
+    <a class="row" href="#/card"><div class="main"><span class="t">会員番号 <b class="memno-sm">#${esc(u.no||'—')}</b></span><span class="meta">QRコードを表示・番号をコピー</span></div><span class="join">表示 →</span></a>
     <a class="row" href="#/inbox"><div class="main"><span class="t">お知らせ ${unread()?`<span class="badge">${unread()}</span>`:''}</span><span class="meta">運営からのメッセージ</span></div><span class="join">見る →</span></a>
     <a class="row" href="#/people"><div class="main"><span class="t">フォロー中 ${S.following.length}人</span><span class="meta">ファンをさがす</span></div><span class="join">さがす →</span></a>
   </div>
@@ -1435,10 +1497,11 @@ function render(){
   const [r,id,sub]=h.split('/');
   const view=V[r]?V[r](id,sub):V.home();
   $('#app').innerHTML=view;
-  const tab={pick:'info',g:'home',install:'me',about:'',privacy:'',terms:'',inbox:'me',people:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
+  const tab={pick:'info',g:'home',install:'me',card:'me',u:'me',about:'',privacy:'',terms:'',inbox:'me',people:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(window.twttr&&twttr.widgets&&$('#app').querySelector('.twitter-tweet')) twttr.widgets.load($('#app'));
   if(S.user){ ensureInbox(); $('#tab-me').classList.toggle('has-new',unread()>0); }
+  if($('#qrbox')&&S.user) drawQR($('#qrbox'), memberUrl(S.user.no));
   $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
 }
 function go(){ render(); window.scrollTo(0,0); }
@@ -1488,6 +1551,8 @@ document.addEventListener('click',e=>{
   else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
   else if(d.report){ openReport(d.report); }
   else if(d.msg){ ui.openMsg=ui.openMsg===d.msg?null:d.msg; const m=S.inbox.find(x=>x.id===d.msg); if(m&&!m.read){ m.read=true; save(); } render(); }
+  else if(t.id==='copy-no'){ navigator.clipboard?.writeText(S.user.no); toast('会員番号をコピーしました'); }
+  else if(t.id==='copy-url'){ navigator.clipboard?.writeText(memberUrl(S.user.no)); toast('フォロー用のリンクをコピーしました'); }
   else if(d.follow){ if(!need()) return; const i=S.following.indexOf(d.follow); i<0?S.following.push(d.follow):S.following.splice(i,1); save(); render(); toast(i<0?`${d.follow}さんをフォローしました`:'フォローを解除しました'); }
   else if(t.id==='newtopic'){ toast('モックではトピック作成画面は省略しています'); }
   else if(t.id==='logout'){ S.user=null; save(); render(); toast('ログアウトしました'); }
@@ -1517,7 +1582,7 @@ document.addEventListener('submit',e=>{
     if(nm.length<2||nm.length>12) return showErr('#pf-err','ハンドルネームは2〜12文字で入れてください');
     if(!$('#agree-terms').checked) return showErr('#pf-err','利用規約とプライバシーポリシーへの同意が必要です');
     if(/^(管理人|運営|公式|admin)$/i.test(nm)) return showErr('#pf-err','その名前は使えません');
-    S.user={name:nm,age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
+    S.user={no:issueMemberNo(),name:nm,age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
     save(); $('#login').close(); toast(`ようこそ、${S.user.name}さん`);
     if(!isStandalone()){ location.hash='#/install'; } else { render(); }
   }
@@ -1555,6 +1620,11 @@ document.addEventListener('submit',e=>{
     const reason=f.querySelector('[name="rp"]:checked').value;
     S.reports.push({target:f.dataset.target,reason,note:$('#rp-note').value.trim(),at:new Date().toISOString()});
     save(); $('#login').close(); toast('通報を受け付けました。運営が確認します');
+  }
+  else if(f.id==='nosearch'){
+    const no=$('#no-q').value.replace(/[^0-9]/g,'');
+    if(!no) return;
+    location.hash='#/u/'+no;
   }
   else if(f.id==='comm-search'){ }
   else if(f.id==='evform'){
