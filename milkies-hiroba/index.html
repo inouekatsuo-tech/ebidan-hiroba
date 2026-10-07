@@ -1279,7 +1279,8 @@ function ensureInbox(){
   const d=jstToday();
   S.inbox=[
     {id:'m1',from:'運営',title:'推しトピアへようこそ！',date:d,read:false,
-     body:'情報を見るだけなら登録は不要です。掲示板も名無しのまま書き込めます。\nアカウントが必要なのは「コミュニティに参加するとき」だけです。\n\n困ったことがあれば、どの書き込みからも「通報」できます。'},
+     body:(S.user?`あなたの会員番号は #${S.user.no} です。\nマイページの「会員番号」からQRコードを表示できます。友達に読み取ってもらうと、すぐフォローしてもらえます。\n\n`:'')
+       +'情報を見るだけなら登録は不要です。掲示板も名無しのまま書き込めます。\nアカウントが必要なのは「コミュニティに参加するとき」だけです。\n\n困ったことがあれば、どの書き込みからも「通報」できます。'},
     {id:'m2',from:'運営',title:'実況スレの使い方',date:d,read:false,
      body:'推しの出演予定があると、その日の朝に実況スレが自動で立ちます。\n放送を見ながら、感想をどうぞ。\n※放送前のネタバレは伏せてください。'},
   ];
@@ -1480,7 +1481,7 @@ V.card=()=>{
   if(!S.user) return V.me();
   const no=S.user.no;
   return `<a class="back" href="#/me">← マイページ</a>
-  <div class="page-h"><h1>マイQRコード</h1><p>友達のカメラでこのQRを読み取ってもらうと、そのままフォローできます。</p></div>
+  <div class="page-h"><h1>あなたの会員証</h1><p>会員番号が発行されました。友達のカメラでQRコードを読み取ってもらうと、そのままフォローできます。</p></div>
   <div class="panel qr-card">
     <span class="meta">推しトピア 会員番号</span>
     <b class="memno">#${esc(no)}</b>
@@ -1488,6 +1489,7 @@ V.card=()=>{
     <p class="hint">${esc(S.user.name)}（${esc(S.user.age)}・${esc(S.user.pref)}）</p>
     <div class="actions"><button class="btn sm ghost" id="copy-no">番号をコピー</button><button class="btn sm ghost" id="copy-url">リンクをコピー</button></div>
   </div>
+  ${isStandalone()?'':'<a class="btn center" href="#/install">ホーム画面に追加して通知を受け取る</a>'}
   <div class="notice">iPhoneやAndroidの標準カメラでそのまま読み取れます。専用のアプリは必要ありません。</div>`;
 };
 V.u=(no)=>{
@@ -1784,8 +1786,9 @@ document.addEventListener('submit',e=>{
     if(!$('#agree-terms').checked) return showErr('#pf-err','利用規約とプライバシーポリシーへの同意が必要です');
     if(/^(管理人|運営|公式|admin)$/i.test(nm)) return showErr('#pf-err','その名前は使えません');
     S.user={no:issueMemberNo(),name:nm,age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,via:f.dataset.via};
-    save(); $('#login').close(); toast(`ようこそ、${S.user.name}さん`);
-    if(!isStandalone()){ location.hash='#/install'; } else { render(); }
+    save(); $('#login').close();
+    toast(`ようこそ、${S.user.name}さん　会員番号 #${S.user.no}`);
+    location.hash='#/card';   // 会員証（番号とQRコード）を最初に見せる
   }
   else if(f.id==='pickform'){
     const url=$('#pick-url').value.trim(), note=$('#pick-note').value.trim(), pf=detect(url);
