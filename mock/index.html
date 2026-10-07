@@ -726,7 +726,12 @@ function digestHTML(){
   const sched=todays.filter(x=>x.kind==='schedule');
   const news=todays.filter(x=>x.kind==='news'||x.kind==='x');
   const names=list=>[...new Set(list.map(x=>gshort(x.g)))].filter(Boolean).slice(0,3).join('・');
-  const title=x=>{ const m=x.t.replace(/^【[^】]+】/,''); const q=m.match(/「([^」]{2,20})」/); return esc(q?q[1]:m.slice(0,14)); };
+  // 「フジテレビ系「かまいまち」」のような入れ子から、番組名（最後の「」）を取り出す
+  const title=x=>{
+    const m=x.t.replace(/^【[^】]+】/,'').trim();
+    const q=[...m.matchAll(/「([^」]{2,24})」/g)];
+    return esc(q.length?q[q.length-1][1]:m.slice(0,16));
+  };
   const line=(icon,text,href)=>`<li><span class="d-ic">${icon}</span><a href="${href}">${text}</a></li>`;
   const L=[];
 
