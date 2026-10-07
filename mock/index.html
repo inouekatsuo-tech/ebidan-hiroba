@@ -320,6 +320,12 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .legal-h h1{font-size:22px}
 .legal-nav{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px}
 .legal-nav a{color:var(--muted);font-weight:700;text-decoration:none}
+.ask-noti{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.ask-noti .art.big{width:72px;height:72px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.ask-noti .art.big svg{width:40px;height:40px}
+.ask-noti h2{font-size:19px}
+.ask-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);text-align:left}
+.ask-list li::before{content:"✓ ";color:var(--ok);font-weight:700}
 .install-h{align-items:flex-start}
 .app-icon{width:56px;height:56px;border-radius:14px;box-shadow:var(--shadow)}
 .install-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;text-decoration:none;position:relative}
@@ -872,6 +878,24 @@ async function unsubscribePush(){
     if(sub){ await fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subscription:sub.toJSON(),unsubscribe:true})}); await sub.unsubscribe(); }
   }catch(e){}
   S.pushOn=false; save(); render(); toast('この端末への通知を止めました');
+}
+// アプリとして開いた最初のタイミングで、通知のお願いを1回だけ出す
+function maybeAskNoti(){
+  if(!isStandalone()||notiState()!=='default') return;
+  let asked=0; try{ asked=+localStorage.getItem('noti-asked')||0; }catch(e){}
+  if(asked>=2) return;                       // しつこく出さない（最大2回まで）
+  const last=asked?+(localStorage.getItem('noti-asked-at')||0):0;
+  if(asked&&Date.now()-last<3*86400e3) return;   // 2回目は3日後
+  setTimeout(()=>{
+    $('#login-body').innerHTML=`<button class="x-close" id="login-cancel" aria-label="閉じる">×</button>
+      <div class="ask-noti"><span class="art big">${ART.bell}</span>
+      <h2 id="login-title">通知を受け取りますか？</h2>
+      <p>推しの出演がある日に、<b>実況スレが立ったこと</b>と<b>公式の新着情報</b>をお知らせします。</p>
+      <ul class="ask-list"><li>お知らせするのは<b>推しグループの情報だけ</b></li><li>1日に送るのは<b>多くても3通まで</b></li><li>あとから自由にオフにできます</li></ul>
+      <div class="actions"><button class="btn ghost sm" id="noti-later">あとで</button><button class="btn" id="noti-yes">通知をオンにする</button></div></div>`;
+    try{ localStorage.setItem('noti-asked',String(asked+1)); localStorage.setItem('noti-asked-at',String(Date.now())); }catch(e){}
+    if(!$('#login').open) $('#login').showModal();
+  }, 2500);   // 開いてすぐではなく、少し見てもらってから
 }
 async function askNoti(){
   if(!notiSupported()) return toast('この環境では通知を使えません');
@@ -1592,7 +1616,8 @@ V.me=()=>{
       <div class="noti-list">${[['live','実況スレが立ったとき'],['news','推しグループの新着情報'],['comm','コミュニティ・イベントのお知らせ']].map(([k,l])=>`<label class="fl"><input type="checkbox" data-noti="${k}" ${S.noti[k]?'checked':''}> ${l}</label>`).join('')}</div>
       <p class="hint">${S.pushOn?'この端末は「アプリを閉じていても届く通知」に登録済みです。':'この端末では、アプリを開いているときだけお知らせします。'}</p>
       <div class="actions">${S.pushOn?'<button class="btn sm ghost" id="push-off">通知を止める</button>':'<button class="btn sm ghost" id="push-on">閉じていても届くようにする</button>'}<button class="btn sm ghost" id="test-noti">テスト通知</button></div>`
-    : notiState()==='denied'?`<p class="err">通知がオフになっています。iPhoneは「設定」→「通知」→「推しトピア」、Androidはブラウザのサイト設定からオンにできます。</p>`
+    : notiState()==='denied'?`<p class="err">通知がオフになっています。</p>
+      <ol class="rules" style="padding-left:28px"><li>iPhoneの「設定」アプリを開く</li><li>「通知」をタップ</li><li>一覧から「推しトピア」を選ぶ</li><li>「通知を許可」をオンにする</li></ol>`
     : isStandalone()?`<p class="hint">実況スレや推しの新着をお知らせします。</p><div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>`
     : `<p class="hint">iPhoneは<b>ホーム画面に追加すると</b>通知を受け取れます。</p><div class="actions"><a class="btn" href="#/install">ホーム画面に追加する</a></div>`}
   </div>
@@ -1753,6 +1778,8 @@ document.addEventListener('click',e=>{
   else if(t.id==='hide-install'){ e.preventDefault(); ui.hideInstall=true; try{localStorage.setItem('hide-install','1');}catch(err){} render(); }
   else if(t.id==='do-install'){ if(installPrompt){ installPrompt.prompt(); installPrompt=null; } }
   else if(t.id==='ask-noti'){ askNoti(); }
+  else if(t.id==='noti-yes'){ $('#login').close(); askNoti(); }
+  else if(t.id==='noti-later'){ $('#login').close(); toast('マイページからいつでもオンにできます'); }
   else if(t.id==='push-on'){ subscribePush().then(ok=>{ render(); toast(ok?'登録しました。アプリを閉じていても届きます':'この端末では登録できませんでした'); }); }
   else if(t.id==='push-off'){ unsubscribePush(); }
   else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
@@ -1911,6 +1938,7 @@ document.addEventListener('submit',e=>{
 });
 safeRender();
 loadLive();
+maybeAskNoti();
 // ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）
 if('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
   addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
