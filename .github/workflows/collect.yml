@@ -34,7 +34,7 @@ jobs:
           fi
           node collector/collect-x.mjs
 
-      - name: Xで話題のファン投稿を拾う（1日2回・JST 11時/22時ごろ）
+      - name: Xで話題のファン投稿を拾う（1日1回・JST 22時ごろ）
         env:
           X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
           X_BUDGET: '5'
@@ -43,9 +43,9 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           H=$(date -u +%H)
-          # 1日2回（日本時間の11時ごろと22時ごろ）
-          if [ "$EVENT" != "workflow_dispatch" ] && [ "$H" != "02" ] && [ "$H" != "13" ]; then
-            echo "この回は話題の投稿を取得しません（1日2回）"; exit 0
+          # 1日1回（日本時間の22時ごろ）※費用を抑えるため
+          if [ "$EVENT" != "workflow_dispatch" ] && [ "$H" != "13" ]; then
+            echo "この回は話題の投稿を取得しません（1日1回）"; exit 0
           fi
           if [ "$EVENT" != "workflow_dispatch" ] && [ "$(date -u +%M)" -ge 30 ]; then
             echo "この回は話題の投稿を取得しません（毎時1回）"; exit 0
