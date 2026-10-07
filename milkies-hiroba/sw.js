@@ -1,6 +1,6 @@
 // ホーム画面アプリとして動くための最小限のService Worker。
 // 通信はそのまま通し、オフラインのときだけ最後に見たページを返す。
-const CACHE = 'ositopia-v9';
+const CACHE = 'ositopia-v10';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
   // 古いキャッシュを捨てて、更新がすぐ反映されるようにする
@@ -27,6 +27,7 @@ self.addEventListener('fetch', e => {
 // 通知をタップしたら、アプリの該当ページを開く
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  try { self.navigator.clearAppBadge && self.navigator.clearAppBadge(); } catch (err) {}
   const url = (e.notification.data && e.notification.data.url) || '/';
   e.waitUntil((async () => {
     const list = await clients.matchAll({ type: 'window', includeUncontrolled: true });
@@ -38,8 +39,15 @@ self.addEventListener('notificationclick', e => {
 // サーバーから送られてくるプッシュ通知（送信側は今後実装）
 self.addEventListener('push', e => {
   let d = {};
-  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: 'えびだん広場', body: e.data && e.data.text() }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'えびだん広場', {
-    body: d.body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: d.tag || 'ebidan', data: { url: d.url || '/' },
-  }));
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: '推しトピア', body: e.data && e.data.text() }; }
+  e.waitUntil((async () => {
+    await self.registration.showNotification(d.title || '推しトピア', {
+      body: d.body || '', icon: 'icon-192.png', badge: 'badge.png', tag: d.tag || 'ositopia', data: { url: d.url || '/' },
+    });
+    // アプリのアイコンに未読の数を出す（iOS 16.4以降・Android対応）
+    try {
+      const n = (await self.registration.getNotifications()).length || 1;
+      if (self.navigator.setAppBadge) await self.navigator.setAppBadge(n);
+    } catch (err) {}
+  })());
 });

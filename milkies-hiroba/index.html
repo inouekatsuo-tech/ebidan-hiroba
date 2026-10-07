@@ -1301,6 +1301,18 @@ function ensureInbox(){
   save();
 }
 const unread=()=>(S.inbox||[]).filter(m=>!m.read).length;
+// ホーム画面アイコンのバッジ（未読の数）を更新する
+async function syncBadge(){
+  try{
+    if(!navigator.setAppBadge) return;
+    const n=unread();
+    if(n>0) await navigator.setAppBadge(n); else await navigator.clearAppBadge();
+    if(n===0){
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(reg) (await reg.getNotifications()).forEach(x=>x.close());
+    }
+  }catch(e){}
+}
 V.inbox=()=>{
   ensureInbox();
   return `<a class="back" href="#/me">← マイページ</a>
@@ -1698,6 +1710,7 @@ function render(){
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(window.twttr&&twttr.widgets&&$('#app').querySelector('.twitter-tweet')) twttr.widgets.load($('#app'));
   if(S.user){ ensureInbox(); $('#tab-me').classList.toggle('has-new',unread()>0); }
+  syncBadge();
   if($('#qrbox')&&S.user) drawQR($('#qrbox'), memberUrl(S.user.no));
   $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
 }
@@ -1717,6 +1730,7 @@ document.addEventListener('click',e=>{
   if(e.target.id==='reset-all'){ try{localStorage.clear();}catch(err){} location.hash='#/home'; location.reload(); }
 });
 window.addEventListener('hashchange',()=>{ safeRender(); window.scrollTo(0,0); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) syncBadge(); });
 
 // ダイアログの外側をタップしたら閉じる（スマホで戻れなくなるのを防ぐ）
 $('#login').addEventListener('click',e=>{ if(e.target.id==='login') $('#login').close(); });
@@ -1762,7 +1776,7 @@ document.addEventListener('click',e=>{
   else if(t.id==='push-off'){ unsubscribePush(); }
   else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
   else if(d.report){ openReport(d.report); }
-  else if(d.msg){ ui.openMsg=ui.openMsg===d.msg?null:d.msg; const m=S.inbox.find(x=>x.id===d.msg); if(m&&!m.read){ m.read=true; save(); } render(); }
+  else if(d.msg){ ui.openMsg=ui.openMsg===d.msg?null:d.msg; const m=S.inbox.find(x=>x.id===d.msg); if(m&&!m.read){ m.read=true; save(); } render(); syncBadge(); }
   else if(d.hide){ const i=S.hidden.indexOf(d.hide); i<0?S.hidden.push(d.hide):S.hidden.splice(i,1); save(); render(); toast(i<0?'この書き込みを非表示にしました':'再表示しました'); }
   else if(d.ban){
     const i=S.banned.findIndex(b=>b.name===d.ban);
