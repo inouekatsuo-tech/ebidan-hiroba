@@ -247,6 +247,14 @@ a.item{text-decoration:none}
 a.oitem{text-decoration:none}
 a.oitem:hover{border-color:var(--official)}
 .src-link{font-size:12px;color:var(--official);font-weight:700}
+.digest{padding:14px 16px;display:flex;flex-direction:column;gap:10px;border-color:var(--accent);background:linear-gradient(180deg,var(--accent-soft),var(--surface) 65%)}
+.d-head{display:flex;flex-direction:column}
+.d-head b{font-family:var(--display);font-size:17px}
+.d-head span{font-size:11.5px;color:var(--muted)}
+.d-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.d-list li{display:flex;gap:9px;align-items:flex-start;font-size:14px;line-height:1.6}
+.d-list a{text-decoration:none;color:var(--ink)}
+.d-ic{flex:none;width:20px;text-align:center}
 .live-note,.update-note{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--ok);background:var(--ok-soft);border-radius:10px;padding:9px 12px}
 .update-note b,.live-note b{display:block;font-size:13px}
 .update-note span:not(.pulse),.live-note span:not(.pulse){color:var(--muted)}
@@ -708,6 +716,48 @@ function toggleReax(v){
   if(!mine.length) delete S.myReax[key];
   save(); render();
 }
+// ===== 今日のダイジェスト =====
+// 集めたデータから「今日はこれだけ知っておけばOK」を自動で組み立てる（追加費用なし）
+function digestHTML(){
+  if(!LIVE) return '';
+  const today=jstToday(), fav=S.follow;
+  const mine=x=>!x.g||fav.includes(x.g);
+  const todays=LIVE.items.filter(x=>x.date===today);
+  const sched=todays.filter(x=>x.kind==='schedule');
+  const news=todays.filter(x=>x.kind==='news'||x.kind==='x');
+  const names=list=>[...new Set(list.map(x=>gshort(x.g)))].filter(Boolean).slice(0,3).join('・');
+  const title=x=>{ const m=x.t.replace(/^【[^】]+】/,''); const q=m.match(/「([^」]{2,20})」/); return esc(q?q[1]:m.slice(0,14)); };
+  const line=(icon,text,href)=>`<li><span class="d-ic">${icon}</span><a href="${href}">${text}</a></li>`;
+  const L=[];
+
+  const tv=sched.filter(x=>x.label==='TV'), radio=sched.filter(x=>x.label==='RADiO');
+  if(tv.length||radio.length){
+    const parts=[];
+    if(tv.length) parts.push(`<b>テレビ${tv.length}件</b>`);
+    if(radio.length) parts.push(`<b>ラジオ${radio.length}件</b>`);
+    const base=[...tv,...radio], my=base.filter(mine);
+    const top=(my.length?my:base).slice(0,2).map(x=>`${gshort(x.g)}「${title(x)}」`).join('、');
+    L.push(line('📺',`今日は${parts.join('・')}　${top}`,'#/info'));
+  }
+  const ev=sched.filter(x=>x.label==='LiVE&EVENT');
+  if(ev.length) L.push(line('🎤',`<b>イベント${ev.length}件</b>　${names(ev)}`,'#/info'));
+  const rel=news.filter(x=>x.cat==='release');
+  if(rel.length) L.push(line('🎉',`<b>${names(rel)||'スタダ男子'}</b> のリリース情報が${rel.length}件`,'#/info'));
+  const bd=sched.filter(x=>x.label==='BiRTHDAY');
+  if(bd.length) L.push(line('🎂',`今日は <b>${bd.slice(0,2).map(x=>esc(x.t.replace(/[【】]/g,'').replace(/HAPPY\s*BiRTHDAY!*/i,'').trim())).join('・')}</b> の誕生日`,'#/info'));
+  const lt=S.threads.filter(t=>t.live);
+  if(lt.length) L.push(line('🔴',`実況スレが <b>${lt.length}つ</b> 立っています`,'#/board'));
+  const myNews=news.filter(mine);
+  if(myNews.length) L.push(line('📣',`推しグループの新着が <b>${myNews.length}件</b>（${names(myNews)}）`,'#/info'));
+
+  if(!L.length) return '';
+  const d=new Date(Date.now()+9*3600e3);
+  const date=`${d.getUTCMonth()+1}月${d.getUTCDate()}日（${'日月火水木金土'[d.getUTCDay()]}）`;
+  return `<section class="panel digest">
+    <div class="d-head"><b>${date}のダイジェスト</b><span>ここだけ読めば今日がわかる</span></div>
+    <ul class="d-list">${L.slice(0,5).join('')}</ul>
+  </section>`;
+}
 const V={};
 V.home=()=>{
   const fav=S.follow;
@@ -716,6 +766,7 @@ V.home=()=>{
   return `
   ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は30分ごとに自動更新</b>：EBiDAN公式サイトから集めています（最終更新 ${fmtUpdated(LIVE.updated)}）。ファンの投稿・掲示板・コミュニティは架空のサンプルです。</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
   ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>ホーム画面に追加しませんか？</b><span>アプリのように開けて、新着情報が通知で届きます</span></div><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
+  ${digestHTML()}
   <section class="hero">
     <h1>スタダ男子の情報、<em>ぜんぶここに。</em></h1>
     <p>10グループの公式発表も、ファンが見つけたいい投稿も。カテゴリ別に仕分けて、流れていかないように。（非公式）</p>
@@ -1710,7 +1761,7 @@ function toOfficial(items){
     const n=dayDiff(it.date,today);
     if(it.kind==='schedule'){
       if(n<0||n>6) continue;
-      out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:''}});
+      out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',label:it.label||'',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:''}});
     } else {
       if(n<-14) continue;
       out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:it.kind==='fan'?'fan':'official',
