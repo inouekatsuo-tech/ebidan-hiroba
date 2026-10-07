@@ -729,8 +729,9 @@ function digestHTML(){
   // 「フジテレビ系「かまいまち」」のような入れ子から、番組名（最後の「」）を取り出す
   const title=x=>{
     const m=x.t.replace(/^【[^】]+】/,'').trim();
-    const q=[...m.matchAll(/「([^」]{2,24})」/g)];
-    return esc(q.length?q[q.length-1][1]:m.slice(0,16));
+    const q=[...m.matchAll(/「([^」]{2,60})」/g)];
+    const t=q.length?q[q.length-1][1]:m;
+    return esc(t.length>18?t.slice(0,18)+'…':t);
   };
   const line=(icon,text,href)=>`<li><span class="d-ic">${icon}</span><a href="${href}">${text}</a></li>`;
   const L=[];
