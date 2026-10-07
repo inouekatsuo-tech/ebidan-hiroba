@@ -535,7 +535,21 @@ const SEED={
 const KEY='milkies-demo-v3';
 let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-if(!S||!S.picks) S={...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']};
+// 初期値。保存済みデータに無い項目は、ここから自動で補う
+// （古いバージョンで保存した人の画面が真っ白になるのを防ぐ）
+const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
+(function normalize(){
+  const d=DEFAULTS();
+  if(!S||typeof S!=='object'||!Array.isArray(S.picks)){ S=d; return; }
+  for(const k of Object.keys(d)){
+    const want=d[k], have=S[k];
+    if(have===undefined||have===null&&k!=='user'&&k!=='inbox'){ S[k]=want; continue; }
+    if(Array.isArray(want)&&!Array.isArray(have)) S[k]=want;
+    else if(want&&typeof want==='object'&&!Array.isArray(want)&&(typeof have!=='object'||Array.isArray(have))) S[k]=want;
+    else if(want&&typeof want==='object'&&!Array.isArray(want)) S[k]={...want,...have};   // 足りない項目だけ補う
+  }
+  if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
+})();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
 let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
@@ -1669,7 +1683,21 @@ function render(){
   $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
 }
 function go(){ render(); window.scrollTo(0,0); }
-window.addEventListener('hashchange',go);
+// 予期せぬエラーで画面が真っ白になったときの保険
+function safeRender(){
+  try{ render(); }
+  catch(e){
+    console.error(e);
+    $('#app').innerHTML=`<div class="panel compose"><h3>画面を表示できませんでした</h3>
+      <p class="hint">申し訳ありません。保存データを初期化すると直ることがあります（書き込みやログイン情報は消えます）。</p>
+      <p class="hint" style="word-break:break-all">${esc(String(e&&e.message||e))}</p>
+      <div class="actions"><button class="btn" id="reset-all">データを初期化して再読み込み</button></div></div>`;
+  }
+}
+document.addEventListener('click',e=>{
+  if(e.target.id==='reset-all'){ try{localStorage.clear();}catch(err){} location.hash='#/home'; location.reload(); }
+});
+window.addEventListener('hashchange',()=>{ safeRender(); window.scrollTo(0,0); });
 
 // ダイアログの外側をタップしたら閉じる（スマホで戻れなくなるのを防ぐ）
 $('#login').addEventListener('click',e=>{ if(e.target.id==='login') $('#login').close(); });
@@ -1867,7 +1895,7 @@ document.addEventListener('submit',e=>{
     ui.newThread=false; save(); location.hash='#/thread/'+id;
   }
 });
-render();
+safeRender();
 loadLive();
 // ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）
 if('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
