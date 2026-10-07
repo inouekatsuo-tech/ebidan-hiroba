@@ -14,8 +14,11 @@ const OUT = new URL('../milkies-hiroba/data/items.json', import.meta.url);
 const CONF = new URL('./x-accounts.json', import.meta.url);
 const STATE = new URL('./x-state.json', import.meta.url);
 const TOKEN = process.env.X_BEARER_TOKEN;
-const MAX = +process.env.FAN_MAX || 30;            // 1回に読む件数（この数だけ課金される）
-const MIN_LIKES = +process.env.FAN_MIN_LIKES || 20; // 採用するいいね数の下限
+const MAX = +process.env.FAN_MAX || 40;            // 1回に読む件数（この数だけ課金される）
+const MIN_LIKES = +process.env.FAN_MIN_LIKES || 10; // 採用するいいね数の下限
+// いいねは時間をかけて増えるので、「投稿から◯時間経ったもの」を狙って取る
+const FROM_H = +process.env.FAN_FROM_H || 72;       // 3日前から
+const TO_H = +process.env.FAN_TO_H || 20;           // 20時間前まで
 const BUDGET = +process.env.X_BUDGET || 5;          // 1か月の上限（ドル）
 const PER_POST = 0.005;
 const KEEP = 60;                                    // 保存しておく件数の上限
@@ -65,6 +68,9 @@ async function main() {
   url.searchParams.set('query', query);
   url.searchParams.set('max_results', String(Math.min(Math.max(MAX, 10), 100)));
   url.searchParams.set('sort_order', 'relevancy');   // 話題性の高い順
+  // 投稿されたばかりの（いいねがまだ付いていない）ものを避ける
+  url.searchParams.set('start_time', new Date(Date.now() - FROM_H * 3600e3).toISOString().slice(0, 19) + 'Z');
+  url.searchParams.set('end_time', new Date(Date.now() - TO_H * 3600e3).toISOString().slice(0, 19) + 'Z');
   url.searchParams.set('tweet.fields', 'created_at,text,public_metrics,possibly_sensitive');
   url.searchParams.set('expansions', 'author_id');
   url.searchParams.set('user.fields', 'username,protected');
@@ -99,6 +105,8 @@ async function main() {
     });
   }
 
+  picked.sort((a, b) => b.likes - a.likes);
+  picked.splice(+process.env.FAN_KEEP_PER_RUN || 8);   // 1回に採用するのは多くても8件
   likeList.sort((a, b) => b - a);
   console.log(`いいね数の分布（上位10件）: ${likeList.slice(0, 10).join(', ')}　／ 見送った理由: ${JSON.stringify(why)}`);
 
