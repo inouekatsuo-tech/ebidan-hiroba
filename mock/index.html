@@ -620,7 +620,8 @@ function filtered(o){
     if(o.g==='follow'&&it.g&&!S.follow.includes(it.g)) return false;
     if(o.g&&o.g!=='all'&&o.g!=='follow'&&it.g!==o.g) return false;
     if(o.c&&o.c!=='all'&&it.cat!==o.c) return false;
-    if(o.src&&o.src!=='all'&&it.src!==o.src) return false;
+    if(o.src==='official'&&it.src!=='official') return false;
+    if(o.src==='fan'&&it.src!=='fan') return false;
     if(o.q&&!((it.t||'')+(it.text||'')+(it.note||'')+gname(it.g)+CMAP[it.cat].name).includes(o.q)) return false;
     return true;
   });
@@ -632,11 +633,11 @@ function oCard(it){
 }
 function xCard(it){
   return `<article class="panel oitem xitem">
-    <span class="meta">${gchip(it.g)}<span class="chip official">${esc(it.via)}</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
+    <span class="meta">${gchip(it.g)}<span class="chip ${it.kind==='fan'?'fan':'official'}">${esc(it.via)}</span>${cchip(it.cat)}${it.likes?`<span class="chip">♥ ${it.likes}</span>`:''}<span>${esc(it.ago)}</span></span>
     <div class="tw"><blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" data-conversation="none"><a href="${esc(it.url)}"></a></blockquote></div>
     <a class="open" href="${esc(it.url)}" target="_blank" rel="noopener">Xで見る ↗</a></article>`;
 }
-const itemCard=it=>it.kind==='x'?xCard(it):it.src==='official'?oCard(it):pickCard(S.picks.find(p=>p.id===it.id));
+const itemCard=it=>(it.kind==='x'||it.kind==='fan')?xCard(it):it.src==='official'?oCard(it):pickCard(S.picks.find(p=>p.id===it.id));
 
 function schedHTML(filter){
   const ds=days();
@@ -727,7 +728,12 @@ V.home=()=>{
   <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
     <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
-  <section class="sec"><div class="sec-h"><h2>今日の持ち寄りランキング</h2><a class="more" href="#/info" data-src="fan">もっと見る</a></div>
+  ${(()=>{ const hot=OFFICIAL.filter(o=>o.kind==='fan'&&(!o.g||fav.includes(o.g))).sort((a,b)=>b.likes-a.likes).slice(0,5);
+    return `<section class="sec"><div class="sec-h"><h2>今日の話題</h2><span class="sub">Xで反応の多い投稿を自動ピックアップ</span></div>
+    ${hot.length?`<div class="panel rows">${hot.map((h,i)=>`<a class="row" href="${esc(h.url)}" target="_blank" rel="noopener"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">@${esc(h.author)} の投稿</span><span class="meta">${gchip(h.g)}${cchip(h.cat)}<span class="chip">♥ ${h.likes}</span>${esc(h.ago)}</span></div><span class="join">Xで見る ↗</span></a>`).join('')}</div>
+      <a class="linkbtn more" href="#/info" data-src="fan">埋め込みで一覧を見る</a>`
+      :'<p class="hint">いま話題の投稿はまだありません（1日3回、自動で探しています）。</p>'}</section>`; })()}
+  <section class="sec"><div class="sec-h"><h2>みんなの持ち寄り</h2><a class="more" href="#/info" data-src="fan">もっと見る</a></div>
     <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
   ${['home','both'].includes(S.ads.slot)?adHTML():''}
   <section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
@@ -743,12 +749,12 @@ V.info=()=>{
   <div class="filters" role="group" aria-label="グループ">${gOpts.map(([id,l])=>`<button class="fchip" data-ig="${id}" aria-pressed="${ui.ig===id}">${GMAP[id]?dot(id):''}${esc(l)}</button>`).join('')}</div>
   <nav class="ctabs cats" aria-label="カテゴリ">${[['all','すべて'],...CATS.map(c=>[c.id,c.name])].map(([id,l])=>`<button data-ic="${id}" aria-current="${ui.ic===id?'page':'false'}">${l}<span class="cnt">${n(id)}</span></button>`).join('')}</nav>
   <div class="bar-row">
-    <div class="seg mini" role="group" aria-label="情報元">${[['all','すべて'],['official','公式'],['fan','ファン持ち寄り']].map(([id,l])=>`<button data-src="${id}" aria-pressed="${ui.src===id}">${l}</button>`).join('')}</div>
+    <div class="seg mini" role="group" aria-label="情報元">${[['all','すべて'],['official','公式'],['fan','ファン・話題']].map(([id,l])=>`<button data-src="${id}" aria-pressed="${ui.src===id}">${l}</button>`).join('')}</div>
     <button class="btn sm" id="pick-toggle">${ui.pickOpen?'閉じる':'＋ 持ち寄る'}</button>
   </div>
   ${ui.pickOpen?pickFormHTML():''}
   ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/info" id="clearq">解除</a></div>`:''}
-  ${LIVE?`<div class="update-note"><span class="pulse"></span><div><b>30分ごとに自動更新</b><span>EBiDAN公式サイトのニュース・動画・スケジュールを自動で集めて、カテゴリに仕分けています。最終更新 ${fmtUpdated(LIVE.updated)}（混み合うと少し遅れることがあります）</span></div></div>`:'<p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。</p>'}
+  ${LIVE?`<div class="update-note"><span class="pulse"></span><div><b>30分ごとに自動更新</b><span>EBiDAN公式サイトのニュース・動画・スケジュールを30分ごと、Xで話題のファン投稿を1日3回、自動で集めてカテゴリに仕分けています。最終更新 ${fmtUpdated(LIVE.updated)}（混み合うと少し遅れることがあります）</span></div></div>`:'<p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。</p>'}
   <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>
   ${['info','both'].includes(S.ads.slot)?adHTML():''}`;
 };
@@ -1690,8 +1696,9 @@ function toOfficial(items){
       out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:''}});
     } else {
       if(n<-14) continue;
-      out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:'official',
-        via:it.kind==='video'?'公式動画':it.kind==='x'?`公式X · @${it.author}`:'公式ニュース',
+      out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:it.kind==='fan'?'fan':'official',
+        likes:it.likes||0,
+        via:it.kind==='video'?'公式動画':it.kind==='x'?`公式X · @${it.author}`:it.kind==='fan'?`話題の投稿 · @${it.author}`:'公式ニュース',
         author:it.author,t:it.t||`@${it.author} の投稿`,url:it.url,r:-n,ago:relDate(it.date,today)});
     }
   }
