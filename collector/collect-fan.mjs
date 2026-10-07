@@ -78,16 +78,19 @@ async function main() {
 
   const users = Object.fromEntries((json.includes?.users || []).map(u => [u.id, u]));
   const picked = [];
+  const why = { 公式: 0, 不適切: 0, 宣伝など: 0, いいね不足: 0, グループ不明: 0 };
+  const likeList = [];
   for (const t of tweets) {
     const u = users[t.author_id];
     if (!u || u.protected) continue;
-    if (officials.has(u.username.toLowerCase())) continue;        // 公式は別で取得しているので除く
-    if (t.possibly_sensitive) continue;
-    if (NG.test(t.text)) continue;                                 // 宣伝・無関係なものを除く
     const likes = t.public_metrics?.like_count || 0;
-    if (likes < MIN_LIKES) continue;
+    likeList.push(likes);
+    if (officials.has(u.username.toLowerCase())) { why.公式++; continue; }
+    if (t.possibly_sensitive) { why.不適切++; continue; }
+    if (NG.test(t.text)) { why.宣伝など++; continue; }
+    if (likes < MIN_LIKES) { why.いいね不足++; continue; }
     const g = groupOf(t.text);
-    if (!g) continue;
+    if (!g) { why.グループ不明++; continue; }
     picked.push({
       id: `f${t.id}`, kind: 'fan', g, cat: classify(t.text),
       t: '', author: u.username, likes,
@@ -95,6 +98,9 @@ async function main() {
       url: `https://x.com/${u.username}/status/${t.id}`,
     });
   }
+
+  likeList.sort((a, b) => b - a);
+  console.log(`いいね数の分布（上位10件）: ${likeList.slice(0, 10).join(', ')}　／ 見送った理由: ${JSON.stringify(why)}`);
 
   const data = JSON.parse(await readFile(OUT, 'utf8'));
   const seen = new Date().toISOString();

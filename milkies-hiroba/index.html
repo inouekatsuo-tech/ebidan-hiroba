@@ -283,6 +283,7 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .quote{border-left:3px solid var(--line);padding-left:10px;margin:6px 0}
 .quote p{margin:4px 0 0;font-size:14px;white-space:pre-wrap}
 .hidden-post{opacity:.75}
+.mini.auto{background:var(--official-soft);color:var(--official)}
 .ad{display:flex;flex-direction:column;gap:3px;padding:14px;text-decoration:none;border-style:dashed}
 .ad-label{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;align-self:flex-start}
 .ad b{font-size:15px}
@@ -612,9 +613,11 @@ function embed(p){
 function pickCard(p){
   const liked=S.likes.includes(p.id);
   return `<article class="panel pick">
-    <div class="by"><span class="mini">${initial(p.by)}</span><span class="who">${esc(p.by)}</span><span class="meta">さんが持ち寄り · ${esc(p.ago)}</span></div>
+    <div class="by">${p.auto
+      ? `<span class="mini auto">★</span><span class="who">自動ピックアップ</span><span class="meta">Xで話題 · ♥ ${p.likes} · ${esc(p.ago)}</span>`
+      : `<span class="mini">${initial(p.by)}</span><span class="who">${esc(p.by)}</span><span class="meta">さんが持ち寄り · ${esc(p.ago)}</span>`}</div>
     ${p.note?`<p class="note">${esc(p.note)}</p>`:''}
-    ${embed(p)}
+    ${p.auto?`<div class="tw"><blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" data-conversation="none"><a href="${esc(p.url)}"></a></blockquote></div><a class="open" href="${esc(p.url)}" target="_blank" rel="noopener">Xで見る ↗</a>`:embed(p)}
     <div class="tags">${gchip(p.g)}${cchip(p.cat)}${p.tags.map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
     <div class="foot">
       <button data-like="${p.id}" class="${liked?'liked':''}" aria-pressed="${liked}">${liked?'♥':'♡'} ${p.likes+(liked?1:0)}</button>
@@ -633,7 +636,7 @@ function days(){
 const dot=g=>GMAP[g]?`<i class="dot" style="--h:${GMAP[g].hue}"></i>`:'<i class="dot all"></i>';
 const gchip=g=>`<span class="gchip">${dot(g)}${esc(gshort(g))}</span>`;
 const cchip=c=>`<span class="chip cat-${c}">${CMAP[c].name}</span>`;
-function allItems(){ return [...OFFICIAL,...S.picks.map(p=>({...p,src:'fan'}))].sort((a,b)=>a.r-b.r); }
+function allItems(){ return [...OFFICIAL.filter(o=>o.kind!=='fan'),...S.picks.map(p=>({...p,src:'fan'}))].sort((a,b)=>(a.r??5)-(b.r??5)); }
 function filtered(o){
   return allItems().filter(it=>{
     if(o.g==='follow'&&it.g&&!S.follow.includes(it.g)) return false;
@@ -747,12 +750,7 @@ V.home=()=>{
   <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
     <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
-  ${(()=>{ const hot=OFFICIAL.filter(o=>o.kind==='fan'&&(!o.g||fav.includes(o.g))).sort((a,b)=>b.likes-a.likes).slice(0,5);
-    return `<section class="sec"><div class="sec-h"><h2>今日の話題</h2><span class="sub">Xで反応の多い投稿を自動ピックアップ</span></div>
-    ${hot.length?`<div class="panel rows">${hot.map((h,i)=>`<a class="row" href="${esc(h.url)}" target="_blank" rel="noopener"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">@${esc(h.author)} の投稿</span><span class="meta">${gchip(h.g)}${cchip(h.cat)}<span class="chip">♥ ${h.likes}</span>${esc(h.ago)}</span></div><span class="join">Xで見る ↗</span></a>`).join('')}</div>
-      <a class="linkbtn more" href="#/info" data-src="fan">埋め込みで一覧を見る</a>`
-      :'<p class="hint">いま話題の投稿はまだありません（1日3回、自動で探しています）。</p>'}</section>`; })()}
-  <section class="sec"><div class="sec-h"><h2>みんなの持ち寄り</h2><a class="more" href="#/info" data-src="fan">もっと見る</a></div>
+  <section class="sec"><div class="sec-h"><h2>今日の持ち寄り</h2><span class="sub">Xで話題の投稿は自動で追加されます</span></div>
     <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
   ${['home','both'].includes(S.ads.slot)?adHTML():''}
   <section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
@@ -1706,6 +1704,25 @@ function fmtUpdated(iso){
 function jstToday(){ const d=new Date(Date.now()+9*3600e3); return d.toISOString().slice(0,10); }
 function dayDiff(a,b){ return Math.round((new Date(a+'T00:00Z')-new Date(b+'T00:00Z'))/86400e3); }
 function relDate(date,today){ const n=dayDiff(today,date); return n<=0?'今日':n===1?'昨日':n+'日前'; }
+// Xで話題の投稿を、持ち寄りの一覧に自動で追加する
+function ensureAutoPicks(items){
+  const today=jstToday();
+  const fans=items.filter(it=>it.kind==='fan');
+  const ids=new Set(fans.map(f=>f.id));
+  // 以前に自動で入ったもののうち、対象から外れたものは片づける（コメントが付いたものは残す）
+  S.picks=S.picks.filter(p=>!p.auto||ids.has(p.id)||p.comments.length);
+  let added=0;
+  for(const f of fans){
+    const cur=S.picks.find(p=>p.id===f.id);
+    if(cur){ cur.likes=f.likes; continue; }
+    S.picks.unshift({id:f.id,g:f.g,cat:f.cat,pf:'X',acct:'@'+f.author,text:'',img:false,
+      by:'自動ピックアップ',auto:true,note:'',tags:[],likes:f.likes,shares:0,
+      ago:relDate(f.date,today),url:f.url,comments:[]});
+    added++;
+  }
+  if(added) save();
+  return added;
+}
 function toOfficial(items){
   const today=jstToday(), out=[];
   for(const it of items){
@@ -1727,7 +1744,7 @@ async function loadLive(){
   try{
     const r=await fetch('data/items.json',{cache:'no-store'}); if(!r.ok) return;
     const d=await r.json(); if(!d.items||!d.items.length) return;
-    LIVE=d; OFFICIAL=toOfficial(d.items);
+    LIVE=d; OFFICIAL=toOfficial(d.items); ensureAutoPicks(d.items);
     const added=ensureLiveThreads(); render();
     const lt=S.threads.find(t=>t.live);
     notifyNewLive(added, lt&&lt.title.replace('【実況】',''));
