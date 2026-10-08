@@ -704,7 +704,9 @@ const REAX=[['wakaru','👍','わかる'],['suki','💖','すき'],['warota','�
 function reaxHTML(key,seed){
   const mine=S.myReax[key]||[];
   return `<div class="reax">${REAX.map(([id,ic,label])=>{
-    const n=(S.reax[key]&&S.reax[key][id]||0)+((seed&&seed[id])||0)+(mine.includes(id)?1:0);
+    // サーバー上の書き込み（db◯◯）は、自分の分もすでに数に入っているので足さない
+    const server=/^db\d+$/.test(key);
+    const n=(S.reax[key]&&S.reax[key][id]||0)+((seed&&seed[id])||0)+(!server&&mine.includes(id)?1:0);
     return `<button class="rx ${mine.includes(id)?'on':''}" data-rx="${key}:${id}" aria-pressed="${mine.includes(id)}" title="${label}">${ic}<span>${n||''}</span></button>`;
   }).join('')}</div>`;
 }
