@@ -15,13 +15,12 @@ function ng(text) {
 const ipOf = req => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || null;
 
 // 同じ端末からの連続投稿をおさえる（迷惑投稿対策）
-const recent = new Map();
-function tooFast(key, ms = 15000) {
-  const now = Date.now(), last = recent.get(key) || 0;
-  if (now - last < ms) return true;
-  recent.set(key, now);
-  if (recent.size > 5000) recent.clear();
-  return false;
+// サーバーは複数台で動くため、直前の書き込み時刻はデータベースで確認する
+async function tooFast(sb, clientId, sec = 15) {
+  const since = new Date(Date.now() - sec * 1000).toISOString();
+  const { data } = await sb.from('post_meta').select('created_at')
+    .eq('client_id', clientId).gte('created_at', since).limit(1);
+  return !!(data && data.length);
 }
 
 export default async function handler(req, res) {
@@ -40,7 +39,7 @@ export default async function handler(req, res) {
       if (!body) return res.status(400).json({ error: '本文が空です' });
       const bad = ng(body);
       if (bad) return res.status(400).json({ error: bad });
-      if (tooFast(clientId)) return res.status(429).json({ error: '少し時間をあけてから書き込んでください' });
+      if (await tooFast(sb, clientId)) return res.status(429).json({ error: '少し時間をあけてから書き込んでください（15秒に1回まで）' });
 
       const threadId = Number(b.threadId);
       const { data: th } = await sb.from('threads').select('id,reply_count,hidden').eq('id', threadId).single();
@@ -55,7 +54,7 @@ export default async function handler(req, res) {
       }).select().single();
       if (error) throw error;
 
-      await sb.from('post_meta').insert({ post_id: post.id, ip: ipOf(req), user_agent: (req.headers['user-agent'] || '').slice(0, 200) });
+      await sb.from('post_meta').insert({ post_id: post.id, client_id: clientId, ip: ipOf(req), user_agent: (req.headers['user-agent'] || '').slice(0, 200) });
       await sb.from('threads').update({ reply_count: no, updated_at: new Date().toISOString() }).eq('id', threadId);
       return res.status(200).json({ ok: true, post });
     }
@@ -66,7 +65,7 @@ export default async function handler(req, res) {
       if (!title || !body) return res.status(400).json({ error: 'タイトルと本文を入れてください' });
       const bad = ng(title + body);
       if (bad) return res.status(400).json({ error: bad });
-      if (tooFast(clientId, 60000)) return res.status(429).json({ error: 'スレッドを立てるのは1分に1つまでです' });
+      if (await tooFast(sb, clientId, 60)) return res.status(429).json({ error: 'スレッドを立てるのは1分に1つまでです' });
 
       const { data: th, error } = await sb.from('threads').insert({
         group_id: b.groupId || null, cat: String(b.cat || '雑談').slice(0, 10), title,
@@ -79,7 +78,7 @@ export default async function handler(req, res) {
         author_name: String(b.name || '名無しさん').slice(0, 12),
         anon_id: String(b.anonId || '').slice(0, 8), user_id: b.userId || null,
       }).select().single();
-      if (post) await sb.from('post_meta').insert({ post_id: post.id, ip: ipOf(req), user_agent: (req.headers['user-agent'] || '').slice(0, 200) });
+      if (post) await sb.from('post_meta').insert({ post_id: post.id, client_id: clientId, ip: ipOf(req), user_agent: (req.headers['user-agent'] || '').slice(0, 200) });
       return res.status(200).json({ ok: true, thread: th });
     }
 
