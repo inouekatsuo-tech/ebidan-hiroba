@@ -78,6 +78,65 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, profile: data });
     }
 
+    // --- 連携ログイン（Google/Apple/X）からアカウントを作る・ひもづける ---
+    if (b.action === 'link') {
+      if (!b.accessToken) return res.status(400).json({ error: 'accessToken が必要です' });
+      // 受け取ったトークンが本物か、Supabaseに問い合わせて確認する
+      const ur = await fetch(`${URL_}/auth/v1/user`, {
+        headers: { Authorization: `Bearer ${b.accessToken}`, apikey: KEY },
+      });
+      if (!ur.ok) return res.status(401).json({ error: 'ログインを確認できませんでした' });
+      const authUser = await ur.json();
+      const authId = authUser.id;
+      if (!authId) return res.status(401).json({ error: 'ログインを確認できませんでした' });
+
+      // すでにこの連携アカウントで登録済みならそれを返す
+      const { data: exist } = await sb.from('profiles').select(PUBLIC + ',token').eq('auth_user_id', authId).maybeSingle();
+      if (exist) {
+        const { token, ...profile } = exist;
+        return res.status(200).json({ ok: true, profile, token, linked: true });
+      }
+
+      // この端末ですでにアカウントを作っていれば、それに連携をひもづける（会員番号は変わらない）
+      if (b.token) {
+        const { data: mine } = await sb.from('profiles').select('id').eq('token', b.token).maybeSingle();
+        if (mine) {
+          const { data } = await sb.from('profiles').update({ auth_user_id: authId }).eq('id', mine.id).select(PUBLIC).single();
+          return res.status(200).json({ ok: true, profile: data, token: b.token, linked: true });
+        }
+      }
+
+      // 新規。プロフィール入力はこのあと画面で行う
+      return res.status(200).json({ ok: true, needsProfile: true, authUserId: authId });
+    }
+
+    // --- 連携ログインでの新規登録（プロフィール入力後） ---
+    if (b.action === 'createLinked') {
+      if (!b.accessToken) return res.status(400).json({ error: 'accessToken が必要です' });
+      const ur = await fetch(`${URL_}/auth/v1/user`, { headers: { Authorization: `Bearer ${b.accessToken}`, apikey: KEY } });
+      if (!ur.ok) return res.status(401).json({ error: 'ログインを確認できませんでした' });
+      const authUser = await ur.json();
+      const handle = String(b.handle || '').trim();
+      if (handle.length < 2 || handle.length > 12) return res.status(400).json({ error: 'ハンドルネームは2〜12文字で入れてください' });
+      if (NG_HANDLE.test(handle)) return res.status(400).json({ error: 'その名前は使えません' });
+
+      const token = randomBytes(24).toString('base64url');
+      const { data, error } = await sb.from('profiles').insert({
+        handle, token, auth_user_id: authUser.id,
+        age_band: String(b.age || '').slice(0, 10),
+        pref: String(b.pref || '').slice(0, 10),
+        oshi: String(b.oshi || '').slice(0, 30),
+        follow: Array.isArray(b.follow) ? b.follow.slice(0, 20) : [],
+      }).select(PUBLIC).single();
+      if (error) throw error;
+      await sb.from('notices').insert({
+        user_id: data.id, title: '推しトピアへようこそ！',
+        body: `あなたの会員番号は #${String(data.member_no).padStart(6, '0')} です。\n`
+          + 'マイページの「会員番号」からQRコードを表示できます。',
+      });
+      return res.status(200).json({ ok: true, profile: data, token });
+    }
+
     // --- 会員番号で探す ---
     if (b.action === 'find') {
       const no = Number(String(b.memberNo || '').replace(/[^0-9]/g, ''));

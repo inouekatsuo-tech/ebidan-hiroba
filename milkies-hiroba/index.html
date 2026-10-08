@@ -200,6 +200,7 @@ dialog::backdrop{background:rgba(10,10,25,.45)}
 .prov.soon:hover{border-color:var(--line)}
 .bi{width:26px;height:26px;display:grid;place-items:center;flex:none}
 .bi-Apple,.bi-X{color:var(--ink)}
+.ok-tag{color:var(--accent);border-color:var(--accent)}
 .soon-tag{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
 .btn.big{width:100%;padding:13px;font-size:15px}
 .prov-divider{display:flex;align-items:center;gap:10px;margin:4px 0;color:var(--muted);font-size:11.5px}
@@ -594,7 +595,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
+let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,oauthToken:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1462,6 +1463,27 @@ function applyProfile(p){
   if(Array.isArray(p.follow)&&p.follow.length) S.follow=p.follow;
   save();
 }
+// 連携ログイン（Google/Apple/X）を始める
+function startOAuth(provider){
+  const back=encodeURIComponent(location.origin+location.pathname+'#/me');
+  location.href=`${window.SUPABASE_URL}/auth/v1/authorize?provider=${provider}&redirect_to=${back}`;
+}
+// 連携ログインから戻ってきたら、アカウントとひもづける
+async function handleOAuthReturn(){
+  const h=location.hash;
+  if(!h.includes('access_token=')) return false;
+  const params=new URLSearchParams(h.slice(h.indexOf('access_token=')));
+  const at=params.get('access_token');
+  history.replaceState(null,'',location.pathname+'#/me');
+  if(!at) return false;
+  try{
+    const r=await apiAccount({action:'link',accessToken:at,token:getToken()||undefined});
+    if(r.needsProfile){ ui.oauthToken=at; profileStep('連携ログイン'); return true; }
+    saveToken(r.token); applyProfile(r.profile); S.inbox=null; render();
+    toast(`おかえりなさい、${r.profile.handle}さん`);
+    return true;
+  }catch(e){ toast(e.message); return false; }
+}
 async function restoreAccount(){
   const t=getToken(); if(!t||!DB_ON()) return;
   try{ const r=await apiAccount({action:'me',token:t}); applyProfile(r.profile); render(); }
@@ -1807,11 +1829,15 @@ const BRAND={
   メール:`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/></svg>`,
 };
 function providersHTML(){
+  const READY=(window.OAUTH_READY||[]);
   return `<div class="actions" style="justify-content:stretch"><button class="btn big" data-prov="この端末">このスマホでアカウントをつくる</button></div>
   <p class="hint" style="text-align:center">メールアドレスもパスワードも不要です。30秒で終わります。</p>
   <div class="prov-divider"><span>連携ログイン（準備中）</span></div>
-  <div class="providers">${Object.entries(BRAND).map(([n,icon])=>
-    `<button class="prov soon" type="button" disabled><span class="bi bi-${n}">${icon}</span>${n==='メール'?'メールアドレス':n}<span class="soon-tag">準備中</span></button>`).join('')}</div>
+  <div class="providers">${Object.entries(BRAND).map(([n,icon])=>{
+    const key={Google:'google',Apple:'apple',X:'twitter',LINE:'line',Facebook:'facebook',メール:'email'}[n];
+    const ok=READY.includes(key);
+    return `<button class="prov ${ok?'':'soon'}" type="button" ${ok?`data-oauth="${key}"`:'disabled'}><span class="bi bi-${n}">${icon}</span>${n==='メール'?'メールアドレス':n}${ok?'<span class="soon-tag ok-tag">ログイン</span>':'<span class="soon-tag">準備中</span>'}</button>`;
+  }).join('')}</div>
   <p class="hint" style="text-align:center">連携ログインを入れると、機種変更しても同じアカウントで入れるようになります。</p>`;
 }
 function openLogin(){
@@ -1954,6 +1980,7 @@ document.addEventListener('click',e=>{
   else if(t.id==='login-cancel'||t.id==='login-close-link'){ $('#login').close(); render(); }
   else if(t.id==='login-back'){ openLogin(); }
   else if(t.id==='see-terms'){ $('#login').close(); }
+  else if(d.oauth){ startOAuth(d.oauth); }
   else if(d.prov){ profileStep(d.prov); }
   else if(d.rx){ toggleReax(d.rx); }
   else if(d.like){ const i=S.likes.indexOf(d.like); i<0?S.likes.push(d.like):S.likes.splice(i,1); save(); render(); }
@@ -2046,7 +2073,8 @@ document.addEventListener('submit',e=>{
     const prof={handle:nm,age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,follow:S.follow};
     if(DB_ON()){
       showErr('#pf-err','登録しています…');
-      apiAccount({action:'create',...prof}).then(r=>{
+      const act=ui.oauthToken?{action:'createLinked',accessToken:ui.oauthToken,...prof}:{action:'create',...prof};
+      apiAccount(act).then(r=>{ ui.oauthToken=null;
         saveToken(r.token); applyProfile(r.profile); S.inbox=null;
         $('#login').close(); render();
         toast(`ようこそ、${r.profile.handle}さん　会員番号 ${fmtNo(r.profile.member_no)}`);
@@ -2189,7 +2217,7 @@ document.addEventListener('submit',e=>{
 safeRender();
 loadLive();
 loadThreads();
-restoreAccount();
+handleOAuthReturn().then(done=>{ if(!done) restoreAccount(); });
 maybeAskNoti();
 // ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）
 if('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
