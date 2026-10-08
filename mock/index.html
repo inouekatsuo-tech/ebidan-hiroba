@@ -38,6 +38,9 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.35;margin:0}
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .top-in{max-width:680px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .logo{display:flex;align-items:center;gap:8px;text-decoration:none;font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.02em}
+.logo-mark{height:20px;width:auto;object-fit:contain}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .logo-mark{filter:brightness(0) invert(1)}}
+:root[data-theme="dark"] .logo-mark{filter:brightness(0) invert(1)}
 .logo small{font-family:var(--body);font-weight:500;font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 7px;letter-spacing:.08em}
 .btn{border:0;border-radius:999px;padding:8px 16px;font-weight:700;font-size:14px;cursor:pointer;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
@@ -368,7 +371,7 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 <header class="top">
   <div class="top-in">
     <a class="logo" href="#/home">
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <img src="logo-mark-pink.png" alt="" class="logo-mark" width="30" height="20" onerror="this.remove()">
       推しトピア <small>非公式</small>
     </a>
     <div id="acct"></div>
