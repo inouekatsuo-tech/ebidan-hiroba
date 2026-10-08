@@ -715,6 +715,9 @@ function toggleReax(v){
   at<0?mine.push(id):mine.splice(at,1);
   if(!mine.length) delete S.myReax[key];
   save(); render();
+  // サーバー上の書き込み（db◯◯）はデータベースにも反映する
+  const m=key.match(/^db(\d+)$/);
+  if(m&&DB_ON()) apiBoard({action:'react',postId:+m[1],kind:id,on:at<0}).catch(()=>{});
 }
 // ===== 今日のダイジェスト =====
 // 集めたデータから「今日はこれだけ知っておけばOK」を自動で組み立てる（追加費用なし）
@@ -1025,10 +1028,11 @@ V.board=()=>{
 };
 V.thread=id=>{
   const t=S.threads.find(x=>x.id===id); if(!t) return V.board();
-  const SEED={2:{wakaru:6,suki:2},3:{wakaru:11,warota:3},4:{suki:4}};
+  if(t.remote&&!t.loaded){ loadPosts(t); }
+  const SEED=t.remote?{}:{2:{wakaru:6,suki:2},3:{wakaru:11,warota:3},4:{suki:4}};
   const shown=t.res.map(r=>hiddenKey('res:'+t.id+':'+r.n)
     ? `<div class="res hidden-post"><div class="hd"><span class="no">${r.n}</span></div><p class="hint">この書き込みは、ルール違反のため運営が非表示にしました。</p></div>`
-    : `<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p>${r.nm==='広場の運営'?'':`<div class="res-foot">${reaxHTML(t.id+':'+r.n,SEED[r.n])}${reportBtn('res:'+t.id+':'+r.n)}</div>`}</div>`).join('');
+    : `<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p>${r.nm==='広場の運営'?'':`<div class="res-foot">${reaxHTML(r.postId?'db'+r.postId:t.id+':'+r.n,SEED[r.n])}${reportBtn(r.postId?'db'+r.postId:'res:'+t.id+':'+r.n)}</div>`}</div>`).join('');
   return `<a class="back" href="#/board">← 掲示板</a>
   <div class="page-h"><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
   ${t.live?`<div class="notice">このスレッドは出演情報から自動で立ちました。${t.srcUrl?`<a href="${esc(t.srcUrl)}" target="_blank" rel="noopener">公式の情報を見る ↗</a>`:''}</div>`:''}
@@ -1353,6 +1357,65 @@ V.terms = () => legalPage('利用規約',
   <h2>お問い合わせ</h2>
   <p><a href="mailto:${CONTACT}">${CONTACT}</a></p>`);
 
+// ===== データベース（Supabase）接続 =====
+// 読み込みは直接、書き込みは推しトピアのAPI経由（NGワード・連投制限・IP記録のため）
+const DB_ON = () => !!(window.SUPABASE_URL && window.SUPABASE_ANON);
+function clientId(){
+  let v=''; try{ v=localStorage.getItem('client-id')||''; }catch(e){}
+  if(!v){ v=Math.random().toString(36).slice(2)+Date.now().toString(36); try{localStorage.setItem('client-id',v);}catch(e){} }
+  return v;
+}
+async function dbGet(path){
+  const r=await fetch(`${window.SUPABASE_URL}/rest/v1/${path}`,
+    {headers:{apikey:window.SUPABASE_ANON,Authorization:'Bearer '+window.SUPABASE_ANON}});
+  if(!r.ok) throw new Error('db '+r.status);
+  return r.json();
+}
+async function apiBoard(body){
+  const r=await fetch('/api/board',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...body,clientId:clientId(),userId:S.user?.dbId||null})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||'通信に失敗しました');
+  return j;
+}
+// サーバーのスレッドを読み込んで、画面用の形に直す
+async function loadThreads(){
+  if(!DB_ON()) return;
+  try{
+    const rows=await dbGet('threads?select=*&order=updated_at.desc&limit=60');
+    const mapped=rows.map(t=>({
+      id:'db'+t.id, dbId:t.id, g:t.group_id, cat:t.cat, live:t.live, title:t.title,
+      srcUrl:t.src_url, when:t.when_label, count:t.reply_count,
+      upd:relTime(t.updated_at), res:[], loaded:false, remote:true,
+    }));
+    // サーバーにあるスレッドを先頭に、手元のサンプルを後ろに
+    S.threads=[...mapped,...S.threads.filter(t=>!t.remote&&!t.live)];
+    render();
+  }catch(e){ console.warn('スレッドの読み込みに失敗',e); }
+}
+async function loadPosts(t){
+  if(!t.remote) return;
+  try{
+    const rows=await dbGet(`posts?select=*&thread_id=eq.${t.dbId}&order=no.asc&limit=200`);
+    const ids=rows.map(r=>r.id);
+    let rx=[];
+    if(ids.length) rx=await dbGet(`reactions?select=post_id,kind,client_id&post_id=in.(${ids.join(',')})`);
+    S.reax=S.reax||{};
+    for(const r of rows){
+      const key='db'+r.id;
+      const mine=rx.filter(x=>x.post_id===r.id&&x.client_id===clientId()).map(x=>x.kind);
+      S.reax[key]=Object.fromEntries(['wakaru','suki','warota'].map(k=>[k,rx.filter(x=>x.post_id===r.id&&x.kind===k).length]));
+      if(mine.length) S.myReax[key]=mine; else delete S.myReax[key];
+    }
+    t.res=rows.map(r=>({n:r.no,nm:r.author_name,id:r.anon_id||'',t:r.body,hidden:r.hidden,postId:r.id}));
+    t.loaded=true;
+    render();
+  }catch(e){ console.warn('書き込みの読み込みに失敗',e); }
+}
+function relTime(iso){
+  const m=Math.floor((Date.now()-new Date(iso))/60000);
+  return m<1?'たった今':m<60?m+'分前':m<1440?Math.floor(m/60)+'時間前':Math.floor(m/1440)+'日前';
+}
 // ===== 運営からのお知らせ（受信箱） =====
 function ensureInbox(){
   if(S.inbox) return;
@@ -1942,6 +2005,13 @@ document.addEventListener('submit',e=>{
     const tx=$('#res-text').value.trim(); if(!tx) return;
     const bad=ng(tx); if(bad) return showErr('#res-err',bad);
     const t=S.threads.find(x=>x.id===f.dataset.id);
+    if(t.remote&&DB_ON()){
+      $('#res-text').value='';
+      apiBoard({action:'post',threadId:t.dbId,body:tx,name:who(),anonId:anonId()})
+        .then(()=>loadPosts(t)).then(()=>toast('書き込みました'))
+        .catch(e=>{ showErr('#res-err',e.message); $('#res-text').value=tx; });
+      return;
+    }
     const n=Math.max(t.count,t.res.length)+1;
     t.res.push({n,nm:who(),id:S.user?Math.random().toString(36).slice(2,7):anonId(),t:tx}); t.count=n; t.upd='たった今'; save(); render();
   }
@@ -1955,7 +2025,10 @@ document.addEventListener('submit',e=>{
   }
   else if(f.id==='reportform'){
     const reason=f.querySelector('[name="rp"]:checked').value;
-    S.reports.push({target:f.dataset.target,reason,note:$('#rp-note').value.trim(),at:new Date().toISOString()});
+    const note=$('#rp-note').value.trim();
+    S.reports.push({target:f.dataset.target,reason,note,at:new Date().toISOString()});
+    if(DB_ON()) apiBoard({action:'report',targetType:'post',targetId:f.dataset.target,reason,note,
+      reporter:S.user?('#'+S.user.no):clientId()}).catch(()=>{});
     save(); $('#login').close(); toast('通報を受け付けました。運営が確認します');
   }
   else if(f.id==='adminlogin'){
@@ -2012,6 +2085,13 @@ document.addEventListener('submit',e=>{
     const title=$('#th-title').value.trim(), body=$('#th-body').value.trim();
     if(!title||!body) return showErr('#th-err','タイトルと最初の書き込みを入れてください');
     const bad=ng(title+body); if(bad) return showErr('#th-err',bad);
+    if(DB_ON()){
+      ui.newThread=false;
+      apiBoard({action:'thread',groupId:$('#th-g').value||null,cat:$('#th-cat').value,title,body,name:who(),anonId:anonId()})
+        .then(async r=>{ await loadThreads(); location.hash='#/thread/db'+r.thread.id; toast('スレッドを立てました'); })
+        .catch(e=>{ ui.newThread=true; render(); showErr('#th-err',e.message); });
+      return;
+    }
     const id='t'+Date.now();
     S.threads.unshift({id,g:$('#th-g').value||null,cat:$('#th-cat').value,title,count:1,upd:'たった今',res:[{n:1,nm:who(),id:S.user?Math.random().toString(36).slice(2,7):anonId(),t:body}]});
     ui.newThread=false; save(); location.hash='#/thread/'+id;
@@ -2019,6 +2099,7 @@ document.addEventListener('submit',e=>{
 });
 safeRender();
 loadLive();
+loadThreads();
 maybeAskNoti();
 // ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）
 if('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
