@@ -578,7 +578,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,oauthToken:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,oauthToken:null,googleTicket:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1448,12 +1448,26 @@ function applyProfile(p){
 }
 // 連携ログイン（Google/Apple/X）を始める
 function startOAuth(provider){
+  if(provider==='google'){ location.href='/api/auth?start=1'; return; }
   const back=encodeURIComponent(location.origin+location.pathname+'#/me');
   location.href=`${window.SUPABASE_URL}/auth/v1/authorize?provider=${provider}&redirect_to=${back}`;
 }
 // 連携ログインから戻ってきたら、アカウントとひもづける
 async function handleOAuthReturn(){
   const h=location.hash;
+  // 推しトピア自身で処理したGoogleログインから戻ってきたとき
+  if(h.startsWith('#/auth')){
+    const q=new URLSearchParams(h.slice(h.indexOf('?')+1));
+    history.replaceState(null,'',location.pathname+'#/me');
+    if(q.get('t')){
+      saveToken(q.get('t'));
+      try{ const r=await apiAccount({action:'me',token:q.get('t')}); applyProfile(r.profile); S.inbox=null; render();
+        toast(`おかえりなさい、${r.profile.handle}さん`); }catch(e){ toast(e.message); }
+      return true;
+    }
+    if(q.get('new')){ ui.googleTicket=q.get('new'); profileStep('Google'); return true; }
+    return false;
+  }
   if(!h.includes('access_token=')) return false;
   const params=new URLSearchParams(h.slice(h.indexOf('access_token=')));
   const at=params.get('access_token');
@@ -1932,6 +1946,8 @@ function render(){
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   if(window.twttr&&twttr.widgets&&$('#app').querySelector('.twitter-tweet')) twttr.widgets.load($('#app'));
   if(S.user){ ensureInbox(); $('#tab-me').classList.toggle('has-new',unread()>0); }
+  if(location.hash.includes('login=')&&!ui.loginMsgShown){ ui.loginMsgShown=true;
+    toast(location.hash.includes('cancel')?'ログインを中止しました':'ログインできませんでした。もう一度お試しください'); }
   syncBadge();
   if($('#qrbox')&&S.user) drawQR($('#qrbox'), memberUrl(S.user.no));
   $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
@@ -2056,8 +2072,9 @@ document.addEventListener('submit',e=>{
     const prof={handle:nm,age:$('#pf-age').value,pref:$('#pf-pref').value,oshi:$('#pf-oshi').value,follow:S.follow};
     if(DB_ON()){
       showErr('#pf-err','登録しています…');
-      const act=ui.oauthToken?{action:'createLinked',accessToken:ui.oauthToken,...prof}:{action:'create',...prof};
-      apiAccount(act).then(r=>{ ui.oauthToken=null;
+      const act=ui.googleTicket?{action:'createGoogle',ticket:ui.googleTicket,...prof}
+        :ui.oauthToken?{action:'createLinked',accessToken:ui.oauthToken,...prof}:{action:'create',...prof};
+      apiAccount(act).then(r=>{ ui.oauthToken=null; ui.googleTicket=null;
         saveToken(r.token); applyProfile(r.profile); S.inbox=null;
         $('#login').close(); render();
         toast(`ようこそ、${r.profile.handle}さん　会員番号 ${fmtNo(r.profile.member_no)}`);

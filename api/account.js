@@ -137,6 +137,32 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, profile: data, token });
     }
 
+    // --- Googleログイン後の新規登録（引換券を使う） ---
+    if (b.action === 'createGoogle') {
+      const { data: tk } = await sb.from('auth_tickets').select('*').eq('ticket', String(b.ticket || '')).maybeSingle();
+      if (!tk) return res.status(400).json({ error: 'ログインの確認ができませんでした。もう一度お試しください' });
+      const handle = String(b.handle || '').trim();
+      if (handle.length < 2 || handle.length > 12) return res.status(400).json({ error: 'ハンドルネームは2〜12文字で入れてください' });
+      if (NG_HANDLE.test(handle)) return res.status(400).json({ error: 'その名前は使えません' });
+
+      const token = randomBytes(24).toString('base64url');
+      const { data, error } = await sb.from('profiles').insert({
+        handle, token, google_sub: tk.google_sub, email: tk.email,
+        age_band: String(b.age || '').slice(0, 10),
+        pref: String(b.pref || '').slice(0, 10),
+        oshi: String(b.oshi || '').slice(0, 30),
+        follow: Array.isArray(b.follow) ? b.follow.slice(0, 20) : [],
+      }).select(PUBLIC).single();
+      if (error) throw error;
+      await sb.from('auth_tickets').delete().eq('ticket', tk.ticket);
+      await sb.from('notices').insert({
+        user_id: data.id, title: '推しトピアへようこそ！',
+        body: `あなたの会員番号は #${String(data.member_no).padStart(6, '0')} です。\n`
+          + 'マイページの「会員番号」からQRコードを表示できます。友達に読み取ってもらうと、すぐフォローしてもらえます。',
+      });
+      return res.status(200).json({ ok: true, profile: data, token });
+    }
+
     // --- 会員番号で探す ---
     if (b.action === 'find') {
       const no = Number(String(b.memberNo || '').replace(/[^0-9]/g, ''));
