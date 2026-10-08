@@ -808,7 +808,9 @@ const V={};
 V.home=()=>{
   const fav=S.follow;
   const top=[...S.picks].filter(p=>fav.includes(p.g)).sort((a,b)=>(b.likes+b.shares*5)-(a.likes+a.shares*5)).slice(0,3);
-  const news=OFFICIAL.filter(o=>o.kind!=='schedule'&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r).slice(0,6);
+  const favNews=OFFICIAL.filter(o=>(o.kind==='news'||o.kind==='video')&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r);
+  const favX=OFFICIAL.filter(o=>o.kind==='x'&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r);
+  const news=[...favNews.slice(0,6),...(favNews.length<4?favX.slice(0,4-favNews.length):[])];
   return `
   ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は30分ごとに自動更新</b>：EBiDAN公式サイトから集めています（最終更新 ${fmtUpdated(LIVE.updated)}）。ファンの投稿・掲示板・コミュニティは架空のサンプルです。</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
   ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>ホーム画面に追加しませんか？</b><span>アプリのように開けて、新着情報が通知で届きます</span></div><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
@@ -827,7 +829,7 @@ V.home=()=>{
     ${lt.length?`<div class="panel rows">${lt.slice(0,4).map(t=>`<a class="row live-row" href="#/thread/${t.id}"><span class="live-dot"></span><div class="main"><span class="t">${esc(t.title.replace('【実況】',''))}</span><span class="meta">${(t.gs&&t.gs.length?t.gs:[t.g]).slice(0,3).map(gchip).join('')}${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count}レス</span></div><span class="join">実況に参加 →</span></a>`).join('')}</div>`:'<p class="hint">今日は推しグループの出演予定がありません。ほかのグループの実況スレは掲示板から見られます。</p>'}</section>`; })()}
   <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
-    <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
+    <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${n.kind==='x'?`公式Xの新着投稿　<span class="hint">タップでXを開く</span>`:esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>今日の持ち寄り</h2><span class="sub">Xで話題の投稿は自動で追加されます</span></div>
     <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
   ${['home','both'].includes(S.ads.slot)?adHTML():''}
@@ -1945,6 +1947,7 @@ function toOfficial(items){
       out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:it.kind==='fan'?'fan':'official',
         likes:it.likes||0,
         via:it.kind==='video'?'公式動画':it.kind==='x'?`公式X · @${it.author}`:it.kind==='fan'?`話題の投稿 · @${it.author}`:'公式ニュース',
+        kindLabel:it.kind,
         author:it.author,t:it.t||`@${it.author} の投稿`,url:it.url,r:-n,ago:relDate(it.date,today)});
     }
   }
