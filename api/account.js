@@ -137,8 +137,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, profile: data, token });
     }
 
-    // --- Googleログイン後の新規登録（引換券を使う） ---
-    if (b.action === 'createGoogle') {
+    // --- 連携ログイン後の新規登録（引換券を使う） ---
+    if (b.action === 'createGoogle' || b.action === 'createLinked2') {
       const { data: tk } = await sb.from('auth_tickets').select('*').eq('ticket', String(b.ticket || '')).maybeSingle();
       if (!tk) return res.status(400).json({ error: 'ログインの確認ができませんでした。もう一度お試しください' });
       const handle = String(b.handle || '').trim();
@@ -146,8 +146,9 @@ export default async function handler(req, res) {
       if (NG_HANDLE.test(handle)) return res.status(400).json({ error: 'その名前は使えません' });
 
       const token = randomBytes(24).toString('base64url');
+      const col = { google: 'google_sub', apple: 'apple_sub', x: 'x_sub' }[tk.provider || 'google'];
       const { data, error } = await sb.from('profiles').insert({
-        handle, token, google_sub: tk.google_sub, email: tk.email,
+        handle, token, [col]: tk.sub || tk.google_sub, email: tk.email,
         age_band: String(b.age || '').slice(0, 10),
         pref: String(b.pref || '').slice(0, 10),
         oshi: String(b.oshi || '').slice(0, 30),

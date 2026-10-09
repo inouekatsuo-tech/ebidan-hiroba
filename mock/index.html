@@ -1460,9 +1460,7 @@ function applyProfile(p){
 }
 // 連携ログイン（Google/Apple/X）を始める
 function startOAuth(provider){
-  if(provider==='google'){ location.href='/api/auth?start=1'; return; }
-  const back=encodeURIComponent(location.origin+location.pathname+'#/me');
-  location.href=`${window.SUPABASE_URL}/auth/v1/authorize?provider=${provider}&redirect_to=${back}`;
+  location.href='/api/auth?start=1&p='+encodeURIComponent(provider);
 }
 // 連携ログインから戻ってきたら、アカウントとひもづける
 async function handleOAuthReturn(){
@@ -1477,7 +1475,8 @@ async function handleOAuthReturn(){
         toast(`おかえりなさい、${r.profile.handle}さん`); }catch(e){ toast(e.message); }
       return true;
     }
-    if(q.get('new')){ ui.googleTicket=q.get('new'); profileStep('Google'); return true; }
+    if(q.get('new')){ ui.googleTicket=q.get('new');
+      profileStep({google:'Google',apple:'Apple',x:'X'}[q.get('p')]||'連携ログイン'); return true; }
     return false;
   }
   if(!h.includes('access_token=')) return false;
@@ -1843,7 +1842,7 @@ function providersHTML(){
   <p class="hint" style="text-align:center">メールアドレスもパスワードも不要です。30秒で終わります。</p>
   <div class="prov-divider"><span>連携ログイン（準備中）</span></div>
   <div class="providers">${Object.entries(BRAND).map(([n,icon])=>{
-    const key={Google:'google',Apple:'apple',X:'twitter',LINE:'line',Facebook:'facebook',メール:'email'}[n];
+    const key={Google:'google',Apple:'apple',X:'x',LINE:'line',Facebook:'facebook',メール:'email'}[n];
     const ok=READY.includes(key);
     return `<button class="prov ${ok?'':'soon'}" type="button" ${ok?`data-oauth="${key}"`:'disabled'}><span class="bi bi-${n}">${icon}</span>${n==='メール'?'メールアドレス':n}${ok?'<span class="soon-tag ok-tag">ログイン</span>':'<span class="soon-tag">準備中</span>'}</button>`;
   }).join('')}</div>
