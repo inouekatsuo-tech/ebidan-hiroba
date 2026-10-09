@@ -602,7 +602,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,oauthToken:null,googleTicket:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1430,6 +1430,14 @@ async function apiBoard(body){
   return j;
 }
 // サーバーのスレッドを読み込んで、画面用の形に直す
+// 広告の設定をサーバーから読む
+async function loadSettings(){
+  if(!DB_ON()) return;
+  try{
+    const rows=await dbGet('settings?select=value&key=eq.ads');
+    if(rows[0]&&rows[0].value){ S.ads={...S.ads,...rows[0].value}; save(); render(); }
+  }catch(e){}
+}
 async function loadThreads(){
   if(!DB_ON()) return;
   try{
@@ -1545,8 +1553,19 @@ async function handleOAuthReturn(){
 }
 async function restoreAccount(){
   const t=getToken(); if(!t||!DB_ON()) return;
-  try{ const r=await apiAccount({action:'me',token:t}); applyProfile(r.profile); render(); }
+  try{ const r=await apiAccount({action:'me',token:t}); applyProfile(r.profile); await loadNotices(); render(); }
   catch(e){ console.warn('ログイン情報の確認に失敗',e.message); }
+}
+// 運営からのお知らせをサーバーから読む
+async function loadNotices(){
+  if(!DB_ON()||!S.user) return;
+  try{
+    const rows=await dbGet(`notices?select=*&or=(user_id.is.null,user_id.eq.${S.user.dbId})&order=created_at.desc&limit=30`);
+    const read=new Set((S.inbox||[]).filter(m=>m.read).map(m=>m.id));
+    S.inbox=rows.map(n=>({id:'n'+n.id,from:'運営',title:n.title,body:n.body,
+      date:n.created_at.slice(0,10),read:read.has('n'+n.id)}));
+    save();
+  }catch(e){ console.warn('お知らせの読み込みに失敗',e.message); }
 }
 // ===== 運営からのお知らせ（受信箱） =====
 function ensureInbox(){
@@ -2293,6 +2312,7 @@ document.addEventListener('submit',e=>{
 safeRender();
 loadLive();
 loadThreads();
+loadSettings();
 handleOAuthReturn().then(done=>{ if(!done) restoreAccount(); });
 maybeAskNoti();
 // ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）
