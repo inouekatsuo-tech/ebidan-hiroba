@@ -8,6 +8,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { list, del } from '@vercel/blob';
 import webpush from 'web-push';
+import { createClient } from '@supabase/supabase-js';
 
 const ITEMS = new URL('../milkies-hiroba/data/items.json', import.meta.url);
 const STATE = new URL('./push-state.json', import.meta.url);
@@ -22,7 +23,19 @@ const GNAME = {
 };
 const jstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 
-function buildNotifications(items, state) {
+// サーバーに作られた今日の実況スレを取得して、通知から直接開けるようにする
+async function liveThreads() {
+  const u = process.env.SUPABASE_URL, k = process.env.SUPABASE_SERVICE_KEY;
+  if (!u || !k) return [];
+  try {
+    const sb = createClient(u, k, { auth: { persistSession: false } });
+    const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+    const { data } = await sb.from('threads').select('id,title,group_id').eq('live', true).eq('live_date', today);
+    return data || [];
+  } catch { return []; }
+}
+
+function buildNotifications(items, state, threads = []) {
   const today = jstToday();
   const sent = new Set(state.sent || []);
   const out = [];
@@ -36,11 +49,12 @@ function buildNotifications(items, state) {
     seenTitle.add(name);
     const id = `live:${today}:${name}`;
     if (sent.has(id)) continue;
+    const th = threads.find(t => t.title === `【実況】${name}`);
     out.push({
       id, type: 'live', g: it.g,
       title: `実況スレが立ちました`,
       body: `${it.g ? GNAME[it.g] + '「' : ''}${name}${it.g ? '」' : ''}　見ながら語りましょう！`,
-      url: `${SITE}/#/board`,
+      url: th ? `${SITE}/#/thread/db${th.id}` : `${SITE}/#/board`,
     });
   }
 
@@ -67,7 +81,7 @@ async function main() {
   try { state = JSON.parse(await readFile(STATE, 'utf8')); } catch {}
   const { items } = JSON.parse(await readFile(ITEMS, 'utf8'));
 
-  const notis = buildNotifications(items, state).slice(0, MAX_PER_RUN);
+  const notis = buildNotifications(items, state, await liveThreads()).slice(0, MAX_PER_RUN);
   if (!notis.length) { console.log('送る通知はありません'); return; }
 
   const { blobs } = await list({ prefix: 'subs/', token: blobToken });

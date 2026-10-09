@@ -52,6 +52,14 @@ jobs:
           fi
           node collector/collect-fan.mjs
 
+      - name: 今日の実況スレを作る
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          npm install --no-audit --no-fund --silent
+          node collector/live-threads.mjs
+
       - name: 通知を送る（鍵があるときだけ）
         env:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}

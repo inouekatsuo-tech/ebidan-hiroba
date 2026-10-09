@@ -687,6 +687,7 @@ function matrixHTML(){
 
 // 出演情報から「実況スレ」を自動で立てる（情報 → 交流の入口）
 function ensureLiveThreads(){
+  if(DB_ON()) return 0;   // サーバー側で作るので、端末では作らない
   const today=days()[0];
   let added=0;
   // 同じ出演情報（複数グループが一緒に出るイベントなど）はひとつのスレッドにまとめる
@@ -1411,7 +1412,7 @@ async function loadThreads(){
   try{
     const rows=await dbGet('threads?select=*&order=updated_at.desc&limit=60');
     const mapped=rows.map(t=>({
-      id:'db'+t.id, dbId:t.id, g:t.group_id, cat:t.cat, live:t.live, title:t.title,
+      id:'db'+t.id, dbId:t.id, g:t.group_id, gs:t.groups||[], cat:t.cat, live:t.live, title:t.title,
       srcUrl:t.src_url, when:t.when_label, count:t.reply_count,
       upd:relTime(t.updated_at), res:[], loaded:false, remote:true,
     }));
