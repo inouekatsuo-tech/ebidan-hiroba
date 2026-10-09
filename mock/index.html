@@ -1027,7 +1027,7 @@ V.board=()=>{
   const cats=['すべて','実況','ライブ','新曲','初心者','グッズ','雑談'];
   const list=S.threads.filter(t=>(ui.boardCat==='すべて'||t.cat===ui.boardCat)&&(ui.bg==='all'||(ui.bg==='none'?!t.g:t.g===ui.bg)));
   return `<div class="page-h"><h1>掲示板</h1><p>誰でもスレッドを立てて、語り合える場所。</p></div>
-  <div class="safety panel"><b>書き込みのルール</b><ul><li>チケットの売買・譲渡の書き込みは禁止</li><li>メンバーのプライベート（住所・熱愛など）の書き込みは禁止</li><li>ファン同士の叩きや晒しは禁止</li></ul></div>
+  <div class="safety panel"><b>書き込みのルール</b><ul><li>チケットの売買・譲渡の書き込みは禁止</li><li>メンバーのプライベート（住所・熱愛など）の書き込みは禁止</li><li>ファン同士の叩きや晒しは禁止</li><li>会員限定・有料コンテンツの掲載、生成AIでメンバーを模したものの投稿は禁止</li></ul></div>
   <div class="filters" role="group" aria-label="グループ">${[['all','すべて'],['none','全体・横断'],...GROUPS.map(g=>[g.id,g.short||g.name])].map(([id,l])=>`<button class="fchip" data-bg="${id}" aria-pressed="${ui.bg===id}">${GMAP[id]?dot(id):''}${esc(l)}</button>`).join('')}</div>
   <div class="actions" style="justify-content:space-between">
     <div class="filters" role="group" aria-label="カテゴリ">${cats.map(c=>`<button class="fchip" data-bc="${c}" aria-pressed="${ui.boardCat===c}">${c}</button>`).join('')}</div>
@@ -1232,7 +1232,7 @@ V.newcomm=()=>{
 
 // ===== 運営者情報・プライバシーポリシー・利用規約 =====
 const CONTACT = 'info@ositopia.com';
-const LEGAL_UPDATED = '2026年10月5日';
+const LEGAL_UPDATED = '2026年10月9日';
 const legalPage = (title, lead, body) => `
   <div class="page-h legal-h"><h1>${title}</h1><p>${lead}</p></div>
   <article class="panel legal">${body}
@@ -1256,6 +1256,8 @@ V.about = () => legalPage('運営者情報',
     <li>SNSの投稿は、各サービスの公式な埋め込み機能で表示しています。元の投稿が削除されると、本サイトからも表示されなくなります。</li>
     <li>ファンによる書き込みの内容は、その投稿者の意見であり、運営の見解ではありません。</li>
   </ul>
+  <h2>事務所のガイドラインについて</h2>
+  <p>本サイトは、<a href="https://ebidan.jp/feature/sns_guideline" target="_blank" rel="noopener">EBiDANのSNS投稿ガイドライン</a>を尊重して運営しています。公式の写真や本文は転載せず、公式サイトの見出し・日付・リンク、およびSNSの公式な埋め込み表示のみを使用しています。会員限定・有料コンテンツは一切扱いません。</p>
   <h2>権利者のみなさまへ（削除のご依頼）</h2>
   <p>掲載内容について、権利者ご本人または代理人の方からご連絡をいただいた場合は、<b>速やかに確認し、必要な範囲で削除いたします。</b>下記までご連絡ください。</p>
   <p><a href="mailto:${CONTACT}">${CONTACT}</a></p>
@@ -1342,8 +1344,16 @@ V.terms = () => legalPage('利用規約',
     <li>なりすまし、晒し行為、しつこい付きまとい</li>
     <li>出会い・勧誘・宣伝を目的とした利用</li>
     <li>18歳未満の方に対する、交際や個別の接触を求める行為</li>
+    <li><b>会員限定・有料コンテンツの掲載</b>（ファンクラブ、有料配信、有料ライブなどの画像・動画・音声・本文）</li>
+    <li><b>メンバーの顔・声・名前を使った生成AIコンテンツの作成・掲載</b></li>
+    <li><b>非公式グッズの製造・販売・配布・掲載</b></li>
+    <li>公式写真のトレース、メンバーのイメージを損なう表現</li>
+    <li>意図を変える切り抜きや、誤解を招くテロップを付けた投稿の共有</li>
     <li>法令に違反する行為、その他運営が不適切と判断する行為</li>
   </ul>
+  <h2>第4条の2（事務所のガイドラインの尊重）</h2>
+  <p>本サイトの利用にあたっては、<b>各アーティストの所属事務所が定めるSNS投稿ガイドライン</b>を守ってください。スターダストプロモーション（EBiDAN）のガイドラインは、<a href="https://ebidan.jp/feature/sns_guideline" target="_blank" rel="noopener">EBiDAN公式サイト</a>で公開されています（2026年10月8日以降の投稿に適用）。</p>
+  <p>本サイトでは、公式の投稿は<b>各SNSの公式な共有・埋め込み機能</b>で表示しており、写真や本文の転載は行いません。公式のお知らせについても、見出し・日付・リンクのみを掲載しています。</p>
   <h2>第5条（書き込みの扱い）</h2>
   <ul>
     <li>書き込んだ内容の権利は投稿者に帰属します。運営は、本サイト上での表示に必要な範囲で利用します。</li>

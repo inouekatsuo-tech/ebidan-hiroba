@@ -10,6 +10,8 @@ const db = () => createClient(URL_, KEY, { auth: { persistSession: false } });
 function ng(text) {
   if (/譲|定価|売ります|買います|求む|チケ.*(交換|取引)/.test(text)) return 'チケットの売買・譲渡に関する書き込みはできません';
   if (/住所|自宅|熱愛|彼女|彼氏|実家/.test(text)) return 'メンバーのプライベートに関する書き込みはできません';
+  if (/FC限定|会員限定|有料配信|アーカイブ.*(url|URL|リンク)|違法アップ/.test(text)) return '会員限定・有料コンテンツに関する書き込みはできません';
+  if (/(AI|生成AI).{0,6}(作っ|生成|作成)|AIイラスト.*(本人|メンバー)/.test(text)) return 'メンバーを模した生成AIコンテンツの投稿はできません';
   return null;
 }
 const ipOf = req => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || null;
