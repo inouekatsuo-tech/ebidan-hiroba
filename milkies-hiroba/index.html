@@ -1863,7 +1863,7 @@ function providersHTML(){
   const READY=(window.OAUTH_READY||[]);
   return `<div class="actions" style="justify-content:stretch"><button class="btn big" data-prov="この端末">このスマホでアカウントをつくる</button></div>
   <p class="hint" style="text-align:center">メールアドレスもパスワードも不要です。30秒で終わります。</p>
-  <div class="prov-divider"><span>連携ログイン（準備中）</span></div>
+  <div class="prov-divider"><span>${READY.length?'連携ログイン（機種変更しても引き継げます）':'連携ログイン（準備中）'}</span></div>
   <div class="providers">${Object.entries(BRAND).map(([n,icon])=>{
     const key={Google:'google',Apple:'apple',X:'x',LINE:'line',Facebook:'facebook',メール:'email'}[n];
     const ok=READY.includes(key);
