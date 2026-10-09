@@ -146,7 +146,7 @@ export default async function handler(req, res) {
       if (NG_HANDLE.test(handle)) return res.status(400).json({ error: 'その名前は使えません' });
 
       const token = randomBytes(24).toString('base64url');
-      const col = { google: 'google_sub', apple: 'apple_sub', x: 'x_sub' }[tk.provider || 'google'];
+      const col = { google: 'google_sub', apple: 'apple_sub', x: 'x_sub', email: 'email_login' }[tk.provider || 'google'];
       const { data, error } = await sb.from('profiles').insert({
         handle, token, [col]: tk.sub || tk.google_sub, email: tk.email,
         age_band: String(b.age || '').slice(0, 10),

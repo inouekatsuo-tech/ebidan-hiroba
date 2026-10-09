@@ -16,7 +16,7 @@
 <meta name="theme-color" content="#D94873">
 <meta name="apple-mobile-web-app-title" content="推しトピア">
 <meta name="mobile-web-app-capable" content="yes">
-<script>window.OAUTH_READY=["google","x","apple"];</script>
+<script>window.OAUTH_READY=["google","x","apple","email"];</script>
 <script>window.SUPABASE_URL="https://xfrccvpiehgbfwbofedx.supabase.co";window.SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmcmNjdnBpZWhnYmZ3Ym9mZWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzODkxMjAsImV4cCI6MjEwNjk2NTEyMH0.dY-_Y7BoktoFzmeQK_61TtabmmAnd19PYWQuujHN_h4";</script>
 <script>window.VAPID_PUBLIC="BBrg_UQ1b9l-BGpztBQmAnhQroZDk8NaZHuG-es6Wx4m_HKfEJhBkURR8IZuIv-dGOQArskgBFJsL_bnpMs9rxU";</script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
@@ -207,6 +207,7 @@ dialog::backdrop{background:rgba(10,10,25,.45)}
 .bi{width:26px;height:26px;display:grid;place-items:center;flex:none}
 .bi-Apple,.bi-X{color:var(--ink)}
 .ok-tag{color:var(--accent);border-color:var(--accent)}
+.code-input{text-align:center;font-size:24px;letter-spacing:.4em;font-variant-numeric:tabular-nums;font-family:var(--display)}
 .soon-tag{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
 .btn.big{width:100%;padding:13px;font-size:15px}
 .prov-divider{display:flex;align-items:center;gap:10px;margin:4px 0;color:var(--muted);font-size:11.5px}
@@ -1482,6 +1483,32 @@ function applyProfile(p){
   save();
 }
 // 連携ログイン（Google/Apple/X）を始める
+// メールアドレスでログイン（確認コード方式）
+async function apiMail(body){
+  const r=await fetch('/api/email-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||'通信に失敗しました');
+  return j;
+}
+function emailStep(sent){
+  $('#login-body').innerHTML=`<button class="x-close" id="login-cancel" aria-label="閉じる">×</button>
+  <h2 id="login-title">メールでログイン</h2>
+  ${sent
+    ? `<p><b>${esc(sent)}</b> に6桁の確認コードを送りました。メールを見て入力してください。</p>
+       <form id="mailverify" class="providers" data-email="${esc(sent)}">
+         <input class="field code-input" id="ml-code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" required>
+         <p class="err" id="ml-err" hidden></p>
+         <div class="actions"><button type="button" class="btn ghost sm" id="mail-again">送り直す</button><button class="btn">確認する</button></div>
+         <p class="hint" style="text-align:center">届かないときは迷惑メールもご確認ください（10分間有効）</p>
+       </form>`
+    : `<p>メールアドレスに確認コードを送ります。パスワードは必要ありません。</p>
+       <form id="mailsend" class="providers">
+         <input class="field" id="ml-email" type="email" inputmode="email" placeholder="you@example.com" autocomplete="email" required>
+         <p class="err" id="ml-err" hidden></p>
+         <div class="actions"><button type="button" class="btn ghost sm" id="login-back">別の方法</button><button class="btn">コードを送る</button></div>
+       </form>`}`;
+  if(!$('#login').open) $('#login').showModal();
+}
 function startOAuth(provider){
   location.href='/api/auth?start=1&p='+encodeURIComponent(provider);
 }
@@ -1855,8 +1882,6 @@ const BRAND={
   Google:`<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6z"/><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3C3.7 21.4 7.6 24 12 24z"/><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.6 0 3.7 2.6 1.8 6.1l3.8 3C6.5 6.7 9 4.8 12 4.8z"/></svg>`,
   Apple:`<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16.4 12.8c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.6-1.9-1.5-.2-3 .9-3.7.9-.8 0-2-.9-3.2-.8-1.7 0-3.2 1-4 2.5-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8s1.9.8 3.2.7c1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.4-.9-2.4-3.6zM14.3 4.6c.7-.8 1.1-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/></svg>`,
   X:`<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M18.2 2H21l-6.4 7.3L22 22h-5.9l-4.6-6-5.3 6H1.4l6.9-7.9L1 2h6l4.2 5.5L18.2 2zm-1 18h1.6L7.9 3.7H6.2L17.2 20z"/></svg>`,
-  LINE:`<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#06C755" d="M12 2C6.5 2 2 5.6 2 10c0 4 3.6 7.3 8.4 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.6 1.1-.5 6-3.5 8.2-6C21.5 13.3 22 11.7 22 10c0-4.4-4.5-8-10-8z"/><path fill="#fff" d="M8.3 8.2h-.7c-.1 0-.2.1-.2.2v3.3c0 .1.1.2.2.2h.7c.1 0 .2-.1.2-.2V8.4c0-.1-.1-.2-.2-.2zm3.8 0h-.7c-.1 0-.2.1-.2.2V10l-1.4-1.8h-.8c-.1 0-.2.1-.2.2v3.3c0 .1.1.2.2.2h.7c.1 0 .2-.1.2-.2v-1.6l1.4 1.9h.8c.1 0 .2-.1.2-.2V8.4c0-.1-.1-.2-.2-.2zm-5.5 2.7H5.3V8.4c0-.1-.1-.2-.2-.2h-.7c-.1 0-.2.1-.2.2v3.3c0 .1.1.2.2.2h2.2c.1 0 .2-.1.2-.2v-.6c0-.1-.1-.2-.2-.2zm9.6-1.7c.1 0 .2-.1.2-.2v-.6c0-.1-.1-.2-.2-.2H14c-.1 0-.2.1-.2.2v3.3c0 .1.1.2.2.2h2.2c.1 0 .2-.1.2-.2v-.6c0-.1-.1-.2-.2-.2h-1.3v-.5h1.3c.1 0 .2-.1.2-.2v-.6c0-.1-.1-.2-.2-.2h-1.3v-.5h1.3z"/></svg>`,
-  Facebook:`<svg viewBox="0 0 24 24" width="20" height="20"><path fill="#1877F2" d="M22 12a10 10 0 1 0-11.6 9.9v-7h-2.5V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/></svg>`,
   メール:`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/></svg>`,
 };
 function providersHTML(){
@@ -1865,7 +1890,7 @@ function providersHTML(){
   <p class="hint" style="text-align:center">メールアドレスもパスワードも不要です。30秒で終わります。</p>
   <div class="prov-divider"><span>${READY.length?'連携ログイン（機種変更しても引き継げます）':'連携ログイン（準備中）'}</span></div>
   <div class="providers">${Object.entries(BRAND).map(([n,icon])=>{
-    const key={Google:'google',Apple:'apple',X:'x',LINE:'line',Facebook:'facebook',メール:'email'}[n];
+    const key={Google:'google',Apple:'apple',X:'x',メール:'email'}[n];
     const ok=READY.includes(key);
     return `<button class="prov ${ok?'':'soon'}" type="button" ${ok?`data-oauth="${key}"`:'disabled'}><span class="bi bi-${n}">${icon}</span>${n==='メール'?'メールアドレス':n}${ok?'<span class="soon-tag ok-tag">ログイン</span>':'<span class="soon-tag">準備中</span>'}</button>`;
   }).join('')}</div>
@@ -2014,7 +2039,8 @@ document.addEventListener('click',e=>{
   else if(t.id==='login-cancel'||t.id==='login-close-link'){ $('#login').close(); render(); }
   else if(t.id==='login-back'){ openLogin(); }
   else if(t.id==='see-terms'){ $('#login').close(); }
-  else if(d.oauth){ startOAuth(d.oauth); }
+  else if(t.id==='mail-again'){ emailStep(); }
+  else if(d.oauth){ if(d.oauth==='email') emailStep(); else startOAuth(d.oauth); }
   else if(d.prov){ profileStep(d.prov); }
   else if(d.rx){ toggleReax(d.rx); }
   else if(d.like){ const i=S.likes.indexOf(d.like); i<0?S.likes.push(d.like):S.likes.splice(i,1); save(); render(); }
@@ -2197,6 +2223,20 @@ document.addEventListener('submit',e=>{
   else if(f.id==='adsform'){
     S.ads={enabled:$('#ad-on').checked,slot:$('#ad-slot').value,title:$('#ad-title').value.trim(),text:$('#ad-text').value.trim(),url:$('#ad-url').value.trim()};
     save(); render(); toast('広告の設定を保存しました');
+  }
+  else if(f.id==='mailsend'){
+    const em=$('#ml-email').value.trim();
+    showErr('#ml-err','送信しています…');
+    apiMail({action:'send',email:em}).then(()=>emailStep(em)).catch(e=>showErr('#ml-err',e.message));
+  }
+  else if(f.id==='mailverify'){
+    const em=f.dataset.email, code=$('#ml-code').value.trim();
+    showErr('#ml-err','確認しています…');
+    apiMail({action:'verify',email:em,code}).then(r=>{
+      if(r.needsProfile){ ui.googleTicket=r.ticket; profileStep('メール'); return; }
+      saveToken(r.token); applyProfile(r.profile); S.inbox=null; $('#login').close(); render();
+      toast(`おかえりなさい、${r.profile.handle}さん`);
+    }).catch(e=>showErr('#ml-err',e.message));
   }
   else if(f.id==='nosearch'){
     const no=$('#no-q').value.replace(/[^0-9]/g,'');
