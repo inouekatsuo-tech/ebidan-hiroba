@@ -579,7 +579,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1583,8 +1583,25 @@ V.inbox=()=>{
 // ===== 運営の管理画面 =====
 // モックのため、合言葉はこの端末の中だけで確認しています。
 // 本番では、運営者だけがログインできる認証に置き換えます。
-const ADMIN_PASS = 'ositopia2026';
-const isAdmin = () => !!S.adminOn;
+let ADMIN = { pass:'', stats:null, recent:[], reports:[], posts:[], users:[], ads:null, loading:false };
+const isAdmin = () => !!S.adminOn && !!ADMIN.pass;
+async function apiAdmin(body){
+  const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...body,pass:ADMIN.pass})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||'通信に失敗しました');
+  return j;
+}
+async function adminLoad(sub){
+  ADMIN.loading=true;
+  try{
+    if(sub==='home'){ const r=await apiAdmin({action:'stats'}); ADMIN.stats=r.stats; ADMIN.recent=r.recent||[]; }
+    if(sub==='reports'){ const r=await apiAdmin({action:'reports'}); ADMIN.reports=r.reports; ADMIN.posts=r.posts; }
+    if(sub==='users'){ const r=await apiAdmin({action:'users',q:ui.adminQ}); ADMIN.users=r.users; }
+    if(sub==='ads'){ const r=await apiAdmin({action:'ads'}); ADMIN.ads=r.ads; }
+  }catch(e){ toast(e.message); }
+  ADMIN.loading=false; render();
+}
 const hiddenKey = k => S.hidden.includes(k);
 const isBanned = name => S.banned.some(b => b.name === name);
 
@@ -1615,47 +1632,49 @@ V.admin = (sub = 'home') => {
   let body = '';
 
   if (sub === 'home') {
-    const posts = allPosts();
-    body = `<div class="grid">
-      ${[['登録ユーザー', sampleUsers().length + (S.user?1:0) + '人'],
-         ['書き込み', posts.length + '件'],
-         ['未対応の通報', S.reports.filter(r=>!r.done).length + '件'],
-         ['非表示にした投稿', S.hidden.length + '件'],
-         ['凍結中のアカウント', S.banned.length + '件'],
-         ['広告', S.ads.enabled ? '表示中' : '停止中']].map(([k,v]) =>
+    const st = ADMIN.stats;
+    if (!st) { if(!ADMIN.loading) adminLoad('home'); body = '<p class="hint">読み込んでいます…</p>'; }
+    else body = `<div class="grid">
+      ${[['登録ユーザー', st.users + '人'], ['スレッド', st.threads + '件'], ['書き込み', st.posts + '件'],
+         ['未対応の通報', st.openReports + '件'], ['非表示にした投稿', st.hidden + '件'],
+         ['凍結中のアカウント', st.banned + '件']].map(([k,v]) =>
         `<div class="panel stat"><span class="meta">${k}</span><b>${v}</b></div>`).join('')}
     </div>
     <div class="panel safety"><b>最近の書き込み</b>
-      <div class="rows">${posts.slice(-5).reverse().map(p=>`<div class="row"><div class="main"><span class="meta">${esc(p.where)} · ${esc(p.name)}</span><span class="t">${esc(p.text.slice(0,50))}</span></div><button class="btn sm ghost" data-hide="${esc(p.key)}">${hiddenKey(p.key)?'再表示':'非表示'}</button></div>`).join('')}</div>
-    </div>`;
+      <div class="rows">${ADMIN.recent.map(p=>`<div class="row"><div class="main">
+        <span class="meta">${esc((p.threads&&p.threads.title)||'')} · ${esc(p.author_name)}${p.anon_id?' ID:'+esc(p.anon_id):''}</span>
+        <span class="t">${p.hidden?'<span class="chip warn">非表示</span> ':''}${esc((p.body||'').slice(0,50))}</span></div>
+        <button class="btn sm ghost" data-hide="${p.id}">${p.hidden?'再表示':'非表示'}</button></div>`).join('')
+        || '<div class="row"><p class="hint">まだありません</p></div>'}</div>
+    </div>
+    <button class="btn ghost" id="admin-reload">最新に更新</button>`;
   }
 
   if (sub === 'reports') {
-    body = S.reports.length ? S.reports.map((r, i) => {
-      const p = findPost(r.target);
+    if (!ADMIN.reports.length && !ADMIN.loading && !ui.adminRepLoaded) { ui.adminRepLoaded=true; adminLoad('reports'); }
+    body = ADMIN.reports.length ? ADMIN.reports.map((r) => {
+      const p = ADMIN.posts.find(x => x.id === Number(String(r.target_id).replace(/^db/,'')));
       return `<div class="panel compose">
         <span class="meta"><span class="chip warn">${esc(r.reason)}</span>${new Date(r.at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}${r.done?'<span class="chip ok">対応済み</span>':''}</span>
-        ${p ? `<div class="quote"><span class="meta">${esc(p.where)} · ${esc(p.name)}${p.id?` ID:${esc(p.id)}`:''}</span><p>${esc(p.text)}</p></div>
+        ${p ? `<div class="quote"><span class="meta">${esc((p.threads&&p.threads.title)||'')} · ${esc(p.author_name)}${p.anon_id?` ID:${esc(p.anon_id)}`:''}</span><p>${p.hidden?'<span class="chip warn">非表示中</span> ':''}${esc(p.body)}</p></div>
               <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">
-                <a class="btn sm ghost" href="${p.link}">該当ページを見る</a>
-                <button class="btn sm" data-hide="${esc(p.key)}">${hiddenKey(p.key)?'再表示する':'非表示にする'}</button>
-                <button class="btn sm ghost" data-warn="${esc(p.name)}">警告を送る</button>
-                <button class="btn sm ghost" data-ban="${esc(p.name)}">${isBanned(p.name)?'凍結を解除':'アカウントを凍結'}</button>
+                <a class="btn sm ghost" href="#/thread/db${p.thread_id}">該当ページを見る</a>
+                <button class="btn sm" data-hide="${p.id}">${p.hidden?'再表示する':'非表示にする'}</button>
               </div>` : '<p class="hint">対象の書き込みは見つかりませんでした（すでに削除された可能性があります）</p>'}
         ${r.note?`<p class="hint">補足：${esc(r.note)}</p>`:''}
-        <div class="actions"><button class="btn sm ghost" data-report-done="${i}">${r.done?'未対応に戻す':'対応済みにする'}</button></div>
+        <p class="hint">通報者：${esc(r.reporter||'不明')}</p>
+        <div class="actions"><button class="btn sm ghost" data-report-done="${r.id}">${r.done?'未対応に戻す':'対応済みにする'}</button></div>
       </div>`; }).join('') : '<p class="hint">通報はまだありません。</p>';
   }
 
   if (sub === 'users') {
-    const q = (ui.adminQ || '').trim();
-    const list = [...sampleUsers(), ...(S.user ? [{ ...S.user, me: true }] : [])]
-      .filter(u => !q || u.name.includes(q) || String(u.no || '').includes(q));
-    body = `<form class="search" id="adminusersearch"><input id="adm-q" value="${esc(q)}" placeholder="ハンドルネーム または 会員番号で検索" aria-label="ユーザー検索"><button class="btn sm">検索</button></form>
-    <div class="panel rows">${list.map(u => `<div class="row"><span class="mini-av">${initial(u.name)}</span>
-      <div class="main"><span class="t">${esc(u.name)}${u.me?' <span class="chip">自分</span>':''}${isBanned(u.name)?' <span class="chip warn">凍結中</span>':''}</span>
-        <span class="meta"><span class="chip">#${esc(u.no||'—')}</span><span class="chip">${esc(u.age)}</span><span class="chip">${esc(u.pref)}</span></span></div>
-      <button class="btn sm ghost" data-admin-user="${esc(u.name)}">操作</button></div>`).join('') || '<div class="row"><p class="hint">見つかりませんでした</p></div>'}</div>`;
+    if (!ADMIN.users.length && !ADMIN.loading && !ui.adminLoaded) { ui.adminLoaded = true; adminLoad('users'); }
+    const list = ADMIN.users;
+    body = `<form class="search" id="adminusersearch"><input id="adm-q" value="${esc(ui.adminQ||'')}" placeholder="ハンドルネーム または 会員番号で検索" aria-label="ユーザー検索"><button class="btn sm">検索</button></form>
+    <div class="panel rows">${list.map(u => `<div class="row"><span class="mini-av">${initial(u.handle)}</span>
+      <div class="main"><span class="t">${esc(u.handle)}${u.banned?' <span class="chip warn">凍結中</span>':''}</span>
+        <span class="meta"><span class="chip">${fmtNo(u.member_no)}</span><span class="chip">${esc(u.age_band||'—')}</span><span class="chip">${esc(u.pref||'—')}</span></span></div>
+      <button class="btn sm ghost" data-admin-user="${esc(u.id)}">操作</button></div>`).join('') || '<div class="row"><p class="hint">見つかりませんでした</p></div>'}</div>`;
   }
 
   if (sub === 'notice') {
@@ -1663,17 +1682,15 @@ V.admin = (sub = 'home') => {
       <h3>全員にお知らせを送る</h3>
       <input class="field" id="nt-title" placeholder="件名（例：オフ会のルールを更新しました）">
       <textarea class="field" id="nt-body" placeholder="本文" rows="4"></textarea>
-      <label class="agree"><input type="checkbox" id="nt-push" checked> プッシュ通知でも知らせる</label>
       <p class="err" id="nt-err" hidden></p>
-      <div class="actions"><button class="btn">送信する</button></div>
-      <p class="hint">※モックでは、この端末の受信箱にだけ届きます。本番では全ユーザーに届きます。</p>
-    </form>
-    <div class="panel safety"><b>送信したお知らせ</b>
-      <ul>${(S.inbox||[]).map(m=>`<li>${esc(m.date)}　${esc(m.title)}</li>`).join('')||'<li>まだありません</li>'}</ul></div>`;
+      <div class="actions"><button class="btn">全員に送信する</button></div>
+      <p class="hint">登録しているすべての人の受信箱に届きます。</p>
+    </form>`;
   }
 
   if (sub === 'ads') {
-    const a = S.ads;
+    if (!ADMIN.ads && !ADMIN.loading) adminLoad('ads');
+    const a = ADMIN.ads || { enabled:false, slot:'info', title:'', text:'', url:'' };
     body = `<form class="panel compose" id="adsform">
       <h3>広告の設定</h3>
       <label class="agree"><input type="checkbox" id="ad-on" ${a.enabled?'checked':''}> 広告を表示する</label>
@@ -1686,7 +1703,7 @@ V.admin = (sub = 'home') => {
       <div class="actions"><button class="btn">保存する</button></div>
       <p class="hint">掲示板と実況スレには広告を出しません（体験を壊さないため）。Google AdSenseを使う場合は、審査通過後にこの枠へ差し替えます。</p>
     </form>
-    ${a.enabled?`<div class="panel compose"><h3>表示プレビュー</h3>${adHTML(true)}</div>`:''}`;
+    ${a.enabled?`<div class="panel compose"><h3>表示プレビュー</h3><a class="panel ad"><span class="ad-label">広告</span><b>${esc(a.title)}</b>${a.text?`<span>${esc(a.text)}</span>`:''}</a></div>`:''}`;
   }
 
   if (sub === 'settings') {
@@ -1701,8 +1718,7 @@ V.admin = (sub = 'home') => {
       <p class="hint">DMを有効にすると、未成年への個別接触が可能になります。当面は無効のまま運用します。</p>
     </div>
     <div class="panel safety"><b>凍結中のアカウント</b>
-      <div class="rows">${S.banned.map(b=>`<div class="row"><div class="main"><span class="t">${esc(b.name)}</span><span class="meta">${esc(b.at.slice(0,10))}　理由：${esc(b.reason||'—')}</span></div><button class="btn sm ghost" data-ban="${esc(b.name)}">解除</button></div>`).join('')||'<div class="row"><p class="hint">ありません</p></div>'}</div>
-    </div>
+      <p class="hint">「ユーザー」タブで検索して、凍結・解除ができます。</p></div>
     <button class="btn ghost" id="admin-logout">管理画面からログアウト</button>`;
   }
 
@@ -1719,17 +1735,17 @@ function adHTML(preview){
     <b>${esc(a.title)}</b>${a.text?`<span>${esc(a.text)}</span>`:''}
     ${preview?'<span class="hint">※これはプレビューです</span>':''}</a>`;
 }
-function openAdminUser(name){
-  const u = [...sampleUsers(), ...(S.user?[S.user]:[])].find(x => x.name === name);
+function openAdminUser(id){
+  const u = ADMIN.users.find(x => x.id === id);
   if (!u) return;
   $('#login-body').innerHTML = `<button class="x-close" id="login-cancel" aria-label="閉じる">×</button>
-  <h2 id="login-title">${esc(u.name)}</h2>
-  <p>会員番号 #${esc(u.no||'—')}　${esc(u.age)}・${esc(u.pref)}${isBanned(u.name)?'　<span class="chip warn">凍結中</span>':''}</p>
-  <form id="admuserform" class="providers" data-name="${esc(u.name)}">
-    <label class="lb">ハンドルネームを変更<input class="field" id="au-name" value="${esc(u.name)}" maxlength="12"></label>
+  <h2 id="login-title">${esc(u.handle)}</h2>
+  <p>会員番号 ${fmtNo(u.member_no)}　${esc(u.age_band||'—')}・${esc(u.pref||'—')}${u.banned?'　<span class="chip warn">凍結中</span>':''}</p>
+  <form id="admuserform" class="providers" data-id="${esc(u.id)}">
+    <label class="lb">ハンドルネームを変更<input class="field" id="au-name" value="${esc(u.handle)}" maxlength="12"></label>
     <label class="lb">この人にメッセージを送る<textarea class="field" id="au-msg" rows="3" placeholder="例：チケットの譲渡に関する書き込みは禁止です。削除しました。"></textarea></label>
     <div class="actions" style="flex-wrap:wrap">
-      <button type="button" class="btn sm ghost" data-ban="${esc(u.name)}">${isBanned(u.name)?'凍結を解除':'アカウントを凍結'}</button>
+      <button type="button" class="btn sm ghost" data-ban="${esc(u.id)}">${u.banned?'凍結を解除':'アカウントを凍結'}</button>
       <button class="btn">保存して送信</button>
     </div>
   </form>`;
@@ -2076,22 +2092,18 @@ document.addEventListener('click',e=>{
   else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
   else if(d.report){ openReport(d.report); }
   else if(d.msg){ ui.openMsg=ui.openMsg===d.msg?null:d.msg; const m=S.inbox.find(x=>x.id===d.msg); if(m&&!m.read){ m.read=true; save(); } render(); syncBadge(); }
-  else if(d.hide){ const i=S.hidden.indexOf(d.hide); i<0?S.hidden.push(d.hide):S.hidden.splice(i,1); save(); render(); toast(i<0?'この書き込みを非表示にしました':'再表示しました'); }
-  else if(d.ban){
-    const i=S.banned.findIndex(b=>b.name===d.ban);
-    if(i<0){ S.banned.push({name:d.ban,at:new Date().toISOString(),reason:'ルール違反'}); toast(`${d.ban} を凍結しました`); }
-    else { S.banned.splice(i,1); toast(`${d.ban} の凍結を解除しました`); }
-    save(); if($('#login').open) $('#login').close(); render();
-  }
+  else if(d.hide){ apiAdmin({action:'hide',postId:d.hide}).then(r=>{ adminLoad(location.hash.includes('reports')?'reports':'home'); toast(r.hidden?'非表示にしました':'再表示しました'); }).catch(e=>toast(e.message)); }
+  else if(d.ban){ apiAdmin({action:'ban',userId:d.ban}).then(r=>{ if($('#login').open) $('#login').close(); adminLoad('users'); toast(r.banned?`${r.handle} を凍結しました`:`${r.handle} の凍結を解除しました`); }).catch(e=>toast(e.message)); }
   else if(d.warn){
     ensureInbox();
     S.inbox.unshift({id:'m'+Date.now(),from:'運営',title:'ルール違反についてのお知らせ',date:jstToday(),read:false,
       body:`${d.warn} さんの書き込みについて、ルール違反の通報がありました。\n該当の書き込みは非表示にしています。\n\n繰り返される場合はアカウントを凍結します。利用規約をご確認ください。`});
     save(); render(); toast('警告メッセージを送りました');
   }
-  else if(d.reportDone!==undefined){ const r=S.reports[+d.reportDone]; r.done=!r.done; save(); render(); }
+  else if(d.reportDone!==undefined){ apiAdmin({action:'reportDone',reportId:d.reportDone}).then(()=>adminLoad('reports')).catch(e=>toast(e.message)); }
   else if(d.adminUser){ openAdminUser(d.adminUser); }
-  else if(t.id==='admin-logout'){ S.adminOn=false; save(); location.hash='#/home'; toast('管理画面からログアウトしました'); }
+  else if(t.id==='admin-logout'){ S.adminOn=false; ADMIN.pass=''; save(); location.hash='#/home'; toast('管理画面からログアウトしました'); }
+  else if(t.id==='admin-reload'){ ADMIN.stats=null; ADMIN.reports=[]; ui.adminRepLoaded=false; adminLoad((location.hash.split('/')[2])||'home'); }
   else if(t.id==='copy-no'){ navigator.clipboard?.writeText(S.user.no); toast('会員番号をコピーしました'); }
   else if(t.id==='copy-url'){ navigator.clipboard?.writeText(memberUrl(S.user.no)); toast('フォロー用のリンクをコピーしました'); }
   else if(d.follow){ if(!need()) return; const i=S.following.indexOf(d.follow); i<0?S.following.push(d.follow):S.following.splice(i,1); save(); render(); toast(i<0?`${d.follow}さんをフォローしました`:'フォローを解除しました'); }
@@ -2199,27 +2211,30 @@ document.addEventListener('submit',e=>{
     save(); $('#login').close(); toast('通報を受け付けました。運営が確認します');
   }
   else if(f.id==='adminlogin'){
-    if($('#adm-pass').value!==ADMIN_PASS) return showErr('#adm-err','合言葉が違います');
-    S.adminOn=true; save(); location.hash='#/admin/home'; render(); toast('管理画面に入りました');
+    showErr('#adm-err','確認しています…');
+    ADMIN.pass=$('#adm-pass').value;
+    apiAdmin({action:'login'}).then(()=>{ S.adminOn=true; save(); location.hash='#/admin/home'; render(); toast('管理画面に入りました'); })
+      .catch(e=>{ ADMIN.pass=''; showErr('#adm-err',e.message); });
   }
-  else if(f.id==='adminusersearch'){ ui.adminQ=$('#adm-q').value; render(); }
+  else if(f.id==='adminusersearch'){ ui.adminQ=$('#adm-q').value; adminLoad('users'); }
   else if(f.id==='admuserform'){
-    const old=f.dataset.name, nm=$('#au-name').value.trim(), msg=$('#au-msg').value.trim();
-    if(S.user&&S.user.name===old&&nm&&nm!==old){ S.user.name=nm; }
-    if(msg){ ensureInbox(); S.inbox.unshift({id:'m'+Date.now(),from:'運営',title:'運営からのメッセージ',date:jstToday(),read:false,body:msg}); }
-    save(); $('#login').close(); render(); toast('保存しました'+(msg?'（メッセージを送信）':''));
+    const id=f.dataset.id, nm=$('#au-name').value.trim(), msg=$('#au-msg').value.trim();
+    const cur=ADMIN.users.find(x=>x.id===id), jobs=[];
+    if(nm&&cur&&nm!==cur.handle) jobs.push(apiAdmin({action:'rename',userId:id,handle:nm}));
+    if(msg) jobs.push(apiAdmin({action:'notice',userId:id,title:'運営からのメッセージ',body:msg}));
+    Promise.all(jobs).then(()=>{ $('#login').close(); adminLoad('users'); toast('保存しました'+(msg?'（メッセージを送信）':'')); })
+      .catch(e=>toast(e.message));
   }
   else if(f.id==='noticeform'){
     const title=$('#nt-title').value.trim(), body=$('#nt-body').value.trim();
     if(!title||!body) return showErr('#nt-err','件名と本文を入れてください');
-    ensureInbox();
-    S.inbox.unshift({id:'m'+Date.now(),from:'運営',title,date:jstToday(),read:false,body});
-    if($('#nt-push').checked&&notiState()==='granted') showLocalNoti(title,body.slice(0,60));
-    save(); render(); toast('お知らせを送信しました');
+    apiAdmin({action:'notice',title,body}).then(()=>{ $('#nt-title').value=''; $('#nt-body').value=''; toast('全員にお知らせを送信しました'); })
+      .catch(e=>showErr('#nt-err',e.message));
   }
   else if(f.id==='adsform'){
-    S.ads={enabled:$('#ad-on').checked,slot:$('#ad-slot').value,title:$('#ad-title').value.trim(),text:$('#ad-text').value.trim(),url:$('#ad-url').value.trim()};
-    save(); render(); toast('広告の設定を保存しました');
+    const v={enabled:$('#ad-on').checked,slot:$('#ad-slot').value,title:$('#ad-title').value.trim(),text:$('#ad-text').value.trim(),url:$('#ad-url').value.trim()};
+    apiAdmin({action:'ads',value:v}).then(r=>{ ADMIN.ads=r.ads; S.ads=r.ads; save(); render(); toast('広告の設定を保存しました'); })
+      .catch(e=>toast(e.message));
   }
   else if(f.id==='mailsend'){
     const em=$('#ml-email').value.trim();
