@@ -1089,7 +1089,7 @@ V.thread=id=>{
 const WD='日月火水木金土';
 function fmtDate(s,t){ const d=new Date(s+'T00:00'); if(isNaN(d)) return s; return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}（${WD[d.getDay()]}）${t?' '+t:''}`; }
 function status(c){ if(c.mine) return 'admin'; if(S.joined.includes(c.id)) return 'member'; if(S.pending.includes(c.id)) return 'pending'; return null; }
-function memberCount(c){ return c.members+(!c.mine&&S.joined.includes(c.id)?1:0); }
+function memberCount(c){ return c.members+(!c.remote&&!c.mine&&S.joined.includes(c.id)?1:0); }
 function ageBlock(c){
   if(!S.user||!c.only) return null;
   const teen=S.user.age==='10代';
@@ -1144,7 +1144,7 @@ V.mycomm=()=>{
 
 function canSeeDetail(c){ const st=status(c); return st==='admin'||st==='member'; }
 function eventCard(c,e){
-  const k=c.id+':'+e.id, g=S.going.includes(k), n=e.joined+(g?1:0);
+  const k=c.id+':'+e.id, g=S.going.includes(k), n=e.joined+(c.remote?0:(g?1:0));
   return `<a class="panel offkai" href="#/e/${c.id}/${e.id}">
     <span class="meta"><span class="chip ${e.target==='10代限定'?'fan':'official'}">${esc(e.target)}</span><span class="time">${fmtDate(e.date,e.time)}</span>${g?'<span class="chip ok">参加予定</span>':''}</span>
     <h3>${esc(e.t)}</h3>
@@ -1187,7 +1187,7 @@ V.c=(id,tab='top')=>{
         <div class="actions"><button class="btn">イベントを公開する</button></div></form>`:''}
       ${c.events.map(e=>eventCard(c,e)).join('')||'<p class="hint">予定されているイベントはありません。</p>'}`;
   } else if(tab==='topics'){
-    body=closed?lockMsg:`<div class="panel rows">${c.topics.map(t=>`<div class="row"><div class="main"><span class="t">${esc(t.t)}</span><span class="meta">${t.n}件 · ${esc(t.upd)}</span></div></div>`).join('')}</div>
+    body=closed?lockMsg:c.remote&&!c.topics.length?`<div class="panel compose"><p class="hint">コミュニティの中のトピックは準備中です。いまは<a href="#/board">掲示板</a>をご利用ください。</p></div>`:`<div class="panel rows">${c.topics.map(t=>`<div class="row"><div class="main"><span class="t">${esc(t.t)}</span><span class="meta">${t.n}件 · ${esc(t.upd)}</span></div></div>`).join('')}</div>
       ${see?'<button class="btn ghost" id="newtopic">＋ トピックを立てる</button>':''}`;
   } else if(tab==='members'){
     const staff=[[c.admin,'管理人'],...c.subs.map(s=>[s,'副管理人'])];
@@ -1208,7 +1208,7 @@ V.c=(id,tab='top')=>{
 
 V.e=(cid,eid)=>{
   const c=S.comms.find(x=>x.id===cid), e=c&&c.events.find(x=>x.id===eid); if(!e) return V.community();
-  const k=cid+':'+eid, g=S.going.includes(k), n=e.joined+(g?1:0), see=canSeeDetail(c), isHost=S.user&&e.host===S.user.name;
+  const k=cid+':'+eid, g=S.going.includes(k), n=e.joined+(c.remote?0:(g?1:0)), see=canSeeDetail(c), isHost=S.user&&e.host===S.user.name;
   let act='';
   if(isHost) act='<span class="chip ok">あなたが主催者です</span>';
   else if(!S.user) act='<button class="btn" id="login-open2">ログインして参加する</button>';
@@ -1490,6 +1490,7 @@ function applyProfile(p){
     bio:p.bio||'',links:p.links||{},via:'この端末',banned:p.banned};
   if(Array.isArray(p.follow)&&p.follow.length) S.follow=p.follow;
   save();
+  loadComms();
 }
 // 連携ログイン（Google/Apple/X）を始める
 // メールアドレスでログイン（確認コード方式）
@@ -1555,6 +1556,44 @@ async function restoreAccount(){
   const t=getToken(); if(!t||!DB_ON()) return;
   try{ const r=await apiAccount({action:'me',token:t}); applyProfile(r.profile); await loadNotices(); render(); }
   catch(e){ console.warn('ログイン情報の確認に失敗',e.message); }
+}
+// ===== コミュニティ（サーバー側） =====
+async function apiComm(body){
+  const r=await fetch('/api/community',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...body,token:getToken()})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||'通信に失敗しました');
+  return j;
+}
+// コミュニティ・イベント・参加状況をまとめて読み込み、画面用の形に直す
+async function loadComms(){
+  if(!DB_ON()) return;
+  try{
+    const [cs,evs,mem,emem]=await Promise.all([
+      dbGet('communities?select=*,admin:profiles!communities_admin_id_fkey(handle)&order=member_count.desc&limit=100'),
+      dbGet('events?select=*,host:profiles!events_host_id_fkey(handle)&order=date.asc&limit=200'),
+      dbGet('community_members?select=community_id,user_id,status,profiles(handle,age_band,pref)&limit=1000'),
+      dbGet('event_members?select=event_id,user_id&limit=1000'),
+    ]);
+    const my=S.user&&S.user.dbId||null;
+    const joined=[],pending=[],going=[];
+    const prof=m=>[m.profiles&&m.profiles.handle||'メンバー',m.profiles&&m.profiles.age_band||'—',m.profiles&&m.profiles.pref||'—',m.user_id];
+    S.comms=cs.map(c=>{
+      const id='c'+c.id, ms=mem.filter(m=>m.community_id===c.id), mine=!!(my&&c.admin_id===my);
+      const me=my&&ms.find(m=>m.user_id===my);
+      if(me&&!mine) (me.status==='approved'?joined:pending).push(id);
+      const es=evs.filter(e=>e.community_id===c.id).map(e=>({
+        id:'e'+e.id,dbId:e.id,t:e.title,date:e.date,time:(e.time||'').slice(0,5),place:e.place||'',area:e.area||'',
+        cap:e.cap,joined:e.joined_count||0,target:e.target_band,host:e.host&&e.host.handle||'メンバー',desc:e.description||'',hostId:e.host_id}));
+      es.forEach(e=>{ if(my&&emem.some(x=>x.event_id===e.dbId&&x.user_id===my)) going.push(id+':'+e.id); });
+      return {id,dbId:c.id,remote:true,mine,g:c.group_id,name:c.name,kind:c.kind,members:c.member_count||0,
+        only:c.only_band,join:c.join_type,admin:c.admin&&c.admin.handle||'運営',subs:[],
+        created:(c.created_at||'').slice(0,10).replace(/-/g,'.'),desc:c.description||'',rules:c.rules||[],topics:[],events:es,
+        sample:ms.filter(m=>m.status==='approved').map(prof),
+        reqs:mine?ms.filter(m=>m.status==='pending').map(prof):[]};
+    });
+    S.joined=joined; S.pending=pending; S.going=going; save(); render();
+  }catch(e){ console.warn('コミュニティの読み込みに失敗',e); }
 }
 // 運営からのお知らせをサーバーから読む
 async function loadNotices(){
@@ -1971,6 +2010,12 @@ function openJoin(id){
 }
 function confirmJoin(id){
   const c=S.comms.find(x=>x.id===id); $('#login').close();
+  if(c.remote){
+    apiComm({action:'join',communityId:c.dbId})
+      .then(async r=>{ await loadComms(); toast(r.status==='approved'?`「${c.name}」に参加しました`:'参加を申請しました。管理人の承認をお待ちください'); })
+      .catch(e=>toast(e.message));
+    return;
+  }
   if(c.join==='承認制'){
     S.pending.push(id); save(); render(); toast('参加を申請しました。管理人の承認をお待ちください');
     setTimeout(()=>{ if(!S.pending.includes(id)) return; S.pending=S.pending.filter(x=>x!==id); S.joined.push(id); save(); render(); toast(`（デモ）「${c.name}」の管理人が参加を承認しました`); },4000);
@@ -2100,11 +2145,25 @@ document.addEventListener('click',e=>{
   else if(t.id==='join'){ if(!need()) return; openJoin(d.id); }
   else if(t.id==='join-confirm'){ confirmJoin(d.id); }
   else if(t.id==='join-cancel'){ $('#login').close(); }
-  else if(t.id==='leave'){ if(!confirm('このコミュニティを退会しますか？')) return; S.joined=S.joined.filter(x=>x!==d.id); S.going=S.going.filter(x=>!x.startsWith(d.id+':')); save(); render(); toast('退会しました'); }
-  else if(t.id==='cancel-req'){ S.pending=S.pending.filter(x=>x!==d.id); save(); render(); toast('参加申請を取り消しました'); }
-  else if(d.approve||d.decline){ const [cid,i]=(d.approve||d.decline).split(':'); const c=S.comms.find(x=>x.id===cid); const [r]=c.reqs.splice(+i,1); if(d.approve){ c.members++; c.sample.push(r); toast(`${r[0]}さんの参加を承認しました`); } else toast(`${r[0]}さんの申請を見送りました`); save(); render(); }
+  else if(t.id==='leave'){ if(!confirm('このコミュニティを退会しますか？')) return; const lc=S.comms.find(x=>x.id===d.id);
+    if(lc&&lc.remote){ apiComm({action:'leave',communityId:lc.dbId}).then(async()=>{ await loadComms(); toast('退会しました'); }).catch(e=>toast(e.message)); return; }
+    S.joined=S.joined.filter(x=>x!==d.id); S.going=S.going.filter(x=>!x.startsWith(d.id+':')); save(); render(); toast('退会しました'); }
+  else if(t.id==='cancel-req'){ const pc=S.comms.find(x=>x.id===d.id);
+    if(pc&&pc.remote){ apiComm({action:'leave',communityId:pc.dbId}).then(async()=>{ await loadComms(); toast('参加申請を取り消しました'); }).catch(e=>toast(e.message)); return; }
+    S.pending=S.pending.filter(x=>x!==d.id); save(); render(); toast('参加申請を取り消しました'); }
+  else if(d.approve||d.decline){ const [cid,i]=(d.approve||d.decline).split(':'); const c=S.comms.find(x=>x.id===cid);
+    if(c&&c.remote){ const q=c.reqs[+i]; if(!q) return;
+      apiComm({action:d.approve?'approve':'decline',communityId:c.dbId,userId:q[3]})
+        .then(async()=>{ await loadComms(); toast(d.approve?`${q[0]}さんの参加を承認しました`:`${q[0]}さんの申請を見送りました`); })
+        .catch(e=>toast(e.message)); return; }
+    const [r]=c.reqs.splice(+i,1); if(d.approve){ c.members++; c.sample.push(r); toast(`${r[0]}さんの参加を承認しました`); } else toast(`${r[0]}さんの申請を見送りました`); save(); render(); }
   else if(t.id==='evform-toggle'){ ui.evForm=!ui.evForm; render(); }
-  else if(d.go){ if(!need()) return; const i=S.going.indexOf(d.go); i<0?S.going.push(d.go):S.going.splice(i,1); save(); render(); toast(i<0?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); }
+  else if(d.go){ if(!need()) return; const [gcid,geid]=d.go.split(':'); const gc=S.comms.find(x=>x.id===gcid);
+    if(gc&&gc.remote){ const ge=gc.events.find(x=>x.id===geid); if(!ge) return; const add=!S.going.includes(d.go);
+      apiComm({action:add?'joinEvent':'leaveEvent',eventId:ge.dbId})
+        .then(async()=>{ await loadComms(); toast(add?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); })
+        .catch(e=>toast(e.message)); return; }
+    const i=S.going.indexOf(d.go); i<0?S.going.push(d.go):S.going.splice(i,1); save(); render(); toast(i<0?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); }
   else if(t.id==='hide-install'){ e.preventDefault(); ui.hideInstall=true; try{localStorage.setItem('hide-install','1');}catch(err){} render(); }
   else if(t.id==='do-install'){ if(installPrompt){ installPrompt.prompt(); installPrompt=null; } }
   else if(t.id==='ask-noti'){ askNoti(); }
@@ -2292,7 +2351,15 @@ document.addEventListener('submit',e=>{
     const ev={id:'e'+Date.now(),t:g('#ev-title'),date:g('#ev-date'),time:g('#ev-time'),place:g('#ev-place'),area:g('#ev-area'),cap:Math.max(2,Math.min(50,+g('#ev-cap')||10)),joined:0,target:g('#ev-target'),host:S.user.name,desc:g('#ev-desc')};
     if(!ev.t||!ev.date||!ev.place||!ev.area) return showErr('#ev-err','イベント名・日付・場所・エリアを入れてください');
     const bad=ng(ev.t+ev.desc); if(bad) return showErr('#ev-err',bad);
-    const c=S.comms.find(x=>x.id===f.dataset.cid); c.events.push(ev); c.events.sort((a,b)=>a.date.localeCompare(b.date));
+    const c=S.comms.find(x=>x.id===f.dataset.cid);
+    if(c&&c.remote){
+      apiComm({action:'createEvent',communityId:c.dbId,title:ev.t,date:ev.date,time:ev.time,place:ev.place,
+        area:ev.area,cap:ev.cap,target:ev.target,description:ev.desc})
+        .then(async r=>{ ui.evForm=false; await loadComms(); location.hash=`#/e/${c.id}/e${r.event.id}`; toast('イベントを公開しました'); })
+        .catch(e=>showErr('#ev-err',e.message));
+      return;
+    }
+    c.events.push(ev); c.events.sort((a,b)=>a.date.localeCompare(b.date));
     S.going.push(c.id+':'+ev.id); ui.evForm=false; save(); location.hash=`#/e/${c.id}/${ev.id}`; toast('イベントを公開しました');
   }
   else if(f.id==='commform'){
@@ -2301,6 +2368,14 @@ document.addEventListener('submit',e=>{
     const bad=ng(name+desc); if(bad) return showErr('#cm-err',bad);
     const only={'10代のみ':'10代','18歳以上のみ':'18歳以上'}[$('#cm-only').value]||null;
     const join=f.querySelector('[name="cm-join"]:checked').value;
+    const rules=$('#cm-rules').value.split('\n').map(x=>x.trim()).filter(Boolean);
+    if(DB_ON()){
+      apiComm({action:'create',name,groupId:$('#cm-g').value||null,kind:$('#cm-kind').value,description:desc,
+        rules,joinType:join,onlyBand:only})
+        .then(async r=>{ await loadComms(); location.hash='#/c/c'+r.community.id; toast('コミュニティをつくりました'); })
+        .catch(e=>showErr('#cm-err',e.message));
+      return;
+    }
     const a=only==='10代'?['10代','10代']:only?['20代','30代']:['10代','40代'];
     const now=new Date();
     const c={id:'c'+Date.now(),mine:true,g:$('#cm-g').value||null,name,kind:$('#cm-kind').value,members:1,only,join,admin:S.user.name,subs:[],created:`${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()}`,
@@ -2328,6 +2403,7 @@ safeRender();
 loadLive();
 loadThreads();
 loadSettings();
+loadComms();
 handleOAuthReturn().then(done=>{ if(!done) restoreAccount(); });
 maybeAskNoti();
 // ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）

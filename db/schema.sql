@@ -84,7 +84,7 @@ create table if not exists reports (
 );
 create index if not exists reports_done_idx on reports (done, created_at desc);
 
--- ===== コミュニティ（次の段階で使う） =====
+-- ===== コミュニティ =====
 create table if not exists communities (
   id         bigserial primary key,
   group_id   text,
@@ -95,6 +95,7 @@ create table if not exists communities (
   join_type  text not null default '承認制',   -- 承認制 / だれでも
   only_band  text,                             -- 10代 / 18歳以上
   admin_id   uuid references profiles(id) on delete set null,
+  member_count int default 0,                 -- 参加者の数（承認済みのみ）
   created_at timestamptz default now()
 );
 create table if not exists community_members (
@@ -116,8 +117,10 @@ create table if not exists events (
   target_band  text not null default '18歳以上',-- 10代限定 / 18歳以上
   description  text default '',
   host_id      uuid references profiles(id) on delete set null,
+  joined_count integer default 0,
   created_at   timestamptz default now()
 );
+create index if not exists ev_comm_idx on events (community_id, date);
 create table if not exists event_members (
   event_id   bigint references events(id) on delete cascade,
   user_id    uuid references profiles(id) on delete cascade,
@@ -165,6 +168,12 @@ drop policy if exists "読むのは誰でも" on communities;
 create policy "読むのは誰でも" on communities for select using (true);
 drop policy if exists "読むのは誰でも" on events;
 create policy "読むのは誰でも" on events for select using (true);
+-- 参加状況（誰がどのコミュニティ・イベントにいるか）も読めるようにする
+drop policy if exists "参加状況は誰でも読める" on community_members;
+create policy "参加状況は誰でも読める" on community_members for select using (true);
+drop policy if exists "イベント参加者は誰でも読める" on event_members;
+create policy "イベント参加者は誰でも読める" on event_members for select using (true);
+create index if not exists cm_user_idx on community_members (user_id);
 
 -- プロフィールは公開情報のみ（本人は自分の全部を見られる）
 drop policy if exists "公開プロフィール" on profiles;
