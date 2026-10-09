@@ -52,8 +52,11 @@ export default async function handler(req, res) {
       const { data: c } = await sb.from('communities').select('*').eq('id', b.communityId).single();
       if (!c) return res.status(404).json({ error: 'コミュニティが見つかりません' });
       const bad = ageOk(c.only_band, u); if (bad) return res.status(403).json({ error: bad });
+      // すでに参加（または申請）しているときは、人数を数え直さない
+      const { data: already } = await sb.from('community_members').select('status').match({ community_id: c.id, user_id: u.id }).maybeSingle();
+      if (already) return res.status(200).json({ ok: true, status: already.status });
       const status = c.join_type === 'だれでも' ? 'approved' : 'pending';
-      await sb.from('community_members').upsert({ community_id: c.id, user_id: u.id, status });
+      await sb.from('community_members').insert({ community_id: c.id, user_id: u.id, status });
       if (status === 'approved') await sb.from('communities').update({ member_count: (c.member_count || 0) + 1 }).eq('id', c.id);
       return res.status(200).json({ ok: true, status });
     }
@@ -62,6 +65,13 @@ export default async function handler(req, res) {
     if (a === 'leave') {
       const { data: cm } = await sb.from('community_members').select('status').match({ community_id: b.communityId, user_id: u.id }).maybeSingle();
       await sb.from('community_members').delete().match({ community_id: b.communityId, user_id: u.id });
+      // 退会したら、そのコミュニティのイベント参加も外す（主催しているものは残す）
+      const { data: evs } = await sb.from('events').select('id,joined_count,host_id').eq('community_id', b.communityId);
+      for (const ev of evs || []) {
+        if (ev.host_id === u.id) continue;
+        const { data: gone } = await sb.from('event_members').delete().match({ event_id: ev.id, user_id: u.id }).select();
+        if (gone && gone.length) await sb.from('events').update({ joined_count: Math.max(0, (ev.joined_count || 1) - 1) }).eq('id', ev.id);
+      }
       if (cm?.status === 'approved') {
         const { data: c } = await sb.from('communities').select('member_count').eq('id', b.communityId).single();
         await sb.from('communities').update({ member_count: Math.max(0, (c?.member_count || 1) - 1) }).eq('id', b.communityId);
@@ -74,6 +84,9 @@ export default async function handler(req, res) {
       const { data: c } = await sb.from('communities').select('*').eq('id', b.communityId).single();
       if (!c || c.admin_id !== u.id) return res.status(403).json({ error: '管理人だけが操作できます' });
       if (a === 'approve') {
+        const { data: row } = await sb.from('community_members').select('status').match({ community_id: c.id, user_id: b.userId }).maybeSingle();
+        if (!row) return res.status(404).json({ error: '申請が見つかりません' });
+        if (row.status === 'approved') return res.status(200).json({ ok: true });
         await sb.from('community_members').update({ status: 'approved' }).match({ community_id: c.id, user_id: b.userId });
         await sb.from('communities').update({ member_count: (c.member_count || 0) + 1 }).eq('id', c.id);
       } else {
@@ -112,12 +125,15 @@ export default async function handler(req, res) {
         if (cm?.status !== 'approved') return res.status(403).json({ error: 'まずコミュニティに参加してください' });
         const bad = ageOk(ev.target_band === '10代限定' ? '10代' : '18歳以上', u);
         if (bad) return res.status(403).json({ error: ev.target_band === '10代限定' ? 'このイベントは10代限定です' : '安全のため、10代の方は「10代限定」のイベントのみ参加できます' });
+        const { data: joined } = await sb.from('event_members').select('user_id').match({ event_id: ev.id, user_id: u.id }).maybeSingle();
+        if (joined) return res.status(200).json({ ok: true });
         if ((ev.joined_count || 0) >= ev.cap) return res.status(400).json({ error: '満員です' });
-        await sb.from('event_members').upsert({ event_id: ev.id, user_id: u.id });
+        await sb.from('event_members').insert({ event_id: ev.id, user_id: u.id });
         await sb.from('events').update({ joined_count: (ev.joined_count || 0) + 1 }).eq('id', ev.id);
       } else {
-        await sb.from('event_members').delete().match({ event_id: ev.id, user_id: u.id });
-        await sb.from('events').update({ joined_count: Math.max(0, (ev.joined_count || 1) - 1) }).eq('id', ev.id);
+        if (ev.host_id === u.id) return res.status(400).json({ error: '主催者は参加を取り消せません' });
+        const { data: gone } = await sb.from('event_members').delete().match({ event_id: ev.id, user_id: u.id }).select();
+        if (gone && gone.length) await sb.from('events').update({ joined_count: Math.max(0, (ev.joined_count || 1) - 1) }).eq('id', ev.id);
       }
       return res.status(200).json({ ok: true });
     }
