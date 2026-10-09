@@ -23,7 +23,8 @@ function appleClientSecret() {
   }));
   const signer = createSign('SHA256');
   signer.update(`${header}.${payload}`);
-  const der = signer.sign({ key: APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'), dsaEncoding: 'ieee-p1363' });
+  const pem = APPLE_PRIVATE_KEY.includes('\n') ? APPLE_PRIVATE_KEY : APPLE_PRIVATE_KEY.replace(/\\n/g, '\n');
+  const der = signer.sign({ key: pem, dsaEncoding: 'ieee-p1363' });
   return `${header}.${payload}.${b64url(der)}`;
 }
 
@@ -85,6 +86,8 @@ async function readBody(req) {
   for await (const c of req) chunks.push(c);
   return Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString()));
 }
+
+export const config = { api: { bodyParser: { enabled: true } } };
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
