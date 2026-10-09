@@ -1628,7 +1628,7 @@ V.admin = (sub = 'home') => {
       <p class="hint">※モックのため合言葉は端末内で確認しています。本番では運営アカウントのログインに置き換えます。</p>
     </form>`;
 
-  const tabs = [['home','ダッシュボード'],['reports',`通報（${S.reports.length}）`],['users','ユーザー'],['notice','お知らせ'],['ads','広告'],['settings','設定']];
+  const tabs = [['home','ダッシュボード'],['reports',`通報（${ADMIN.stats?ADMIN.stats.openReports:ADMIN.reports.length}）`],['users','ユーザー'],['notice','お知らせ'],['ads','広告'],['settings','設定']];
   let body = '';
 
   if (sub === 'home') {
@@ -1655,7 +1655,7 @@ V.admin = (sub = 'home') => {
     body = ADMIN.reports.length ? ADMIN.reports.map((r) => {
       const p = ADMIN.posts.find(x => x.id === Number(String(r.target_id).replace(/^db/,'')));
       return `<div class="panel compose">
-        <span class="meta"><span class="chip warn">${esc(r.reason)}</span>${new Date(r.at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}${r.done?'<span class="chip ok">対応済み</span>':''}</span>
+        <span class="meta"><span class="chip warn">${esc(r.reason)}</span>${r.created_at?new Date(r.created_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}${r.done?'<span class="chip ok">対応済み</span>':''}</span>
         ${p ? `<div class="quote"><span class="meta">${esc((p.threads&&p.threads.title)||'')} · ${esc(p.author_name)}${p.anon_id?` ID:${esc(p.anon_id)}`:''}</span><p>${p.hidden?'<span class="chip warn">非表示中</span> ':''}${esc(p.body)}</p></div>
               <div class="actions" style="justify-content:flex-start;flex-wrap:wrap">
                 <a class="btn sm ghost" href="#/thread/db${p.thread_id}">該当ページを見る</a>
