@@ -377,6 +377,10 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .install-banner img{width:40px;height:40px;border-radius:11px;flex:none}
 .install-banner b{display:block;font-size:14.5px}
 .install-banner span{font-size:12.5px;color:var(--muted)}
+.install-banner .add{margin-left:auto;flex:none;background:var(--accent);color:#fff;font-size:12.5px;font-weight:700;border-radius:999px;padding:6px 12px;margin-right:14px}
+.mini-steps{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:8px;width:100%;text-align:left}
+.mini-steps li{display:flex;gap:10px;align-items:center;font-size:13.5px;background:var(--bg);border-radius:12px;padding:9px 11px}
+.mini-steps .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
 .install-banner .x{position:absolute;top:4px;right:8px;background:none;border:0;font-size:18px;color:var(--muted);cursor:pointer;padding:4px}
 .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .step{display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
@@ -815,7 +819,7 @@ V.home=()=>{
   const news=[...favNews.slice(0,6),...(favNews.length<4?favX.slice(0,4-favNews.length):[])];
   return `
   ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は30分ごとに自動更新</b>：EBiDAN公式サイトから集めています（最終更新 ${fmtUpdated(LIVE.updated)}）。ファンの投稿・掲示板・コミュニティは架空のサンプルです。</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
-  ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>ホーム画面に追加しませんか？</b><span>アプリのように開けて、新着情報が通知で届きます</span></div><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
+  ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>アプリとして使えます</b><span>ホーム画面に追加すると、新着情報が通知で届きます</span></div><span class="add">追加</span><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
   ${digestHTML()}
   <section class="hero">
     <h1>スタダ男子の情報、<em>ぜんぶここに。</em></h1>
@@ -1001,6 +1005,41 @@ function maybeAskNoti(){
     try{ localStorage.setItem('noti-asked',String(asked+1)); localStorage.setItem('noti-asked-at',String(Date.now())); }catch(e){}
     if(!$('#login').open) $('#login').showModal();
   }, 2500);   // 開いてすぐではなく、少し見てもらってから
+}
+// 訪問回数を数える（同じタブの中では1回だけ数える）
+function visitCount(){
+  try{
+    if(!sessionStorage.getItem('visit-counted')){
+      sessionStorage.setItem('visit-counted','1');
+      localStorage.setItem('visits',String((+localStorage.getItem('visits')||0)+1));
+    }
+    return +localStorage.getItem('visits')||1;
+  }catch(e){ return 1; }
+}
+// ホーム画面への追加を、一度だけ大きく案内する
+function maybeAskInstall(){
+  if(isStandalone()||inApp()) return;        // すでにアプリ／LINEなどの中のブラウザでは出さない
+  let shown=0; try{ shown=+localStorage.getItem('install-asked')||0; }catch(e){}
+  if(shown) return;                           // 大きい案内は1回きり（小さいバナーは残る）
+  const first=visitCount()<2;
+  setTimeout(()=>{
+    if(isStandalone()||$('#login').open||location.hash.startsWith('#/install')||location.hash.startsWith('#/admin')) return;
+    const ios=isIOS();
+    const steps=ios
+      ? [['画面下の<b>共有ボタン</b>（□に↑）をタップ'],['下にスクロールして<b>「ホーム画面に追加」</b>'],['ホーム画面のアイコンから開く']]
+      : [['ブラウザ右上の<b>「⋮」</b>をタップ'],['<b>「アプリをインストール」</b>を選ぶ'],['ホーム画面のアイコンから開く']];
+    $('#login-body').innerHTML=`<button class="x-close" id="install-later" aria-label="閉じる">×</button>
+      <div class="ask-noti"><img src="icon-192.png" alt="" class="app-icon" onerror="this.remove()">
+      <h2 id="login-title">推しトピアは<br>アプリとして使えます</h2>
+      <p>ホーム画面に追加すると、<b>アプリのように開けて</b>、推しの新着情報や実況スレが<b>通知で届きます</b>。30秒で終わります。</p>
+      <ul class="ask-list"><li>毎回ブラウザで探さなくていい</li><li>推しグループの新着だけ通知</li><li>無料・ストアの登録は不要</li></ul>
+      ${installPrompt?'':`<ol class="mini-steps">${steps.map((x,i)=>`<li><span class="n">${i+1}</span><span>${x[0]}</span></li>`).join('')}</ol>`}
+      <div class="actions">${installPrompt
+        ? '<button class="btn ghost sm" id="install-later">あとで</button><button class="btn" id="do-install">ホーム画面に追加</button>'
+        : '<button class="btn ghost sm" id="install-later">あとで</button><button class="btn" id="install-how">くわしいやり方を見る</button>'}</div></div>`;
+    try{ localStorage.setItem('install-asked','1'); }catch(e){}
+    if(!$('#login').open) $('#login').showModal();
+  }, first?45000:2500);   // はじめての人には、しばらく見てもらってから
 }
 async function askNoti(){
   if(!notiSupported()) return toast('この環境では通知を使えません');
@@ -2165,7 +2204,9 @@ document.addEventListener('click',e=>{
         .catch(e=>toast(e.message)); return; }
     const i=S.going.indexOf(d.go); i<0?S.going.push(d.go):S.going.splice(i,1); save(); render(); toast(i<0?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); }
   else if(t.id==='hide-install'){ e.preventDefault(); ui.hideInstall=true; try{localStorage.setItem('hide-install','1');}catch(err){} render(); }
-  else if(t.id==='do-install'){ if(installPrompt){ installPrompt.prompt(); installPrompt=null; } }
+  else if(t.id==='install-later'){ $('#login').close(); toast('ホームの「アプリとして使えます」からいつでも追加できます'); }
+  else if(t.id==='install-how'){ $('#login').close(); location.hash='#/install'; }
+  else if(t.id==='do-install'){ if($('#login').open) $('#login').close(); if(installPrompt){ installPrompt.prompt(); installPrompt=null; } else location.hash='#/install'; }
   else if(t.id==='ask-noti'){ askNoti(); }
   else if(t.id==='noti-yes'){ $('#login').close(); askNoti(); }
   else if(t.id==='noti-later'){ $('#login').close(); toast('マイページからいつでもオンにできます'); }
@@ -2406,6 +2447,7 @@ loadSettings();
 loadComms();
 handleOAuthReturn().then(done=>{ if(!done) restoreAccount(); });
 maybeAskNoti();
+maybeAskInstall();
 // ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）
 if('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
   addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
