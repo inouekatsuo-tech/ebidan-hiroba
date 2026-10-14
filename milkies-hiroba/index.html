@@ -606,7 +606,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -677,6 +677,14 @@ function filtered(o){
     return true;
   });
 }
+// 長い一覧は少しずつ表示する（スマホで固まらないように）
+const PAGE=20;
+function page(list,key,sig){
+  if(ui.pageSig[key]!==sig){ ui.pageSig[key]=sig; ui.pageN[key]=PAGE; }
+  const n=ui.pageN[key]||PAGE;
+  return {shown:list.slice(0,n),rest:Math.max(0,list.length-n),key};
+}
+const moreBtn=p=>p.rest?`<button class="btn ghost center" data-more="${p.key}">もっと見る（残り${p.rest}件）</button>`:'';
 function oCard(it){
   const tag=it.url?`a class="panel oitem" href="${esc(it.url)}" target="_blank" rel="noopener"`:'article class="panel oitem"';
   return `<${tag}><span class="meta">${gchip(it.g)}<span class="chip official">公式 · ${esc(it.via)}</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
@@ -847,6 +855,7 @@ V.info=()=>{
   const gOpts=[['all','すべて'],['follow','推しだけ'],...GROUPS.map(g=>[g.id,g.short||g.name])];
   const base={g:ui.ig,src:ui.src,q:ui.q};
   const list=filtered({...base,c:ui.ic});
+  const pg=page(list,'info',[ui.ig,ui.ic,ui.src,ui.q].join('|'));
   const n=c=>filtered({...base,c}).length;
   return `<div class="page-h"><h1>情報</h1><p>公式とファンの情報を、グループ×カテゴリで仕分けて表示します。</p></div>
   <div class="filters" role="group" aria-label="グループ">${gOpts.map(([id,l])=>`<button class="fchip" data-ig="${id}" aria-pressed="${ui.ig===id}">${GMAP[id]?dot(id):''}${esc(l)}</button>`).join('')}</div>
@@ -858,7 +867,8 @@ V.info=()=>{
   ${ui.pickOpen?pickFormHTML():''}
   ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/info" id="clearq">解除</a></div>`:''}
   ${LIVE?`<div class="update-note"><span class="pulse"></span><div><b>30分ごとに自動更新</b><span>EBiDAN公式サイトのニュース・動画・スケジュールを30分ごと、Xで話題のファン投稿を1日3回、自動で集めてカテゴリに仕分けています。最終更新 ${fmtUpdated(LIVE.updated)}（混み合うと少し遅れることがあります）</span></div></div>`:'<p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。</p>'}
-  <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>
+  <div class="feed">${pg.shown.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>
+  ${moreBtn(pg)}
   ${['info','both'].includes(S.ads.slot)?adHTML():''}`;
 };
 function pickFormHTML(){
@@ -880,6 +890,7 @@ V.g=id=>{
   const f=S.follow.includes(id);
   const cnt=c=>filtered({g:id,c}).length;
   const list=filtered({g:id,c:ui.gc});
+  const pg=page(list,'g'+id,[id,ui.gc].join('|'));
   const comms=S.comms.filter(c=>c.g===id);
   const ths=S.threads.filter(t=>t.g===id);
   return `<a class="back" href="#/home">← ホーム</a>
@@ -888,7 +899,7 @@ V.g=id=>{
   <nav class="ctabs cats" aria-label="カテゴリ">${[['all','すべて'],...CATS.map(c=>[c.id,c.name])].map(([cid,l])=>`<button data-gc="${cid}" aria-current="${ui.gc===cid?'page':'false'}">${l}<span class="cnt">${cnt(cid)}</span></button>`).join('')}</nav>
   ${ui.gc==='all'||ui.gc==='media'||ui.gc==='event'?`<section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2></div>${schedHTML(o=>o.g===id&&(ui.gc==='all'||o.cat===ui.gc))}</section>`:''}
   <section class="sec"><div class="sec-h"><h2>${ui.gc==='all'?'新着':CMAP[ui.gc].name}</h2><span class="sub">${list.length}件</span></div>
-    <div class="feed">${list.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div></section>
+    <div class="feed">${pg.shown.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>${moreBtn(pg)}</section>
   <section class="sec"><div class="sec-h"><h2>スレッド</h2><a class="more" href="#/board" data-bg="${id}">すべて見る</a></div>
     <div class="panel rows">${ths.map(threadRow).join('')||'<div class="row"><p class="hint">まだスレッドはありません。</p></div>'}</div></section>
   <section class="sec"><div class="sec-h"><h2>コミュニティ</h2><a class="more" href="#/community" data-cg="${id}">さがす</a></div>
@@ -1023,7 +1034,8 @@ function maybeAskInstall(){
   if(shown) return;                           // 大きい案内は1回きり（小さいバナーは残る）
   const first=visitCount()<2;
   setTimeout(()=>{
-    if(isStandalone()||$('#login').open||location.hash.startsWith('#/install')||location.hash.startsWith('#/admin')) return;
+    const act=document.activeElement;
+    if(isStandalone()||$('#login').open||(act&&/^(INPUT|TEXTAREA|SELECT)$/.test(act.tagName))||location.hash.startsWith('#/install')||location.hash.startsWith('#/admin')) return;
     const ios=isIOS();
     const steps=ios
       ? [['画面下の<b>共有ボタン</b>（□に↑）をタップ'],['下にスクロールして<b>「ホーム画面に追加」</b>'],['ホーム画面のアイコンから開く']]
@@ -1455,14 +1467,21 @@ function clientId(){
   if(!v){ v=Math.random().toString(36).slice(2)+Date.now().toString(36); try{localStorage.setItem('client-id',v);}catch(e){} }
   return v;
 }
+// 返事が来ないまま待ち続けないように、時間を区切って打ち切る
+async function fetchT(url,opts={},ms=12000){
+  const c=new AbortController(), timer=setTimeout(()=>c.abort(),ms);
+  try{ return await fetch(url,{...opts,signal:c.signal}); }
+  catch(e){ throw new Error(e&&e.name==='AbortError'?'通信に時間がかかっています。電波のよいところでもう一度お試しください':'通信に失敗しました'); }
+  finally{ clearTimeout(timer); }
+}
 async function dbGet(path){
-  const r=await fetch(`${window.SUPABASE_URL}/rest/v1/${path}`,
+  const r=await fetchT(`${window.SUPABASE_URL}/rest/v1/${path}`,
     {headers:{apikey:window.SUPABASE_ANON,Authorization:'Bearer '+window.SUPABASE_ANON}});
   if(!r.ok) throw new Error('db '+r.status);
   return r.json();
 }
 async function apiBoard(body){
-  const r=await fetch('/api/board',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r=await fetchT('/api/board',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({...body,clientId:clientId(),userId:S.user?.dbId||null})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(j.error||'通信に失敗しました');
@@ -1474,7 +1493,7 @@ async function loadSettings(){
   if(!DB_ON()) return;
   try{
     const rows=await dbGet('settings?select=value&key=eq.ads');
-    if(rows[0]&&rows[0].value){ S.ads={...S.ads,...rows[0].value}; save(); render(); }
+    if(rows[0]&&rows[0].value){ S.ads={...S.ads,...rows[0].value}; save(); bgRender(); }
   }catch(e){}
 }
 async function loadThreads(){
@@ -1488,7 +1507,7 @@ async function loadThreads(){
     }));
     // サーバーにあるスレッドを先頭に、手元のサンプルを後ろに
     S.threads=[...mapped,...S.threads.filter(t=>!t.remote&&!t.live)];
-    render();
+    bgRender();
   }catch(e){ console.warn('スレッドの読み込みに失敗',e); }
 }
 async function loadPosts(t){
@@ -1507,7 +1526,7 @@ async function loadPosts(t){
     }
     t.res=rows.map(r=>({n:r.no,nm:r.author_name,id:r.anon_id||'',t:r.body,hidden:r.hidden,postId:r.id}));
     t.loaded=true;
-    render();
+    bgRender();
   }catch(e){ console.warn('書き込みの読み込みに失敗',e); }
 }
 function relTime(iso){
@@ -1517,7 +1536,7 @@ function relTime(iso){
 // ===== アカウント（サーバー側） =====
 const fmtNo = no => '#' + String(no).padStart(6,'0');
 async function apiAccount(body){
-  const r=await fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const r=await fetchT('/api/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const j=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(j.error||'通信に失敗しました');
   return j;
@@ -1534,7 +1553,7 @@ function applyProfile(p){
 // 連携ログイン（Google/Apple/X）を始める
 // メールアドレスでログイン（確認コード方式）
 async function apiMail(body){
-  const r=await fetch('/api/email-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const r=await fetchT('/api/email-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const j=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(j.error||'通信に失敗しました');
   return j;
@@ -1593,12 +1612,12 @@ async function handleOAuthReturn(){
 }
 async function restoreAccount(){
   const t=getToken(); if(!t||!DB_ON()) return;
-  try{ const r=await apiAccount({action:'me',token:t}); applyProfile(r.profile); await loadNotices(); render(); }
+  try{ const r=await apiAccount({action:'me',token:t}); applyProfile(r.profile); await loadNotices(); bgRender(); }
   catch(e){ console.warn('ログイン情報の確認に失敗',e.message); }
 }
 // ===== コミュニティ（サーバー側） =====
 async function apiComm(body){
-  const r=await fetch('/api/community',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r=await fetchT('/api/community',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({...body,token:getToken()})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(j.error||'通信に失敗しました');
@@ -1631,7 +1650,7 @@ async function loadComms(){
         sample:ms.filter(m=>m.status==='approved').map(prof),
         reqs:mine?ms.filter(m=>m.status==='pending').map(prof):[]};
     });
-    S.joined=joined; S.pending=pending; S.going=going; save(); render();
+    S.joined=joined; S.pending=pending; S.going=going; save(); bgRender();
   }catch(e){ console.warn('コミュニティの読み込みに失敗',e); }
 }
 // 運営からのお知らせをサーバーから読む
@@ -1687,7 +1706,7 @@ V.inbox=()=>{
 let ADMIN = { pass:'', stats:null, recent:[], reports:[], posts:[], users:[], ads:null, loading:false };
 const isAdmin = () => !!S.adminOn && !!ADMIN.pass;
 async function apiAdmin(body){
-  const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},
+  const r=await fetchT('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({...body,pass:ADMIN.pass})});
   const j=await r.json().catch(()=>({}));
   if(!r.ok) throw new Error(j.error||'通信に失敗しました');
@@ -2109,22 +2128,22 @@ function toOfficial(items){
 }
 async function loadLive(){
   try{
-    const r=await fetch('data/items.json',{cache:'no-store'}); if(!r.ok) return;
+    const r=await fetchT('data/items.json',{cache:'no-store'}); if(!r.ok) return;
     const d=await r.json(); if(!d.items||!d.items.length) return;
     LIVE=d; OFFICIAL=toOfficial(d.items); ensureAutoPicks(d.items);
-    const added=ensureLiveThreads(); render();
+    const added=ensureLiveThreads(); bgRender();
     const lt=S.threads.find(t=>t.live);
     notifyNewLive(added, lt&&lt.title.replace('【実況】',''));
   }catch(e){}
 }
-function render(){
+function renderNow(){
   const h=location.hash.replace(/^#\/?/,'')||'home';
   const [r,id,sub]=h.split('/');
   const view=V[r]?V[r](id,sub):V.home();
   $('#app').innerHTML=view;
   const tab={pick:'info',g:'home',install:'me',card:'me',u:'me',admin:'',about:'',privacy:'',terms:'',inbox:'me',people:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
-  if(window.twttr&&twttr.widgets&&$('#app').querySelector('.twitter-tweet')) twttr.widgets.load($('#app'));
+  watchEmbeds();
   if(S.user){ ensureInbox(); $('#tab-me').classList.toggle('has-new',unread()>0); }
   if(location.hash.includes('login=')&&!ui.loginMsgShown){ ui.loginMsgShown=true;
     toast(location.hash.includes('cancel')?'ログインを中止しました':'ログインできませんでした。もう一度お試しください'); }
@@ -2132,10 +2151,37 @@ function render(){
   if($('#qrbox')&&S.user) drawQR($('#qrbox'), memberUrl(S.user.no));
   $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
 }
+// Xの埋め込みは、画面に近づいたものだけ読み込む（475件まとめて読むと固まるため）
+let embedObs=null;
+function loadEmbed(el){
+  if(!(window.twttr&&twttr.widgets)){ setTimeout(()=>loadEmbed(el),800); return; }   // 読み込みがまだなら少し待つ
+  if(el.dataset.loaded) return;
+  el.dataset.loaded='1';
+  try{ twttr.widgets.load(el); }catch(e){}
+}
+function watchEmbeds(){
+  const tws=$('#app').querySelectorAll('.tw:not([data-loaded])');
+  if(!tws.length) return;
+  if(!('IntersectionObserver' in window)){ tws.forEach(loadEmbed); return; }
+  if(!embedObs) embedObs=new IntersectionObserver(es=>{
+    for(const en of es){ if(!en.isIntersecting) continue; embedObs.unobserve(en.target); loadEmbed(en.target); }
+  },{rootMargin:'600px 0px'});
+  tws.forEach(el=>embedObs.observe(el));
+}
 function go(){ render(); window.scrollTo(0,0); }
 // 予期せぬエラーで画面が真っ白になったときの保険
+function render(){ safeRender(); }
+// 読み込みが終わったときの再描画。入力中やダイアログ表示中は、終わるまで待つ
+let needRender=false;
+function bgRender(){
+  const a=document.activeElement;
+  if(($('#login')&&$('#login').open)||(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))){ needRender=true; return; }
+  render();
+}
+document.addEventListener('focusout',()=>{ if(needRender){ needRender=false; setTimeout(()=>render(),150); } });
+document.addEventListener('close',()=>{ if(needRender){ needRender=false; render(); } },true);
 function safeRender(){
-  try{ render(); }
+  try{ renderNow(); }
   catch(e){
     console.error(e);
     $('#app').innerHTML=`<div class="panel compose"><h3>画面を表示できませんでした</h3>
@@ -2179,6 +2225,7 @@ document.addEventListener('click',e=>{
   else if(t.id==='clearq'){ e.preventDefault(); ui.q=''; render(); }
   else if(d.bc){ ui.boardCat=d.bc; render(); }
   else if(d.ck){ ui.commKind=d.ck; render(); }
+  else if(d.more){ ui.pageN[d.more]=(ui.pageN[d.more]||PAGE)+PAGE; render(); }
   else if(t.id==='newthread-toggle'){ ui.newThread=!ui.newThread; render(); }
   else if(t.id==='login-open2'){ openLogin(); }
   else if(t.id==='join'){ if(!need()) return; openJoin(d.id); }

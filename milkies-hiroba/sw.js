@@ -1,6 +1,6 @@
 // ホーム画面アプリとして動くための最小限のService Worker。
 // 通信はそのまま通し、オフラインのときだけ最後に見たページを返す。
-const CACHE = 'ositopia-v23';
+const CACHE = 'ositopia-v24';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
   // 古いキャッシュを捨てて、更新がすぐ反映されるようにする
@@ -9,18 +9,22 @@ self.addEventListener('activate', e => e.waitUntil((async () => {
 })()));
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // 外部（Xの埋め込みなど）はそのままブラウザに任せる
+  if (new URL(e.request.url).origin !== location.origin) return;
   e.respondWith((async () => {
-    try {
-      const res = await fetch(e.request);
-      if (res.ok && new URL(e.request.url).origin === location.origin) {
-        const c = await caches.open(CACHE); c.put(e.request, res.clone());
-      }
+    const net = fetch(e.request).then(res => {
+      if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone())).catch(() => {});
       return res;
-    } catch (err) {
-      const hit = await caches.match(e.request);
-      if (hit) return hit;
-      throw err;
+    }).catch(() => null);
+    const hit = await caches.match(e.request);
+    if (!hit) {
+      const res = await net;
+      if (res) return res;
+      throw new Error('offline');
     }
+    // 電波が悪くて5秒たっても返事が来ないときは、前に見たものを先に表示する
+    const slow = new Promise(r => setTimeout(() => r(null), 5000));
+    return (await Promise.race([net, slow])) || hit;
   })());
 });
 
