@@ -1118,8 +1118,15 @@ V.board=()=>{
   <div class="panel rows">${list.map(threadRow).join('')}</div>`;
 };
 V.thread=id=>{
-  const t=S.threads.find(x=>x.id===id); if(!t) return V.board();
+  const t=S.threads.find(x=>x.id===id);
+  if(!t){
+    // 通知や共有リンクから、一覧にないスレッドを開いたとき
+    if(/^db\d+$/.test(id)&&DB_ON()){ fetchThread(id);
+      return `<a class="back" href="#/board">← 掲示板</a><div class="panel compose"><p class="hint">スレッドを読み込んでいます…</p></div>`; }
+    return V.board();
+  }
   if(t.remote&&!t.loaded){ loadPosts(t); }
+  const loadingRes=t.remote&&!t.loaded;
   const SEED=t.remote?{}:{2:{wakaru:6,suki:2},3:{wakaru:11,warota:3},4:{suki:4}};
   const shown=t.res.map(r=>hiddenKey('res:'+t.id+':'+r.n)
     ? `<div class="res hidden-post"><div class="hd"><span class="no">${r.n}</span></div><p class="hint">この書き込みは、ルール違反のため運営が非表示にしました。</p></div>`
@@ -1128,7 +1135,7 @@ V.thread=id=>{
   <div class="page-h"><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
   ${t.live?`<div class="notice">このスレッドは出演情報から自動で立ちました。${t.srcUrl?`<a href="${esc(t.srcUrl)}" target="_blank" rel="noopener">公式の情報を見る ↗</a>`:''}</div>`:''}
   ${t.count>t.res.length?`<p class="hint">※モックのため、最初の数件だけ表示しています</p>`:''}
-  <div class="panel">${shown}</div>
+  <div class="panel">${shown||(loadingRes?'<p class="hint">書き込みを読み込んでいます…</p>':'')}</div>
   <form class="panel compose" id="resform" data-id="${t.id}">
     <textarea class="field" id="res-text" placeholder="${S.user?'書き込む（>>番号 で返信）':'名無しさんとして書き込む（>>番号 で返信）'}" aria-label="書き込み"></textarea>
     <p class="err" id="res-err" hidden></p>
@@ -1508,6 +1515,21 @@ async function loadThreads(){
     S.threads=[...mapped,...S.threads.filter(t=>!t.remote&&!t.live)];
     bgRender();
   }catch(e){ console.warn('スレッドの読み込みに失敗',e); }
+}
+// 一覧にないスレッドを1件だけ読み込む
+let fetchingThread=null;
+async function fetchThread(id){
+  if(fetchingThread===id) return;
+  fetchingThread=id;
+  try{
+    const rows=await dbGet(`threads?select=*&id=eq.${id.slice(2)}`);
+    if(!rows.length){ toast('このスレッドは見つかりませんでした'); location.hash='#/board'; return; }
+    const x=rows[0];
+    S.threads.unshift({id:'db'+x.id,dbId:x.id,g:x.group_id,gs:x.groups||[],cat:x.cat,live:x.live,title:x.title,
+      srcUrl:x.src_url,when:x.when_label,count:x.reply_count,upd:relTime(x.updated_at),res:[],loaded:false,remote:true});
+    bgRender();
+  }catch(e){ toast(e.message); location.hash='#/board'; }
+  finally{ fetchingThread=null; }
 }
 async function loadPosts(t){
   if(!t.remote) return;
