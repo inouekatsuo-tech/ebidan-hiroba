@@ -19,7 +19,6 @@
 <script>window.OAUTH_READY=["google","x","apple","email"];</script>
 <script>window.SUPABASE_URL="https://xfrccvpiehgbfwbofedx.supabase.co";window.SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmcmNjdnBpZWhnYmZ3Ym9mZWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzODkxMjAsImV4cCI6MjEwNjk2NTEyMH0.dY-_Y7BoktoFzmeQK_61TtabmmAnd19PYWQuujHN_h4";</script>
 <script>window.VAPID_PUBLIC="BBrg_UQ1b9l-BGpztBQmAnhQroZDk8NaZHuG-es6Wx4m_HKfEJhBkURR8IZuIv-dGOQArskgBFJsL_bnpMs9rxU";</script>
-<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 <style>html{color-scheme:light dark}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;-webkit-text-size-adjust:100%}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>推しトピア</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2153,11 +2152,22 @@ function renderNow(){
 }
 // Xの埋め込みは、画面に近づいたものだけ読み込む（475件まとめて読むと固まるため）
 let embedObs=null;
+// Xの表示部品は、最初のひとつが画面に入ったときにはじめて読み込む
+let twLoading=null;
+function needTwitter(){
+  if(window.twttr&&twttr.widgets) return Promise.resolve();
+  if(!twLoading) twLoading=new Promise(res=>{
+    const sc=document.createElement('script');
+    sc.src='https://platform.twitter.com/widgets.js'; sc.async=true; sc.charset='utf-8';
+    sc.onload=()=>res(); sc.onerror=()=>res();   // 読めなくても、元の投稿へのリンクは残る
+    document.head.appendChild(sc);
+  });
+  return twLoading;
+}
 function loadEmbed(el){
-  if(!(window.twttr&&twttr.widgets)){ setTimeout(()=>loadEmbed(el),800); return; }   // 読み込みがまだなら少し待つ
   if(el.dataset.loaded) return;
   el.dataset.loaded='1';
-  try{ twttr.widgets.load(el); }catch(e){}
+  needTwitter().then(()=>{ try{ if(window.twttr&&twttr.widgets) twttr.widgets.load(el); }catch(e){} });
 }
 function watchEmbeds(){
   const tws=$('#app').querySelectorAll('.tw:not([data-loaded])');
