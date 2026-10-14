@@ -135,8 +135,10 @@ async function main() {
   for (const it of fresh) byId.set(it.id, { ...it, seen: byId.get(it.id)?.seen || firstSeen });
 
   const cutoff = new Date(now.getTime() - KEEP_DAYS * 86400e3).toISOString().slice(0, 10);
+  // 終わった出演予定は残しても見る人がいないので、3日で片づける（一覧が重くならないように）
+  const schedCutoff = new Date(now.getTime() - 3 * 86400e3).toISOString().slice(0, 10);
   const items = [...byId.values()]
-    .filter(it => it.date >= cutoff)
+    .filter(it => it.date >= (it.kind === 'schedule' ? schedCutoff : cutoff))
     .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 
   await writeFile(HEALTH, JSON.stringify({ transient: 0, ok: new Date().toISOString() }, null, 1) + '\n');
