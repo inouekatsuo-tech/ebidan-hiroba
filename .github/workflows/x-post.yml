@@ -1,0 +1,32 @@
+name: 今日の出演まとめをXに投稿
+
+on:
+  schedule:
+    - cron: '0 22 * * *'    # 毎朝7時（日本時間）
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: '本文を確認するだけ（投稿しない）'
+        type: boolean
+        default: true
+
+concurrency:
+  group: x-post
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 投稿する
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          DRY: ${{ inputs.dry && '1' || '' }}
+        run: node collector/x-post.mjs
