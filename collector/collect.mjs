@@ -4,6 +4,7 @@
 //
 // 使い方: node collector/collect.mjs
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { addTimes } from './times.mjs';
 import { dirname } from 'node:path';
 
 const BASE = 'https://ebidan.jp';
@@ -140,6 +141,9 @@ async function main() {
   const items = [...byId.values()]
     .filter(it => it.date >= (it.kind === 'schedule' ? schedCutoff : cutoff))
     .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+  // 近い日の予定は、詳細ページから放送・開演の時間を拾って足す
+  try { await addTimes(items); } catch (e) { console.log('出演時間の取得でエラー（次回に回します）:', e.message); }
 
   await writeFile(HEALTH, JSON.stringify({ transient: 0, ok: new Date().toISOString() }, null, 1) + '\n');
 

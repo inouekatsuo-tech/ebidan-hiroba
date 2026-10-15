@@ -2135,7 +2135,7 @@ function toOfficial(items){
     const n=dayDiff(it.date,today);
     if(it.kind==='schedule'){
       if(n<0||n>6) continue;
-      out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',label:it.label||'',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:''}});
+      out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',label:it.label||'',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:it.time||''}});
     } else {
       if(n<-14) continue;
       out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:it.kind==='fan'?'fan':'official',

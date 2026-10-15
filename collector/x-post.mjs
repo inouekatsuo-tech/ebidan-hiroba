@@ -51,22 +51,12 @@ export function buildText(items, today) {
     if (cur) { if (!cur.gs.includes(it.g)) cur.gs.push(it.g); }
     else merged.set(key, { ...it, gs: [it.g] });
   }
-  // 種類の順（ライブ・誕生日を先に）→ 同じグループが続かないように並べ直す
-  const all = [...merged.values()].sort((a, b) => (LABEL[a.label]?.[1] ?? 9) - (LABEL[b.label]?.[1] ?? 9));
-  const byGroup = new Map();
-  for (const it of all) {
-    const g = it.gs[0] || '-';
-    if (!byGroup.has(g)) byGroup.set(g, []);
-    byGroup.get(g).push(it);
-  }
-  const order = [];
-  for (let i = 0; byGroup.size && i < 40; i++) {
-    for (const [g, list] of [...byGroup]) {
-      const it = list.shift();
-      if (it) order.push(it);
-      if (!list.length) byGroup.delete(g);
-    }
-  }
+  // 時間の早い順。時間が分からないものは後ろへ（種類の順＝ライブ・誕生日を先に）
+  const all = [...merged.values()];
+  const order = all.sort((a, b) =>
+    (a.time ? 0 : 1) - (b.time ? 0 : 1) ||
+    (a.time || '').localeCompare(b.time || '') ||
+    (LABEL[a.label]?.[1] ?? 9) - (LABEL[b.label]?.[1] ?? 9));
 
   const tags = [...new Set(all.flatMap(it => it.gs).map(g => GROUP[g]?.tag).filter(Boolean))].slice(0, 2);
   const foot = `\n\n全部は推しトピアで（プロフのリンク）\n#EBiDAN ${tags.map(t => '#' + t).join(' ')}`;
@@ -78,8 +68,8 @@ export function buildText(items, today) {
     const [emoji] = LABEL[it.label] || ['✨'];
     // グループの指定がない予定（合同出演など）は「スタダ男子」とまとめて書く
     const names = it.gs.map(g => GROUP[g]?.name).filter(Boolean).join('・') || 'スタダ男子';
-    const title = cut(it.t.replace(/\s+/g, ' ').trim(), 36);
-    const line = `${emoji}${names ? names + ' ' : ''}${title}`;
+    const title = cut(it.t.replace(/\s+/g, ' ').trim(), it.time ? 30 : 36);
+    const line = `${it.time ? it.time + ' ' : ''}${emoji}${names ? names + ' ' : ''}${title}`;
     if (used + len(line) + 1 > LIMIT) break;
     lines.push(line);
     used += len(line) + 1;
