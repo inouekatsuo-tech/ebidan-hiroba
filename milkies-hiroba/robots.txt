@@ -1,2 +1,6 @@
+# 推しトピア（非公式ファンサイト）
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /api/
+
+Sitemap: https://ositopia.com/sitemap.xml
