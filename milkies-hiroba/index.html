@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="description" content="スタダ男子10グループの情報を、グループ×カテゴリで仕分け。ファンの掲示板・コミュニティつき（非公式）。">
+<meta name="description" content="EBiDAN（恵比寿学園男子部）10グループの情報を、グループ×カテゴリで仕分け。ファンの掲示板・コミュニティつき（非公式）。">
 <meta property="og:title" content="推しトピア（非公式・試作版）">
-<meta property="og:description" content="スタダ男子10グループの情報を、グループ×カテゴリで仕分け。公式もファンのいい投稿も、流れていかない推し活の広場（非公式）。">
+<meta property="og:description" content="EBiDAN（恵比寿学園男子部）10グループの情報を、グループ×カテゴリで仕分け。公式もファンのいい投稿も、流れていかない推し活の広場（非公式）。">
 <meta property="og:url" content="https://ositopia.com/">
 <meta property="og:image" content="https://ositopia.com/ogp.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -569,7 +569,7 @@ const SEED={
   );
   const TG={t1:'milk',t2:'milk',t3:null,t4:null,t5:null};
   SEED.threads.forEach(t=>t.g=TG[t.id]);
-  SEED.threads[2].title='スタダ男子に最近ハマった人へ。どのグループから見るのがおすすめ？';
+  SEED.threads[2].title='EBiDANに最近ハマった人へ。どのグループから見るのがおすすめ？';
   SEED.threads.push(
     {id:'t6',g:'chotokkyu',cat:'ライブ',title:'超特急 ツアー参戦する人の雑談スレ',count:512,upd:'8分前',res:[{n:1,nm:'8号車さん',id:'Kc8a1',t:'ツアー参戦組の雑談スレです。チケットの譲渡・売買の話は禁止です'},{n:2,nm:'8号車さん',id:'Uu2mz',t:'>>1 乙です！追加公演うれしい'}]},
     {id:'t7',g:'onenonly',cat:'新曲',title:"ONE N' ONLY 新曲の感想を語るスレ",count:164,upd:'40分前',res:[{n:1,nm:'ミルキーさん',id:'Aa1q0',t:'新曲の感想を語りましょう'}]},
@@ -577,12 +577,12 @@ const SEED={
   );
   const CG={c3:null,c1:'milk',c2:'milk',c4:null,c5:'milk',c6:null};
   SEED.comms.forEach(c=>c.g=CG[c.id]);
-  const c4=SEED.comms.find(c=>c.id==='c4'); c4.name='40代からの推し活'; c4.desc='大人になってからスタダ男子にハマった人たちのコミュニティ。親子で参戦する人の話もどうぞ。';
-  const c6=SEED.comms.find(c=>c.id==='c6'); c6.name='関西のスタダ男子ファン'; c6.desc='大阪・京都・兵庫など、関西に住むファンのコミュニティ。グループを問わずどうぞ。';
+  const c4=SEED.comms.find(c=>c.id==='c4'); c4.name='40代からの推し活'; c4.desc='大人になってからEBiDANにハマった人たちのコミュニティ。親子で参戦する人の話もどうぞ。';
+  const c6=SEED.comms.find(c=>c.id==='c6'); c6.name='関西のEBiDANファン'; c6.desc='大阪・京都・兵庫など、関西に住むファンのコミュニティ。グループを問わずどうぞ。';
   SEED.comms.push(
     {id:'c7',g:'chotokkyu',name:'8号車 関東の会',kind:'地域',members:860,join:'だれでも',admin:'8号車のひと',subs:[],created:'2025.05.05',desc:'関東に住む超特急ファンのコミュニティ。ライブの情報交換や、近くのコラボ情報に。',rules:['チケットの売買・譲渡は禁止','住所など個人が特定できる情報は書かない'],topics:[{t:'ツアー情報まとめ',n:204,upd:'30分前'}],events:[{id:'e5',t:'ツアー前のペンライト作戦会議',date:'2026-10-12',time:'14:00',place:'横浜駅近くのカフェ（参加者に連絡）',area:'神奈川県横浜市',cap:8,joined:4,target:'18歳以上',host:'8号車のひと',desc:'ペンライトの色の切り替えなどを確認しましょう。'}],sample:[['8号車のひと','30代','神奈川県']]},
     {id:'c8',g:'onenonly',name:"ONE N' ONLY 箱推し",kind:'推しメン',members:430,join:'だれでも',admin:'のんのん',subs:[],created:'2025.10.01',desc:'メンバー全員を応援する人のコミュニティ。',rules:['他グループ・他メンバーへの悪口は禁止'],topics:[{t:'出演情報まとめ',n:88,upd:'1時間前'}],events:[],sample:[['のんのん','20代','東京都']]},
-    {id:'c9',g:null,name:'スタダ男子 箱推しの会',kind:'その他',members:1520,join:'だれでも',admin:'はこおし',subs:[],created:'2026.01.10',desc:'グループの垣根をこえて、スタダ男子みんなを応援する人のコミュニティ。合同イベントの情報交換に。',rules:['グループ同士を比べて下げる書き込みは禁止','チケットの売買・譲渡は禁止'],topics:[{t:'合同イベントの情報',n:310,upd:'15分前'},{t:'ハマった順番を語ろう',n:97,upd:'2時間前'}],events:[],sample:[['はこおし','20代','東京都']]},
+    {id:'c9',g:null,name:'EBiDAN 箱推しの会',kind:'その他',members:1520,join:'だれでも',admin:'はこおし',subs:[],created:'2026.01.10',desc:'グループの垣根をこえて、EBiDANみんなを応援する人のコミュニティ。合同イベントの情報交換に。',rules:['グループ同士を比べて下げる書き込みは禁止','チケットの売買・譲渡は禁止'],topics:[{t:'合同イベントの情報',n:310,upd:'15分前'},{t:'ハマった順番を語ろう',n:97,upd:'2時間前'}],events:[],sample:[['はこおし','20代','東京都']]},
   );
 })();
 
@@ -801,7 +801,7 @@ function digestHTML(){
   const ev=sched.filter(x=>x.label==='LiVE&EVENT');
   if(ev.length) L.push(line('🎤',`<b>イベント${ev.length}件</b>　${names(ev)}`,'#/info'));
   const rel=news.filter(x=>x.cat==='release');
-  if(rel.length) L.push(line('🎉',`<b>${names(rel)||'スタダ男子'}</b> のリリース情報が${rel.length}件`,'#/info'));
+  if(rel.length) L.push(line('🎉',`<b>${names(rel)||'EBiDAN'}</b> のリリース情報が${rel.length}件`,'#/info'));
   const bd=sched.filter(x=>x.label==='BiRTHDAY');
   if(bd.length) L.push(line('🎂',`今日は <b>${bd.slice(0,2).map(x=>esc(x.t.replace(/[【】]/g,'').replace(/HAPPY\s*BiRTHDAY!*/i,'').trim())).join('・')}</b> の誕生日`,'#/info'));
   const lt=S.threads.filter(t=>t.live);
@@ -829,7 +829,7 @@ V.home=()=>{
   ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>アプリとして使えます</b><span>ホーム画面に追加すると、新着情報が通知で届きます</span></div><span class="add">追加</span><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
   ${digestHTML()}
   <section class="hero">
-    <h1>スタダ男子の情報、<em>ぜんぶここに。</em></h1>
+    <h1>EBiDANの情報、<em>ぜんぶここに。</em></h1>
     <p>10グループの公式発表も、ファンが見つけたいい投稿も。カテゴリ別に仕分けて、流れていかないように。（非公式）</p>
     <form class="search" id="search"><input id="q" placeholder="グループ名・番組名・グッズなどで検索" aria-label="検索"><button class="btn sm">検索</button></form>
   </section>

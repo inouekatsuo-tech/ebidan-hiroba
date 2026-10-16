@@ -1,4 +1,4 @@
-// 「今日のスタダ男子の出演まとめ」を、1日1回Xに自動投稿する。
+// 「今日のEBiDANの出演まとめ」を、1日1回Xに自動投稿する。
 //
 // ・本文にURLは入れない（Xの課金が1投稿 $0.015 → URL入りだと $0.20 になるため。
 //   リンクはプロフィールに置いてあるので、そちらへ誘導する）
@@ -66,8 +66,8 @@ export function buildText(items, today) {
   for (const it of order) {
     if (lines.length >= 6) break;
     const [emoji] = LABEL[it.label] || ['✨'];
-    // グループの指定がない予定（合同出演など）は「スタダ男子」とまとめて書く
-    const names = it.gs.map(g => GROUP[g]?.name).filter(Boolean).join('・') || 'スタダ男子';
+    // グループの指定がない予定（合同出演など）は「EBiDAN」とまとめて書く
+    const names = it.gs.map(g => GROUP[g]?.name).filter(Boolean).join('・') || 'EBiDAN';
     const title = cut(it.t.replace(/\s+/g, ' ').trim(), it.time ? 30 : 36);
     const line = `${it.time ? it.time + ' ' : ''}${emoji}${names ? names + ' ' : ''}${title}`;
     if (used + len(line) + 1 > LIMIT) break;
