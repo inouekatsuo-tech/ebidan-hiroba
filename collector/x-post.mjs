@@ -1,4 +1,6 @@
-// 「今日のEBiDANの出演まとめ」を、1日1回Xに自動投稿する。
+// EBiDANの出演情報を、1日2回Xに自動投稿する。
+//   朝（7:00）  … 今日の出演まとめ
+//   昼（12:30） … このあとの出演（時間が過ぎたものは出さない）。残りが無ければ今日の新着情報。
 //
 // ・本文にURLは入れない（Xの課金が1投稿 $0.015 → URL入りだと $0.20 になるため。
 //   リンクはプロフィールに置いてあるので、そちらへ誘導する）
@@ -11,6 +13,7 @@ import { readFile } from 'node:fs/promises';
 const ITEMS = new URL('../milkies-hiroba/data/items.json', import.meta.url);
 const { SUPABASE_URL: SB, SUPABASE_SERVICE_KEY: KEY, X_CLIENT_ID, X_CLIENT_SECRET } = process.env;
 const DRY = process.env.DRY === '1';
+const MODE = process.env.MODE === 'noon' ? 'noon' : 'morning';
 const LIMIT = 280;                    // Xの上限（日本語は1文字=2）
 
 const GROUP = {
@@ -35,13 +38,16 @@ const len = t => [...t].reduce((n, c) => n + (c.codePointAt(0) < 0x1100 ? 1 : 2)
 const cut = (t, max) => { let o = '', n = 0; for (const c of t) { const w = c.codePointAt(0) < 0x1100 ? 1 : 2; if (n + w > max) return o + '…'; o += c; n += w; } return o; };
 
 // ===== 本文をつくる =====
-export function buildText(items, today) {
+export function buildText(items, today, mode = 'morning', nowHM = '00:00') {
   const [Y, M, D] = today.split('-').map(Number);
   const wd = WD[new Date(Date.UTC(Y, M - 1, D)).getUTCDay()];
-  const head = `【${M}/${D}(${wd})】今日の出演まとめ`;
+  const noon = mode === 'noon';
+  const head = `【${M}/${D}(${wd})】` + (noon ? 'このあとの出演' : '今日の出演まとめ');
 
-  const todays = items.filter(it => it.kind === 'schedule' && it.date === today);
-  if (!todays.length) return null;
+  let todays = items.filter(it => it.kind === 'schedule' && it.date === today);
+  // 昼の回は、まだ始まっていないものだけ（時間が分からないものは出さない）
+  if (noon) todays = todays.filter(it => it.time && it.time > nowHM);
+  if (!todays.length) return noon ? newsText(items, today, M, D, wd) : null;
 
   // 同じ番組に複数グループが出るときは1行にまとめる
   const merged = new Map();
@@ -75,6 +81,27 @@ export function buildText(items, today) {
     used += len(line) + 1;
   }
   const rest = order.length - lines.length;
+  return head + '\n\n' + lines.join('\n') + (rest > 0 ? `\n…ほか${rest}件` : '') + foot;
+}
+
+// このあとの出演が無い日は、今日公開された公式の新着をお知らせする
+function newsText(items, today, M, D, wd) {
+  const news = items.filter(it => (it.kind === 'news' || it.kind === 'video') && it.date === today);
+  if (!news.length) return null;
+  const head = `【${M}/${D}(${wd})】今日の公式の新着`;
+  const tags = [...new Set(news.map(it => GROUP[it.g]?.tag).filter(Boolean))].slice(0, 2);
+  const foot = `\n\n続きは推しトピアで（プロフのリンク）\n#EBiDAN ${tags.map(t => '#' + t).join(' ')}`;
+  const lines = [];
+  let used = len(head) + len(foot) + len('\n\n…ほか00件');
+  for (const it of news) {
+    if (lines.length >= 5) break;
+    const g = GROUP[it.g]?.name;
+    const line = `📰${g ? g + ' ' : ''}${cut(it.t.replace(/\s+/g, ' ').trim(), 40)}`;
+    if (used + len(line) + 1 > LIMIT) break;
+    lines.push(line); used += len(line) + 1;
+  }
+  if (!lines.length) return null;
+  const rest = news.length - lines.length;
   return head + '\n\n' + lines.join('\n') + (rest > 0 ? `\n…ほか${rest}件` : '') + foot;
 }
 
@@ -113,16 +140,19 @@ async function accessToken() {
 }
 
 async function main() {
-  const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  const jst = new Date(Date.now() + 9 * 3600e3);
+  const today = jst.toISOString().slice(0, 10);
+  const nowHM = jst.toISOString().slice(11, 16);
   const { items } = JSON.parse(await readFile(ITEMS, 'utf8'));
-  const text = buildText(items, today);
-  if (!text) { console.log('今日の出演情報がないため、投稿しません'); return; }
+  const text = buildText(items, today, MODE, nowHM);
+  if (!text) { console.log(`お知らせすることがないため、投稿しません（${MODE}）`); return; }
 
   console.log('--- 投稿する本文 ---\n' + text + `\n--- ${len(text)}/${LIMIT} ---`);
   if (DRY) { console.log('DRY=1 のため、投稿はしませんでした'); return; }
 
   const state = (await load('x_post')) || {};
-  if (state.last === today) { console.log('今日はすでに投稿済みです'); return; }
+  const key = MODE === 'noon' ? 'lastNoon' : 'last';
+  if (state[key] === today) { console.log(`今日の${MODE === 'noon' ? '昼' : '朝'}の分は投稿済みです`); return; }
 
   const r = await fetch('https://api.x.com/2/tweets', {
     method: 'POST',
@@ -131,7 +161,7 @@ async function main() {
   });
   const j = await r.json();
   if (!r.ok) throw new Error('投稿に失敗 ' + r.status + ' ' + JSON.stringify(j).slice(0, 300));
-  await save('x_post', { last: today, id: j.data?.id });
+  await save('x_post', { ...state, [key]: today, id: j.data?.id });
   console.log('投稿しました https://x.com/milkies_papa/status/' + j.data?.id);
 }
 

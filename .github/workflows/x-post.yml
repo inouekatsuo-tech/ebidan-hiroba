@@ -1,14 +1,20 @@
-name: 今日の出演まとめをXに投稿
+name: 出演情報をXに投稿
 
 on:
   schedule:
-    - cron: '0 22 * * *'    # 毎朝7時（日本時間）
+    - cron: '0 22 * * *'     # 毎朝7時（日本時間）＝今日の出演まとめ
+    - cron: '30 3 * * *'     # 毎日12時30分（日本時間）＝このあとの出演
   workflow_dispatch:
     inputs:
       dry:
         description: '本文を確認するだけ（投稿しない）'
         type: boolean
         default: true
+      mode:
+        description: 'どちらの投稿か'
+        type: choice
+        options: [morning, noon]
+        default: morning
 
 concurrency:
   group: x-post
@@ -22,11 +28,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: 投稿する
+      - name: 投稿する（朝＝今日のまとめ／昼＝このあとの出演）
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
           X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
           DRY: ${{ inputs.dry && '1' || '' }}
+          MODE: ${{ github.event.schedule == '30 3 * * *' && 'noon' || inputs.mode || 'morning' }}
         run: node collector/x-post.mjs

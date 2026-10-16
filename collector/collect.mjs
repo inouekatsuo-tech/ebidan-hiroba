@@ -133,7 +133,11 @@ async function main() {
   const keep = prev.items.filter(it => !(it.kind === 'schedule' && refreshed.has(it.date.slice(0, 7))));
   const byId = new Map(keep.map(it => [it.id, it]));
   const firstSeen = new Date().toISOString();
-  for (const it of fresh) byId.set(it.id, { ...it, seen: byId.get(it.id)?.seen || firstSeen });
+  for (const it of fresh) {
+    const old = byId.get(it.id);
+    // 一度わかった出演時間は、日が過ぎても消さない
+    byId.set(it.id, { ...it, seen: old?.seen || firstSeen, ...(old?.time ? { time: old.time } : {}) });
+  }
 
   const cutoff = new Date(now.getTime() - KEEP_DAYS * 86400e3).toISOString().slice(0, 10);
   // 終わった出演予定は残しても見る人がいないので、3日で片づける（一覧が重くならないように）
