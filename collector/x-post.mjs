@@ -1,7 +1,6 @@
 // EBiDANの出演情報を、1日2回Xに自動投稿する。
 //   朝（7:00）  … 今日の出演まとめ
-//   昼（12:30） … このあとの出演（時間が過ぎたものは出さない）。残りが無ければ今日の新着情報。
-//   夕（16:00） … 今夜の出演（18時以降）。実況スレへの誘導つき。無ければ投稿しない。
+//   夕（16:00） … 今夜の出演（18時以降）。実況スレへの誘導つき。無ければ今日の新着情報。
 //
 // ・本文にURLは入れない（Xの課金が1投稿 $0.015 → URL入りだと $0.20 になるため。
 //   リンクはプロフィールに置いてあるので、そちらへ誘導する）
@@ -50,7 +49,8 @@ export function buildText(items, today, mode = 'morning', nowHM = '00:00') {
   // 昼・夕の回は、まだ始まっていないものだけ（時間が分からないものは出さない）
   if (noon) todays = todays.filter(it => it.time && it.time > nowHM);
   if (evening) todays = todays.filter(it => it.time && it.time > nowHM && it.time >= '18:00');
-  if (!todays.length) return noon ? newsText(items, today, M, D, wd) : null;
+  // 夜の出演がない日は、代わりに今日の公式の新着をお知らせする
+  if (!todays.length) return (noon || evening) ? newsText(items, today, M, D, wd) : null;
 
   // 同じ番組に複数グループが出るときは1行にまとめる
   const merged = new Map();
