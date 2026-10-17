@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: '0 22 * * *'     # 毎朝7時（日本時間）＝今日の出演まとめ
     - cron: '30 3 * * *'     # 毎日12時30分（日本時間）＝このあとの出演
+    - cron: '0 7 * * *'      # 毎日16時（日本時間）＝今夜の出演
   workflow_dispatch:
     inputs:
       dry:
@@ -13,7 +14,7 @@ on:
       mode:
         description: 'どちらの投稿か'
         type: choice
-        options: [morning, noon]
+        options: [morning, noon, evening]
         default: morning
 
 concurrency:
@@ -35,5 +36,5 @@ jobs:
           X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
           X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
           DRY: ${{ inputs.dry && '1' || '' }}
-          MODE: ${{ github.event.schedule == '30 3 * * *' && 'noon' || inputs.mode || 'morning' }}
+          MODE: ${{ github.event.schedule == '30 3 * * *' && 'noon' || github.event.schedule == '0 7 * * *' && 'evening' || inputs.mode || 'morning' }}
         run: node collector/x-post.mjs

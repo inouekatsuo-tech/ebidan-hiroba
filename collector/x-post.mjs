@@ -1,6 +1,7 @@
 // EBiDANの出演情報を、1日2回Xに自動投稿する。
 //   朝（7:00）  … 今日の出演まとめ
 //   昼（12:30） … このあとの出演（時間が過ぎたものは出さない）。残りが無ければ今日の新着情報。
+//   夕（16:00） … 今夜の出演（18時以降）。実況スレへの誘導つき。無ければ投稿しない。
 //
 // ・本文にURLは入れない（Xの課金が1投稿 $0.015 → URL入りだと $0.20 になるため。
 //   リンクはプロフィールに置いてあるので、そちらへ誘導する）
@@ -13,12 +14,12 @@ import { readFile } from 'node:fs/promises';
 const ITEMS = new URL('../milkies-hiroba/data/items.json', import.meta.url);
 const { SUPABASE_URL: SB, SUPABASE_SERVICE_KEY: KEY, X_CLIENT_ID, X_CLIENT_SECRET } = process.env;
 const DRY = process.env.DRY === '1';
-const MODE = process.env.MODE === 'noon' ? 'noon' : 'morning';
+const MODE = ['noon', 'evening'].includes(process.env.MODE) ? process.env.MODE : 'morning';
 const LIMIT = 280;                    // Xの上限（日本語は1文字=2）
 
 const GROUP = {
-  chotokkyu: { name: '超特急', tag: '超特急' },
-  milk: { name: 'M!LK', tag: 'MILK' },
+  chotokkyu: { name: '超特急', tag: '超特急', fan: '8号車' },
+  milk: { name: 'M!LK', tag: 'MILK', fan: 'みるきーず' },
   superdragon: { name: 'スパドラ', tag: 'スパドラ' },
   sakurashimeji: { name: 'さくらしめじ', tag: 'さくらしめじ' },
   onenonly: { name: "ONE N' ONLY", tag: 'ワンエン' },
@@ -41,12 +42,14 @@ const cut = (t, max) => { let o = '', n = 0; for (const c of t) { const w = c.co
 export function buildText(items, today, mode = 'morning', nowHM = '00:00') {
   const [Y, M, D] = today.split('-').map(Number);
   const wd = WD[new Date(Date.UTC(Y, M - 1, D)).getUTCDay()];
-  const noon = mode === 'noon';
-  const head = `【${M}/${D}(${wd})】` + (noon ? 'このあとの出演' : '今日の出演まとめ');
+  const noon = mode === 'noon', evening = mode === 'evening';
+  const head = `【${M}/${D}(${wd})】` +
+    (evening ? '今夜の出演' : noon ? 'このあとの出演' : '今日の出演まとめ');
 
   let todays = items.filter(it => it.kind === 'schedule' && it.date === today);
-  // 昼の回は、まだ始まっていないものだけ（時間が分からないものは出さない）
+  // 昼・夕の回は、まだ始まっていないものだけ（時間が分からないものは出さない）
   if (noon) todays = todays.filter(it => it.time && it.time > nowHM);
+  if (evening) todays = todays.filter(it => it.time && it.time > nowHM && it.time >= '18:00');
   if (!todays.length) return noon ? newsText(items, today, M, D, wd) : null;
 
   // 同じ番組に複数グループが出るときは1行にまとめる
@@ -64,8 +67,12 @@ export function buildText(items, today, mode = 'morning', nowHM = '00:00') {
     (a.time || '').localeCompare(b.time || '') ||
     (LABEL[a.label]?.[1] ?? 9) - (LABEL[b.label]?.[1] ?? 9));
 
-  const tags = [...new Set(all.flatMap(it => it.gs).map(g => GROUP[g]?.tag).filter(Boolean))].slice(0, 2);
-  const foot = `\n\n全部は推しトピアで（プロフのリンク）\n#EBiDAN ${tags.map(t => '#' + t).join(' ')}`;
+  const gs = [...new Set(all.flatMap(it => it.gs).filter(Boolean))];
+  const tags = ['EBiDAN',
+    ...gs.map(g => GROUP[g]?.tag).filter(Boolean).slice(0, 2),
+    ...gs.map(g => GROUP[g]?.fan).filter(Boolean).slice(0, 1)];
+  const lead = evening ? '実況スレで一緒に見られます（プロフのリンク）' : '全部は推しトピアで（プロフのリンク）';
+  const foot = `\n\n${lead}\n${tags.map(t => '#' + t).join(' ')}`;
 
   const lines = [];
   let used = len(head) + len(foot) + len('\n\n…ほか00件');
@@ -151,8 +158,8 @@ async function main() {
   if (DRY) { console.log('DRY=1 のため、投稿はしませんでした'); return; }
 
   const state = (await load('x_post')) || {};
-  const key = MODE === 'noon' ? 'lastNoon' : 'last';
-  if (state[key] === today) { console.log(`今日の${MODE === 'noon' ? '昼' : '朝'}の分は投稿済みです`); return; }
+  const key = { noon: 'lastNoon', evening: 'lastEvening' }[MODE] || 'last';
+  if (state[key] === today) { console.log(`今日の${{ noon: '昼', evening: '夕方' }[MODE] || '朝'}の分は投稿済みです`); return; }
 
   const r = await fetch('https://api.x.com/2/tweets', {
     method: 'POST',
