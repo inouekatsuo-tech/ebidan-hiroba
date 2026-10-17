@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 const URL_ = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const db = () => createClient(URL_, KEY, { auth: { persistSession: false } });
-const PUBLIC = 'id,member_no,handle,age_band,pref,oshi,bio,birthday,links,follow,banned,created_at';
+const PUBLIC = 'id,member_no,handle,age_band,pref,oshi,bio,birthday,avatar,links,follow,banned,created_at';
 
 const NG_HANDLE = /^(管理人|運営|公式|admin|administrator|推しトピア)$/i;
 

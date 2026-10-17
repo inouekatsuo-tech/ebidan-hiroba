@@ -350,6 +350,10 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .ask-list li::before{content:"✓ ";color:var(--ok);font-weight:700}
 .install-h{align-items:flex-start}
 .app-icon{width:56px;height:56px;border-radius:14px;box-shadow:var(--shadow)}
+.av-img{object-fit:cover;background:var(--sunk)}
+.av-pick{display:flex;align-items:center;gap:14px;margin:4px 0 2px}
+.av-pick .avatar{width:64px;height:64px;font-size:22px}
+.av-pick input[type=file]{display:none}
 .install-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;text-decoration:none;position:relative}
 .install-banner img{width:40px;height:40px;border-radius:11px;flex:none}
 .install-banner b{display:block;font-size:14.5px}
@@ -934,6 +938,41 @@ V.install=()=>{
   ${body}
   <div class="actions" style="justify-content:center"><a class="btn ghost" href="#/home" id="later">あとでやる</a></div>`;
 };
+// ===== アイコン画像 =====
+// 送る前に正方形に切り取って400pxに縮小する（通信量を減らし、位置情報なども落とす）
+function shrink(file){
+  return new Promise((ok,ng)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const n=Math.min(img.width,img.height), c=document.createElement('canvas');
+      c.width=c.height=400;
+      const g=c.getContext('2d');
+      g.imageSmoothingQuality='high';
+      g.drawImage(img,(img.width-n)/2,(img.height-n)/2,n,n,0,0,400,400);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL('image/jpeg',0.85));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); ng(new Error('画像を読み取れませんでした')); };
+    img.src=url;
+  });
+}
+async function apiAvatar(body){
+  const r=await fetchT('/api/avatar',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...body,token:getToken()})});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error||'アップロードできませんでした');
+  return j;
+}
+async function uploadAvatar(file){
+  if(!file) return;
+  if(file.size>12*1024*1024) return toast('画像が大きすぎます（12MBまで）');
+  toast('アイコンを準備しています…');
+  try{
+    const data=await shrink(file);
+    const r=await apiAvatar({data});
+    S.user.avatar=r.avatar; save(); render(); toast('アイコンを変更しました');
+  }catch(e){ toast(e.message); }
+}
 // ===== 通報 =====
 const REPORT_REASONS=['誹謗中傷・晒し','個人情報が書かれている','チケットの売買・譲渡','メンバーのプライベートに関する内容','宣伝・スパム','その他'];
 function openReport(target){
@@ -1544,7 +1583,7 @@ function saveToken(t){ try{ localStorage.setItem('account-token',t); }catch(e){}
 function getToken(){ try{ return localStorage.getItem('account-token')||''; }catch(e){ return ''; } }
 function applyProfile(p){
   S.user={dbId:p.id,no:p.member_no,name:p.handle,age:p.age_band,pref:p.pref,oshi:p.oshi,
-    bio:p.bio||'',birthday:p.birthday||'',links:p.links||{},via:'この端末',banned:p.banned};
+    bio:p.bio||'',birthday:p.birthday||'',avatar:p.avatar||null,links:p.links||{},via:'この端末',banned:p.banned};
   if(Array.isArray(p.follow)&&p.follow.length) S.follow=p.follow;
   save();
   loadComms();
@@ -1664,7 +1703,7 @@ async function fetchUser(no){
     const p=r.profile;
     ui.missingUser=null;
     ui.foundUser={name:p.handle,no:p.member_no,age:p.age_band,pref:p.pref,oshi:p.oshi,
-      bio:p.bio,birthday:p.birthday,links:p.links,g:null,dbId:p.id};
+      bio:p.bio,birthday:p.birthday,avatar:p.avatar,links:p.links,g:null,dbId:p.id};
   }catch(e){ ui.missingUser=no; }
   finally{ fetchingUser=null; render(); }
 }
@@ -1989,7 +2028,7 @@ V.follows=(type)=>{
   <div class="page-h"><h1>${title}</h1><p>${followers?'あなたをフォローしている人です。':'あなたがフォローしている人です。'}</p></div>
   ${people.length?`<div class="panel rows">${people.map(p=>{
     const on=S.flw.ing.includes(p.id);
-    return `<div class="row"><span class="mini-av">${initial(p.handle)}</span>
+    return `<div class="row">${av(p,'mini-av')}
       <div class="main"><a class="t" href="#/u/${p.member_no}" style="text-decoration:none">${esc(p.handle)}</a>
       <span class="meta"><span class="chip">${esc(p.age_band||'—')}</span><span class="chip">${esc(p.pref||'—')}</span>${p.oshi?`<span class="chip fan">${esc(p.oshi)}推し</span>`:''}<span class="chip">${fmtNo(p.member_no)}</span></span></div>
       <button class="btn sm ${on?'ghost':''}" data-followid="${esc(p.id)}">${on?'フォロー中':'フォロー'}</button></div>`;
@@ -2016,6 +2055,13 @@ V.profile=()=>{
   return `<a class="back" href="#/me">← マイページ</a>
   <div class="page-h"><h1>プロフィールを編集</h1><p>公開されるのは、ここに入れた内容だけです。</p></div>
   <form class="panel compose" id="profileform">
+    <div class="lb">アイコン
+      <div class="av-pick">${av(u)}
+        <div class="actions" style="justify-content:flex-start">
+          <label class="btn sm ghost" for="av-file">画像を選ぶ<input type="file" id="av-file" accept="image/jpeg,image/png,image/webp"></label>
+          ${u.avatar?'<button type="button" class="btn sm ghost" id="av-del">削除</button>':''}
+        </div></div>
+      <span class="hint">正方形に切り取って縮小してから保存します（撮影場所などの情報は残りません）。</span></div>
     <label class="lb">ハンドルネーム<input class="field" id="pr-name" value="${esc(u.name)}" maxlength="12" required></label>
     <label class="lb">自己紹介<textarea class="field" id="pr-bio" maxlength="140" placeholder="例：2025年からのミルキー。千葉在住。ライブ参戦記録を書いてます">${esc(u.bio||'')}</textarea><span class="hint">140文字まで</span></label>
     <div class="two"><label class="lb">年代<select class="field" id="pr-age">${AGES.map(a=>`<option ${a===u.age?'selected':''}>${a}</option>`).join('')}</select></label>
@@ -2038,10 +2084,14 @@ function snsRow(u){
   return `<div class="snsrow">${list.map(([k,label,base])=>`<a href="${esc(base+L[k])}" target="_blank" rel="noopener" class="chip">${label}</a>`).join('')}</div>`;
 }
 const followingCount=()=>DB_ON()?S.flw.ing.length:S.following.length;
+// アイコン画像があれば画像、なければ頭文字
+const av=(u,cls='avatar')=>u&&u.avatar
+  ?`<img class="${cls} av-img" src="${esc(u.avatar)}" alt="" loading="lazy">`
+  :`<span class="${cls}">${initial((u&&(u.name||u.handle))||'?')}</span>`;
 const birthChip=u=>u.birthday?`<span class="chip">🎂 ${+u.birthday.slice(0,2)}月${+u.birthday.slice(3,5)}日</span>`:'';
 function profileCard(u){
   const L=u.links||{};
-  return `<div class="pcard"><span class="avatar">${initial(u.name)}</span><div class="main">
+  return `<div class="pcard">${av(u)}<div class="main">
     <b>${esc(u.name)}</b>
     <span class="meta"><span class="chip">${esc(u.age)}</span><span class="chip">${esc(u.pref)}</span><span class="chip fan">${esc(u.oshi)}推し</span>${birthChip(u)}</span>
     ${u.bio?`<p class="bio">${esc(u.bio)}</p>`:''}
@@ -2054,7 +2104,7 @@ V.me=()=>{
     <div class="panel dlg">${providersHTML()}</div>`;
   const u=S.user;
   return `<div class="page-h"><h1>マイページ</h1></div>
-  <div class="panel profile"><span class="avatar">${initial(u.name)}</span><div class="main"><b style="font-size:17px">${esc(u.name)}</b>
+  <div class="panel profile">${av(u)}<div class="main"><b style="font-size:17px">${esc(u.name)}</b>
     <div class="meta"><span class="chip">${u.age}</span><span class="chip">${u.pref}</span><span class="chip fan">${esc(u.oshi)}推し</span>${birthChip(u)}${esc(u.via)}でログイン</div>
     ${u.bio?`<p class="bio">${esc(u.bio)}</p>`:''}
     ${snsRow(u)||'<span class="hint">SNSのリンクは「編集」から登録できます</span>'}</div><a class="btn sm ghost" href="#/profile">編集</a></div>
@@ -2225,7 +2275,7 @@ function renderNow(){
     toast(location.hash.includes('cancel')?'ログインを中止しました':'ログインできませんでした。もう一度お試しください'); }
   syncBadge();
   if($('#qrbox')&&S.user) drawQR($('#qrbox'), memberUrl(S.user.no));
-  $('#acct').innerHTML=S.user?`<a class="avatar" href="#/me" aria-label="マイページ" style="text-decoration:none">${initial(S.user.name)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
+  $('#acct').innerHTML=S.user?`<a href="#/me" aria-label="マイページ" style="text-decoration:none">${av(S.user)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
 }
 // Xの埋め込みは、画面に近づいたものだけ読み込む（475件まとめて読むと固まるため）
 let embedObs=null;
@@ -2330,6 +2380,7 @@ document.addEventListener('click',e=>{
         .then(async()=>{ await loadComms(); toast(d.approve?`${q[0]}さんの参加を承認しました`:`${q[0]}さんの申請を見送りました`); })
         .catch(e=>toast(e.message)); return; }
     const [r]=c.reqs.splice(+i,1); if(d.approve){ c.members++; c.sample.push(r); toast(`${r[0]}さんの参加を承認しました`); } else toast(`${r[0]}さんの申請を見送りました`); save(); render(); }
+  else if(t.id==='av-del'){ apiAvatar({remove:true}).then(()=>{ S.user.avatar=null; save(); render(); toast('アイコンを削除しました'); }).catch(e=>toast(e.message)); }
   else if(t.id==='evform-toggle'){ ui.evForm=!ui.evForm; render(); }
   else if(d.go){ if(!need()) return; const [gcid,geid]=d.go.split(':'); const gc=S.comms.find(x=>x.id===gcid);
     if(gc&&gc.remote){ const ge=gc.events.find(x=>x.id===geid); if(!ge) return; const add=!S.going.includes(d.go);
@@ -2393,6 +2444,9 @@ function detect(u){
   if(/tiktok\.com$/.test(h)) return 'TikTok';
   return null;
 }
+document.addEventListener('change',e=>{
+  if(e.target.id==='av-file'){ uploadAvatar(e.target.files&&e.target.files[0]); e.target.value=''; }
+});
 document.addEventListener('submit',e=>{
   e.preventDefault();
   const f=e.target;
@@ -2521,7 +2575,7 @@ document.addEventListener('submit',e=>{
     if(DB_ON()){
       apiAccount({action:'find',memberNo:no}).then(r=>{
         ui.foundUser={name:r.profile.handle,no:r.profile.member_no,age:r.profile.age_band,pref:r.profile.pref,
-          oshi:r.profile.oshi,bio:r.profile.bio,birthday:r.profile.birthday,links:r.profile.links,g:null,dbId:r.profile.id};
+          oshi:r.profile.oshi,bio:r.profile.bio,birthday:r.profile.birthday,avatar:r.profile.avatar,links:r.profile.links,g:null,dbId:r.profile.id};
         ui.missingUser=null;
         location.hash='#/u/'+no; render();
       }).catch(e=>toast(e.message));
