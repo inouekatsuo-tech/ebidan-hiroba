@@ -378,6 +378,13 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .av-pick{display:flex;align-items:center;gap:14px;margin:4px 0 2px}
 .av-pick .avatar{width:64px;height:64px;font-size:22px}
 .av-pick input[type=file]{display:none}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.adtable{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+.adtable th,.adtable td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left}
+.adtable th{background:var(--sunk);font-size:12px;color:var(--muted);position:sticky;top:0}
+.adtable td.num{text-align:right;font-variant-numeric:tabular-nums}
+.adtable tbody tr{cursor:pointer}
+.adtable tbody tr:hover{background:var(--sunk)}
 .faces{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 8px;-webkit-overflow-scrolling:touch}
 .face{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--ink)}
 .face .mini-av{width:52px;height:52px;font-size:19px}
@@ -615,7 +622,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',followList:null,missingUser:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',adminSort:'no',followList:null,missingUser:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1807,6 +1814,24 @@ V.inbox=()=>{
 // ===== 運営の管理画面 =====
 // モックのため、合言葉はこの端末の中だけで確認しています。
 // 本番では、運営者だけがログインできる認証に置き換えます。
+// 会員一覧をCSVで保存する（Excelでも文字化けしないようBOMを付ける）
+function downloadMembersCSV(){
+  const cols=[['member_no','会員番号'],['handle','ハンドルネーム'],['age_band','年代'],['pref','都道府県'],['oshi','推しグループ'],
+    ['birthday','誕生日'],['followers','フォロワー'],['following','フォロー中'],['posts','書き込み'],['comms','参加コミュニティ'],
+    ['created_at','登録日時'],['last_seen','最終ログイン'],['banned','凍結'],['email','メールアドレス'],['bio','自己紹介']];
+  const esc2=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const rows=[cols.map(c=>c[1]).join(',')];
+  for(const u of ADMIN.users){
+    rows.push(cols.map(([k])=>esc2(k==='banned'?(u.banned?'凍結中':''):k==='member_no'?fmtNo(u[k]):u[k])).join(','));
+  }
+  const blob=new Blob(['\uFEFF'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`推しトピア会員_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast(`${ADMIN.users.length}人ぶんを保存しました`);
+}
 let ADMIN = { pass:'', stats:null, recent:[], reports:[], posts:[], users:[], ads:null, loading:false };
 const isAdmin = () => !!S.adminOn && !!ADMIN.pass;
 async function apiAdmin(body){
@@ -1893,12 +1918,32 @@ V.admin = (sub = 'home') => {
 
   if (sub === 'users') {
     if (!ADMIN.users.length && !ADMIN.loading && !ui.adminLoaded) { ui.adminLoaded = true; adminLoad('users'); }
-    const list = ADMIN.users;
+    const SORTS=[['no','会員番号順'],['new','登録が新しい順'],['seen','最近ログインした順'],['followers','フォロワーが多い順'],['posts','書き込みが多い順']];
+    const list=[...ADMIN.users].sort((a,b)=>({
+      no:(x,y)=>x.member_no-y.member_no,
+      new:(x,y)=>String(y.created_at).localeCompare(String(x.created_at)),
+      seen:(x,y)=>String(y.last_seen||'').localeCompare(String(x.last_seen||'')),
+      followers:(x,y)=>y.followers-x.followers||y.posts-x.posts,
+      posts:(x,y)=>y.posts-x.posts||y.followers-x.followers,
+    }[ui.adminSort||'no'])(a,b));
     body = `<form class="search" id="adminusersearch"><input id="adm-q" value="${esc(ui.adminQ||'')}" placeholder="ハンドルネーム または 会員番号で検索" aria-label="ユーザー検索"><button class="btn sm">検索</button></form>
-    <div class="panel rows">${list.map(u => `<div class="row"><span class="mini-av">${initial(u.handle)}</span>
-      <div class="main"><span class="t">${esc(u.handle)}${u.banned?' <span class="chip warn">凍結中</span>':''}</span>
-        <span class="meta"><span class="chip">${fmtNo(u.member_no)}</span><span class="chip">${esc(u.age_band||'—')}</span><span class="chip">${esc(u.pref||'—')}</span></span></div>
-      <button class="btn sm ghost" data-admin-user="${esc(u.id)}">操作</button></div>`).join('') || '<div class="row"><p class="hint">見つかりませんでした</p></div>'}</div>`;
+    <div class="bar-row">
+      <div class="filters" role="group" aria-label="並び順">${SORTS.map(([k,l])=>`<button class="fchip" data-asort="${k}" aria-pressed="${(ui.adminSort||'no')===k}">${l}</button>`).join('')}</div>
+      <button class="btn sm ghost" id="adm-csv">CSVで保存</button>
+    </div>
+    <p class="hint">${list.length}人を表示しています（最大500人）。行をタップすると、メッセージ送信・改名・凍結ができます。</p>
+    <div class="tablewrap"><table class="adtable">
+      <thead><tr><th>番号</th><th>名前</th><th>年代</th><th>都道府県</th><th>推し</th><th>フォロワー</th><th>フォロー</th><th>書き込み</th><th>コミュ</th><th>登録日</th><th>最終ログイン</th><th>状態</th></tr></thead>
+      <tbody>${list.map(u=>`<tr data-admin-user="${esc(u.id)}">
+        <td class="num">${fmtNo(u.member_no)}</td>
+        <td><b>${esc(u.handle)}</b></td>
+        <td>${esc(u.age_band||'—')}</td><td>${esc(u.pref||'—')}</td><td>${esc(u.oshi||'—')}</td>
+        <td class="num">${u.followers}</td><td class="num">${u.following}</td><td class="num">${u.posts}</td><td class="num">${u.comms}</td>
+        <td>${String(u.created_at||'').slice(0,10)}</td>
+        <td>${u.last_seen?relTime(u.last_seen):'—'}</td>
+        <td>${u.banned?'<span class="chip warn">凍結中</span>':'<span class="chip ok">通常</span>'}</td>
+      </tr>`).join('')||'<tr><td colspan="12">見つかりませんでした</td></tr>'}</tbody>
+    </table></div>`;
   }
 
   if (sub === 'notice') {
@@ -2440,6 +2485,8 @@ document.addEventListener('click',e=>{
   else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
   else if(d.report){ openReport(d.report); }
   else if(d.msg){ ui.openMsg=ui.openMsg===d.msg?null:d.msg; const m=S.inbox.find(x=>x.id===d.msg); if(m&&!m.read){ m.read=true; save(); } render(); syncBadge(); }
+  else if(d.asort){ ui.adminSort=d.asort; render(); }
+  else if(t.id==='adm-csv'){ downloadMembersCSV(); }
   else if(d.hide){ apiAdmin({action:'hide',postId:d.hide}).then(r=>{ adminLoad(location.hash.includes('reports')?'reports':'home'); toast(r.hidden?'非表示にしました':'再表示しました'); }).catch(e=>toast(e.message)); }
   else if(d.ban){ apiAdmin({action:'ban',userId:d.ban}).then(r=>{ if($('#login').open) $('#login').close(); adminLoad('users'); toast(r.banned?`${r.handle} を凍結しました`:`${r.handle} の凍結を解除しました`); }).catch(e=>toast(e.message)); }
   else if(d.warn){

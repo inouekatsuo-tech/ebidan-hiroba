@@ -54,10 +54,36 @@ export default async function handler(req, res) {
     // --- ユーザー一覧・検索 ---
     if (a === 'users') {
       const q = String(b.q || '').trim();
-      let sel = sb.from('profiles').select('id,member_no,handle,age_band,pref,oshi,banned,created_at,email').order('member_no');
+      let sel = sb.from('profiles')
+        .select('id,member_no,handle,age_band,pref,oshi,birthday,bio,links,avatar,banned,created_at,last_seen,email')
+        .order('member_no');
       if (q) sel = /^\d+$/.test(q) ? sel.eq('member_no', Number(q)) : sel.ilike('handle', `%${q}%`);
-      const { data } = await sel.limit(50);
-      return res.status(200).json({ ok: true, users: data || [] });
+      const { data } = await sel.limit(500);
+      const users = data || [];
+
+      // 会員ごとの活動量（フォロワー・フォロー中・書き込み・参加コミュニティ）
+      const [fl, ps, cm] = await Promise.all([
+        sb.from('follows').select('follower_id,followee_id').limit(20000),
+        sb.from('posts').select('user_id').not('user_id', 'is', null).limit(20000),
+        sb.from('community_members').select('user_id,status').limit(20000),
+      ]);
+      const count = (rows, key, test) => {
+        const m = {};
+        for (const r of rows || []) { if (test && !test(r)) continue; m[r[key]] = (m[r[key]] || 0) + 1; }
+        return m;
+      };
+      const followers = count(fl.data, 'followee_id');
+      const following = count(fl.data, 'follower_id');
+      const posts = count(ps.data, 'user_id');
+      const comms = count(cm.data, 'user_id', r => r.status === 'approved');
+
+      return res.status(200).json({ ok: true, users: users.map(u => ({
+        ...u,
+        followers: followers[u.id] || 0,
+        following: following[u.id] || 0,
+        posts: posts[u.id] || 0,
+        comms: comms[u.id] || 0,
+      })) });
     }
 
     // --- 書き込みを非表示／再表示 ---
