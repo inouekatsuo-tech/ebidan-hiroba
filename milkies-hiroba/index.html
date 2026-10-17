@@ -1616,6 +1616,7 @@ function applyProfile(p){
   save();
   loadComms();
   loadFollows();
+  if(S.pushOn) subscribePush();   // 本人あての通知も届くように、購読に会員を結びつけ直す
 }
 // 連携ログイン（Google/Apple/X）を始める
 // メールアドレスでログイン（確認コード方式）
