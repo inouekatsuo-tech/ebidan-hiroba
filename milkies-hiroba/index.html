@@ -607,7 +607,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',followList:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',followList:null,missingUser:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1678,6 +1678,20 @@ async function loadComms(){
   }catch(e){ console.warn('コミュニティの読み込みに失敗',e); }
 }
 // フォロー中・フォロワーを読み込む
+// 会員番号から相手のプロフィールを読み込む（QRコード・一覧からのリンク用）
+let fetchingUser=null;
+async function fetchUser(no){
+  if(fetchingUser===no) return;
+  fetchingUser=no;
+  try{
+    const r=await apiAccount({action:'find',memberNo:no});
+    const p=r.profile;
+    ui.missingUser=null;
+    ui.foundUser={name:p.handle,no:p.member_no,age:p.age_band,pref:p.pref,oshi:p.oshi,
+      bio:p.bio,birthday:p.birthday,links:p.links,g:null,dbId:p.id};
+  }catch(e){ ui.missingUser=no; }
+  finally{ fetchingUser=null; render(); }
+}
 async function loadFollowList(type){
   try{
     const r=await apiAccount({action:'follows',token:getToken(),type});
@@ -1956,10 +1970,18 @@ V.card=()=>{
 };
 V.u=(no)=>{
   if(!no) return V.people();
-  const me=S.user&&S.user.no===no;
-  const u=me?S.user:((ui.foundUser&&String(ui.foundUser.no)===String(no))?ui.foundUser:sampleUsers().find(x=>x.no===no));
-  if(!u) return `<a class="back" href="#/people">← ファンをさがす</a>
-    <div class="page-h"><h1>見つかりませんでした</h1><p>会員番号 #${esc(no)} の人は見つかりませんでした。番号をもう一度確認してください。</p></div>`;
+  const n=Number(String(no).replace(/[^0-9]/g,''));
+  const me=S.user&&Number(S.user.no)===n;
+  const u=me?S.user
+    :((ui.foundUser&&Number(ui.foundUser.no)===n)?ui.foundUser
+    :sampleUsers().find(x=>Number(x.no)===n));
+  if(!u){
+    // QRコードや一覧から直接ひらいたときは、サーバーに問い合わせる
+    if(DB_ON()&&n&&!(ui.missingUser===n)){ fetchUser(n);
+      return `<a class="back" href="#/people">← ファンをさがす</a><div class="panel compose"><p class="hint">読み込んでいます…</p></div>`; }
+    return `<a class="back" href="#/people">← ファンをさがす</a>
+    <div class="page-h"><h1>見つかりませんでした</h1><p>会員番号 ${esc(fmtNo(n||0))} の人は見つかりませんでした。番号をもう一度確認してください。</p></div>`;
+  }
   const f=S.following.includes(u.name);
   return `<a class="back" href="#/people">← ファンをさがす</a>
   <div class="panel compose">
@@ -2523,7 +2545,8 @@ document.addEventListener('submit',e=>{
     if(DB_ON()){
       apiAccount({action:'find',memberNo:no}).then(r=>{
         ui.foundUser={name:r.profile.handle,no:r.profile.member_no,age:r.profile.age_band,pref:r.profile.pref,
-          oshi:r.profile.oshi,bio:r.profile.bio,links:r.profile.links,g:null,dbId:r.profile.id};
+          oshi:r.profile.oshi,bio:r.profile.bio,birthday:r.profile.birthday,links:r.profile.links,g:null,dbId:r.profile.id};
+        ui.missingUser=null;
         location.hash='#/u/'+no; render();
       }).catch(e=>toast(e.message));
       return;
