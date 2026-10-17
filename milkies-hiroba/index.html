@@ -593,7 +593,7 @@ let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
 // 初期値。保存済みデータに無い項目は、ここから自動で補う
 // （古いバージョンで保存した人の画面が真っ白になるのを防ぐ）
-const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
+const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],flw:{ing:[],ers:0},inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
 (function normalize(){
   const d=DEFAULTS();
   if(!S||typeof S!=='object'||!Array.isArray(S.picks)){ S=d; return; }
@@ -607,7 +607,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',followList:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1360,7 +1360,7 @@ V.privacy = () => legalPage('プライバシーポリシー',
   <h3>アカウントを作る場合（コミュニティ参加時）</h3>
   <ul>
     <li>ログインに使うサービス（Google・Apple・X・LINEなど）から受け取るメールアドレス</li>
-    <li>ご自身で入力した、ハンドルネーム・年代・都道府県・推しグループ・自己紹介・SNSのリンク</li>
+    <li>ご自身で入力した、ハンドルネーム・年代・都道府県・推しグループ・自己紹介・誕生日（月日のみ）・SNSのリンク</li>
   </ul>
   <p><b>ログインサービスから受け取った氏名やプロフィール画像は利用しません。</b>サイト上で他の方に表示されるのは、ご自身で入力した内容だけです。</p>
   <h3>通知を受け取る場合</h3>
@@ -1568,10 +1568,11 @@ function saveToken(t){ try{ localStorage.setItem('account-token',t); }catch(e){}
 function getToken(){ try{ return localStorage.getItem('account-token')||''; }catch(e){ return ''; } }
 function applyProfile(p){
   S.user={dbId:p.id,no:p.member_no,name:p.handle,age:p.age_band,pref:p.pref,oshi:p.oshi,
-    bio:p.bio||'',links:p.links||{},via:'この端末',banned:p.banned};
+    bio:p.bio||'',birthday:p.birthday||'',links:p.links||{},via:'この端末',banned:p.banned};
   if(Array.isArray(p.follow)&&p.follow.length) S.follow=p.follow;
   save();
   loadComms();
+  loadFollows();
 }
 // 連携ログイン（Google/Apple/X）を始める
 // メールアドレスでログイン（確認コード方式）
@@ -1675,6 +1676,25 @@ async function loadComms(){
     });
     S.joined=joined; S.pending=pending; S.going=going; save(); bgRender();
   }catch(e){ console.warn('コミュニティの読み込みに失敗',e); }
+}
+// フォロー中・フォロワーを読み込む
+async function loadFollowList(type){
+  try{
+    const r=await apiAccount({action:'follows',token:getToken(),type});
+    ui.followList={type,people:r.people||[]};
+    render();
+  }catch(e){ ui.followList={type,people:[]}; render(); toast(e.message); }
+}
+async function loadFollows(){
+  if(!DB_ON()||!S.user||!S.user.dbId) return;
+  try{
+    const [ing,ers]=await Promise.all([
+      dbGet(`follows?select=followee_id&follower_id=eq.${S.user.dbId}&limit=500`),
+      dbGet(`follows?select=follower_id&followee_id=eq.${S.user.dbId}&limit=500`),
+    ]);
+    S.flw={ing:ing.map(r=>r.followee_id),ers:ers.length};
+    save(); bgRender();
+  }catch(e){ console.warn('フォロー情報の読み込みに失敗',e.message); }
 }
 // 運営からのお知らせをサーバーから読む
 async function loadNotices(){
@@ -1946,6 +1966,7 @@ V.u=(no)=>{
     ${profileCard(u)}
     <span class="meta">会員番号 <b>${esc(u.dbId?fmtNo(u.no):'#'+u.no)}</b></span>
     <div class="actions">${me?'<span class="chip ok">あなたのプロフィールです</span>'
+      :u.dbId?`<button class="btn ${S.flw.ing.includes(u.dbId)?'ghost':''}" data-followid="${esc(u.dbId)}">${S.flw.ing.includes(u.dbId)?'フォロー中（解除する）':'フォローする'}</button>`
       :`<button class="btn ${f?'ghost':''}" data-follow="${esc(u.name)}">${f?'フォロー中（解除する）':'フォローする'}</button>`}</div>
   </div>`;
 };
@@ -1958,6 +1979,24 @@ function sampleUsers(){
   if(S.user) out.delete(S.user.name);
   return [...out.values()];
 }
+V.follows=(type)=>{
+  if(!S.user) return V.me();
+  const followers=type==='followers';
+  const title=followers?'フォロワー':'フォロー中';
+  if(!ui.followList||ui.followList.type!==type){
+    if(DB_ON()){ loadFollowList(type); return `<a class="back" href="#/me">← マイページ</a><div class="page-h"><h1>${title}</h1></div><div class="panel compose"><p class="hint">読み込んでいます…</p></div>`; }
+  }
+  const people=(ui.followList&&ui.followList.people)||[];
+  return `<a class="back" href="#/me">← マイページ</a>
+  <div class="page-h"><h1>${title}</h1><p>${followers?'あなたをフォローしている人です。':'あなたがフォローしている人です。'}</p></div>
+  ${people.length?`<div class="panel rows">${people.map(p=>{
+    const on=S.flw.ing.includes(p.id);
+    return `<div class="row"><span class="mini-av">${initial(p.handle)}</span>
+      <div class="main"><a class="t" href="#/u/${p.member_no}" style="text-decoration:none">${esc(p.handle)}</a>
+      <span class="meta"><span class="chip">${esc(p.age_band||'—')}</span><span class="chip">${esc(p.pref||'—')}</span>${p.oshi?`<span class="chip fan">${esc(p.oshi)}推し</span>`:''}<span class="chip">${fmtNo(p.member_no)}</span></span></div>
+      <button class="btn sm ${on?'ghost':''}" data-followid="${esc(p.id)}">${on?'フォロー中':'フォロー'}</button></div>`;
+  }).join('')}</div>`:`<p class="hint">${followers?'まだフォロワーはいません。会員番号やQRコードを友だちに教えてみましょう。':'まだ誰もフォローしていません。'}<br><a href="#/people">ファンをさがす</a></p>`}`;
+};
 V.people=()=>{
   const list=sampleUsers();
   return `<a class="back" href="#/me">← マイページ</a>
@@ -1983,6 +2022,9 @@ V.profile=()=>{
     <label class="lb">自己紹介<textarea class="field" id="pr-bio" maxlength="140" placeholder="例：2025年からのミルキー。千葉在住。ライブ参戦記録を書いてます">${esc(u.bio||'')}</textarea><span class="hint">140文字まで</span></label>
     <div class="two"><label class="lb">年代<select class="field" id="pr-age">${AGES.map(a=>`<option ${a===u.age?'selected':''}>${a}</option>`).join('')}</select></label>
     <label class="lb">都道府県<select class="field" id="pr-pref">${PREFS.map(p=>`<option ${p===u.pref?'selected':''}>${p}</option>`).join('')}</select></label></div>
+    <div class="two"><label class="lb">誕生日（任意）<select class="field" id="pr-bm"><option value="">—</option>${Array.from({length:12},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${(u.birthday||'').slice(0,2)===String(i+1).padStart(2,'0')?'selected':''}>${i+1}月</option>`).join('')}</select></label>
+    <label class="lb">&nbsp;<select class="field" id="pr-bd"><option value="">—</option>${Array.from({length:31},(_,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${(u.birthday||'').slice(3,5)===String(i+1).padStart(2,'0')?'selected':''}>${i+1}日</option>`).join('')}</select></label></div>
+    <p class="hint" style="margin-top:-6px">生まれた年は入れません（年代だけが表示されます）。</p>
     <label class="lb">いちばんの推しグループ<select class="field" id="pr-oshi">${[...GROUPS.map(g=>g.name),'箱'].map(m=>`<option ${m===u.oshi?'selected':''}>${esc(m)}</option>`).join('')}</select></label>
     <div class="lb">SNSのリンク<span class="hint">ユーザー名だけ入れてください（@は不要）${u.age==='10代'?'<br><b>10代の方のリンクは、ログインしている人にだけ表示されます。</b>':''}</span>
       ${SNS.map(([k,label,base])=>`<label class="sns"><span class="sns-l">${label}</span><span class="sns-b">${base}</span><input class="field" id="pr-${k}" value="${esc(L[k]||'')}" placeholder="username" autocomplete="off"></label>`).join('')}</div>
@@ -1991,11 +2033,19 @@ V.profile=()=>{
   </form>
   <div class="panel compose"><h3>公開プレビュー</h3>${profileCard(u)}</div>`;
 };
+function snsRow(u){
+  const L=u.links||{};
+  const list=SNS.filter(([k])=>L[k]);
+  if(!list.length) return '';
+  return `<div class="snsrow">${list.map(([k,label,base])=>`<a href="${esc(base+L[k])}" target="_blank" rel="noopener" class="chip">${label}</a>`).join('')}</div>`;
+}
+const followingCount=()=>DB_ON()?S.flw.ing.length:S.following.length;
+const birthChip=u=>u.birthday?`<span class="chip">🎂 ${+u.birthday.slice(0,2)}月${+u.birthday.slice(3,5)}日</span>`:'';
 function profileCard(u){
   const L=u.links||{};
   return `<div class="pcard"><span class="avatar">${initial(u.name)}</span><div class="main">
     <b>${esc(u.name)}</b>
-    <span class="meta"><span class="chip">${esc(u.age)}</span><span class="chip">${esc(u.pref)}</span><span class="chip fan">${esc(u.oshi)}推し</span></span>
+    <span class="meta"><span class="chip">${esc(u.age)}</span><span class="chip">${esc(u.pref)}</span><span class="chip fan">${esc(u.oshi)}推し</span>${birthChip(u)}</span>
     ${u.bio?`<p class="bio">${esc(u.bio)}</p>`:''}
     ${(u.age==='10代'&&!S.user)?'<span class="hint">SNSのリンクは、ログインしている人にだけ表示されます</span>'
       :`<div class="snsrow">${SNS.filter(([k])=>L[k]).map(([k,label,base])=>`<a href="${esc(base+L[k])}" target="_blank" rel="noopener" class="chip">${label}</a>`).join('')}</div>`}
@@ -2006,11 +2056,16 @@ V.me=()=>{
     <div class="panel dlg">${providersHTML()}</div>`;
   const u=S.user;
   return `<div class="page-h"><h1>マイページ</h1></div>
-  <div class="panel profile"><span class="avatar">${initial(u.name)}</span><div class="main"><b style="font-size:17px">${esc(u.name)}</b><div class="meta"><span class="chip">${u.age}</span><span class="chip">${u.pref}</span><span class="chip fan">${esc(u.oshi)}推し</span>${esc(u.via)}でログイン</div>${u.bio?`<p class="bio">${esc(u.bio)}</p>`:''}</div><a class="btn sm ghost" href="#/profile">編集</a></div>
+  <div class="panel profile"><span class="avatar">${initial(u.name)}</span><div class="main"><b style="font-size:17px">${esc(u.name)}</b>
+    <div class="meta"><span class="chip">${u.age}</span><span class="chip">${u.pref}</span><span class="chip fan">${esc(u.oshi)}推し</span>${birthChip(u)}${esc(u.via)}でログイン</div>
+    ${u.bio?`<p class="bio">${esc(u.bio)}</p>`:''}
+    ${snsRow(u)||'<span class="hint">SNSのリンクは「編集」から登録できます</span>'}</div><a class="btn sm ghost" href="#/profile">編集</a></div>
   <div class="panel rows">
     <a class="row" href="#/card"><div class="main"><span class="t">会員番号 <b class="memno-sm">${esc(u.no?(u.dbId?fmtNo(u.no):'#'+u.no):'—')}</b></span><span class="meta">QRコードを表示・番号をコピー</span></div><span class="join">表示 →</span></a>
     <a class="row" href="#/inbox"><div class="main"><span class="t">お知らせ ${unread()?`<span class="badge">${unread()}</span>`:''}</span><span class="meta">運営からのメッセージ</span></div><span class="join">見る →</span></a>
-    <a class="row" href="#/people"><div class="main"><span class="t">フォロー中 ${S.following.length}人</span><span class="meta">ファンをさがす</span></div><span class="join">さがす →</span></a>
+    <a class="row" href="#/follows/following"><div class="main"><span class="t">フォロー中 ${followingCount()}人</span><span class="meta">この人たちの投稿を追っています</span></div><span class="join">見る →</span></a>
+    <a class="row" href="#/follows/followers"><div class="main"><span class="t">フォロワー ${S.flw.ers}人</span><span class="meta">あなたをフォローしている人</span></div><span class="join">見る →</span></a>
+    <a class="row" href="#/people"><div class="main"><span class="t">ファンをさがす</span><span class="meta">会員番号・QRコードで</span></div><span class="join">さがす →</span></a>
   </div>
   <section class="sec"><div class="sec-h"><h2>推しグループ</h2><button class="more linkbtn" id="follow-edit3">編集</button></div>
     <div class="filters">${S.follow.map(g=>`<a class="fchip" href="#/g/${g}">${dot(g)}${esc(gname(g))}</a>`).join('')||'<span class="hint">まだありません</span>'}</div></section>
@@ -2019,7 +2074,7 @@ V.me=()=>{
     <label class="lb">年代<select class="field" id="me-age">${AGES.map(a=>`<option ${a===u.age?'selected':''}>${a}</option>`).join('')}</select></label>
     <p class="hint">「10代」にすると、10代限定のコミュニティやイベントの見え方が変わります。</p></div>
   <div class="panel safety"><b>安全のための設定</b><ul>
-    <li>公開されるのは「年代」と「都道府県」まで。生年月日や市区町村は表示されません</li>
+    <li>公開されるのは「年代」と「都道府県」まで。生まれた年や市区町村は保存しません（誕生日は月日だけ・任意）</li>
     <li>${u.age==='10代'?'10代の方は、同じ10代からのメッセージだけ受け取れます':'10代の方へのメッセージは送れません'}</li>
     <li>困ったときは、どの投稿からも「通報」「ブロック」ができます</li></ul></div>
   <div class="panel compose"><h3>通知</h3>
@@ -2072,7 +2127,7 @@ function profileStep(via){
     <label class="lb">年代<select class="field" id="pf-age">${AGES.map(a=>`<option>${a}</option>`).join('')}</select></label>
     <label class="lb">都道府県<select class="field" id="pf-pref">${PREFS.map(p=>`<option ${p==='東京都'?'selected':''}>${p}</option>`).join('')}</select></label>
     <label class="lb">いちばんの推しグループ<select class="field" id="pf-oshi">${GROUPS.map(g=>`<option>${esc(g.name)}</option>`).join('')}<option>箱</option></select></label>
-    <p>公開されるのは、ハンドルネーム・年代・都道府県だけです。生年月日や市区町村は表示されません。</p>
+    <p>公開されるのは、ハンドルネーム・年代・都道府県などです。生まれた年や市区町村は保存しません。</p>
     <label class="agree"><input type="checkbox" id="agree-terms"> <span><b>利用規約</b>と<b>プライバシーポリシー</b>に同意します</span></label>
     <p class="hint" style="text-align:center"><a href="#/terms" id="see-terms">内容を読む</a>（読んだあと、この画面に戻ってきてください）</p>
     <div class="actions"><button type="button" class="btn ghost sm" id="login-back">別の方法でログイン</button><button class="btn">はじめる</button></div></form>
@@ -2164,7 +2219,7 @@ function renderNow(){
   const [r,id,sub]=h.split('/');
   const view=V[r]?V[r](id,sub):V.home();
   $('#app').innerHTML=view;
-  const tab={pick:'info',g:'home',install:'me',card:'me',u:'me',admin:'',about:'',privacy:'',terms:'',inbox:'me',people:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
+  const tab={pick:'info',g:'home',install:'me',card:'me',u:'me',admin:'',about:'',privacy:'',terms:'',inbox:'me',people:'me',follows:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   watchEmbeds();
   if(S.user){ ensureInbox(); $('#tab-me').classList.toggle('has-new',unread()>0); }
@@ -2310,6 +2365,12 @@ document.addEventListener('click',e=>{
   else if(t.id==='admin-reload'){ ADMIN.stats=null; ADMIN.reports=[]; ui.adminRepLoaded=false; adminLoad((location.hash.split('/')[2])||'home'); }
   else if(t.id==='copy-no'){ navigator.clipboard?.writeText(S.user.no); toast('会員番号をコピーしました'); }
   else if(t.id==='copy-url'){ navigator.clipboard?.writeText(memberUrl(S.user.no)); toast('フォロー用のリンクをコピーしました'); }
+  else if(d.followid){ if(!need()) return;
+    const on=S.flw.ing.includes(d.followid);
+    apiAccount({action:on?'unfollow':'follow',token:getToken(),userId:d.followid})
+      .then(async()=>{ await loadFollows(); toast(on?'フォローを解除しました':'フォローしました'); })
+      .catch(e=>toast(e.message));
+  }
   else if(d.follow){ if(!need()) return; const i=S.following.indexOf(d.follow); i<0?S.following.push(d.follow):S.following.splice(i,1); save(); render(); toast(i<0?`${d.follow}さんをフォローしました`:'フォローを解除しました'); }
   else if(t.id==='newtopic'){ toast('モックではトピック作成画面は省略しています'); }
   else if(t.id==='logout'){ if(!confirm('ログアウトすると、この端末からはアカウントに戻れなくなります（連携ログインは準備中です）。よろしいですか？')) return;
@@ -2397,13 +2458,15 @@ document.addEventListener('submit',e=>{
     if(nm.length<2||nm.length>12) return showErr('#pr-err','ハンドルネームは2〜12文字で入れてください');
     const links={};
     SNS.forEach(([k])=>{ const v=$('#pr-'+k).value.trim().replace(/^@/,''); if(v) links[k]=v.replace(/[^\w.]/g,''); });
-    const patch={handle:nm,bio:$('#pr-bio').value.trim(),age:$('#pr-age').value,pref:$('#pr-pref').value,oshi:$('#pr-oshi').value,links};
+    const bm=$('#pr-bm').value, bd=$('#pr-bd').value;
+    const patch={handle:nm,bio:$('#pr-bio').value.trim(),age:$('#pr-age').value,pref:$('#pr-pref').value,
+      oshi:$('#pr-oshi').value,birthday:(bm&&bd)?`${bm}-${bd}`:'',links};
     if(DB_ON()&&getToken()){
       apiAccount({action:'update',token:getToken(),...patch}).then(r=>{ applyProfile(r.profile); render(); toast('プロフィールを保存しました'); })
         .catch(e=>showErr('#pr-err',e.message));
       return;
     }
-    Object.assign(S.user,{name:nm,bio:patch.bio,age:patch.age,pref:patch.pref,oshi:patch.oshi,links});
+    Object.assign(S.user,{name:nm,bio:patch.bio,age:patch.age,pref:patch.pref,oshi:patch.oshi,birthday:patch.birthday,links});
     save(); render(); toast('プロフィールを保存しました');
   }
   else if(f.id==='reportform'){

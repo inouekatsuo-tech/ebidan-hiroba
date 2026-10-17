@@ -6,7 +6,7 @@ import { randomBytes } from 'node:crypto';
 const URL_ = process.env.SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const db = () => createClient(URL_, KEY, { auth: { persistSession: false } });
-const PUBLIC = 'id,member_no,handle,age_band,pref,oshi,bio,links,follow,banned,created_at';
+const PUBLIC = 'id,member_no,handle,age_band,pref,oshi,bio,birthday,links,follow,banned,created_at';
 
 const NG_HANDLE = /^(管理人|運営|公式|admin|administrator|推しトピア)$/i;
 
@@ -69,6 +69,12 @@ export default async function handler(req, res) {
         if (b[k] !== undefined) patch[col] = String(b[k]).slice(0, 30);
       }
       if (b.bio !== undefined) patch.bio = String(b.bio).slice(0, 140);
+      // 誕生日は「月-日」だけ。年は受け取らない（年齢が分かってしまうため）
+      if (b.birthday !== undefined) {
+        const v = String(b.birthday).trim();
+        if (v && !/^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) return res.status(400).json({ error: '誕生日の形式が正しくありません' });
+        patch.birthday = v || null;
+      }
       if (b.links !== undefined) patch.links = b.links;
       if (Array.isArray(b.follow)) patch.follow = b.follow.slice(0, 20);
 
@@ -165,6 +171,39 @@ export default async function handler(req, res) {
     }
 
     // --- 会員番号で探す ---
+    // --- フォローする／やめる ---
+    if (b.action === 'follow' || b.action === 'unfollow') {
+      const { data: me } = await sb.from('profiles').select('id,banned').eq('token', b.token || '').maybeSingle();
+      if (!me) return res.status(401).json({ error: 'ログインが必要です' });
+      if (me.banned) return res.status(403).json({ error: 'このアカウントは現在凍結されています' });
+      if (!b.userId || b.userId === me.id) return res.status(400).json({ error: '相手が正しくありません' });
+      const { data: target } = await sb.from('profiles').select('id').eq('id', b.userId).maybeSingle();
+      if (!target) return res.status(404).json({ error: '相手が見つかりません' });
+      if (b.action === 'follow') {
+        await sb.from('follows').upsert({ follower_id: me.id, followee_id: target.id });
+      } else {
+        await sb.from('follows').delete().match({ follower_id: me.id, followee_id: target.id });
+      }
+      return res.status(200).json({ ok: true });
+    }
+
+    // --- フォロー中・フォロワーの一覧 ---
+    if (b.action === 'follows') {
+      let id = b.userId;
+      if (!id && b.token) {
+        const { data: me } = await sb.from('profiles').select('id').eq('token', b.token).maybeSingle();
+        id = me?.id;
+      }
+      if (!id) return res.status(400).json({ error: '相手が正しくありません' });
+      const col = b.type === 'followers' ? 'followee_id' : 'follower_id';
+      const other = b.type === 'followers' ? 'follower_id' : 'followee_id';
+      const { data } = await sb.from('follows')
+        .select(`${other}, profiles!follows_${other}_fkey(${PUBLIC})`)
+        .eq(col, id).order('created_at', { ascending: false }).limit(200);
+      const people = (data || []).map(r => r.profiles).filter(Boolean);
+      return res.status(200).json({ ok: true, people });
+    }
+
     if (b.action === 'find') {
       const no = Number(String(b.memberNo || '').replace(/[^0-9]/g, ''));
       if (!no) return res.status(400).json({ error: '会員番号を入れてください' });
