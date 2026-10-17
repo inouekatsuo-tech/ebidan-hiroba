@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    const { subscription, follow = [], noti = {}, unsubscribe } = body;
+    const { subscription, follow = [], noti = {}, unsubscribe, token } = body;
     if (!subscription?.endpoint || !/^https:\/\//.test(subscription.endpoint)) {
       return res.status(400).json({ error: 'subscription が不正です' });
     }
@@ -25,9 +25,21 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, unsubscribed: true });
     }
 
+    // ログインしている人なら、その人あての通知も送れるように会員のIDを控える
+    let userId = null;
+    if (token) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+        const { data: me } = await sb.from('profiles').select('id').eq('token', token).maybeSingle();
+        userId = me?.id || null;
+      } catch {}
+    }
+
     const data = {
       endpoint: subscription.endpoint,
       keys: subscription.keys,
+      userId,
       follow: Array.isArray(follow) ? follow.slice(0, 20).map(String) : [],
       noti: { live: noti.live !== false, news: noti.news !== false, comm: noti.comm !== false },
       updated: new Date().toISOString(),

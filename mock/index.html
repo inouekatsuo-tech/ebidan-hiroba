@@ -354,6 +354,10 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .av-pick{display:flex;align-items:center;gap:14px;margin:4px 0 2px}
 .av-pick .avatar{width:64px;height:64px;font-size:22px}
 .av-pick input[type=file]{display:none}
+.faces{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 8px;-webkit-overflow-scrolling:touch}
+.face{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;gap:6px;text-decoration:none;color:var(--ink)}
+.face .mini-av{width:52px;height:52px;font-size:19px}
+.face span{font-size:11.5px;color:var(--muted);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64px}
 .install-banner{display:flex;align-items:center;gap:12px;padding:12px 14px;text-decoration:none;position:relative}
 .install-banner img{width:40px;height:40px;border-radius:11px;flex:none}
 .install-banner b{display:block;font-size:14.5px}
@@ -573,7 +577,7 @@ let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
 // 初期値。保存済みデータに無い項目は、ここから自動で補う
 // （古いバージョンで保存した人の画面が真っ白になるのを防ぐ）
-const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],flw:{ing:[],ers:0},inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
+const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],flw:{ing:[],ers:0,ingP:[],ersP:[]},inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
 (function normalize(){
   const d=DEFAULTS();
   if(!S||typeof S!=='object'||!Array.isArray(S.picks)){ S=d; return; }
@@ -1002,7 +1006,7 @@ async function subscribePush(){
     let sub=await reg.pushManager.getSubscription();
     if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(window.VAPID_PUBLIC)});
     const res=await fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subscription:sub.toJSON(),follow:S.follow,noti:S.noti})});
+      body:JSON.stringify({subscription:sub.toJSON(),follow:S.follow,noti:S.noti,token:getToken()||undefined})});
     S.pushOn=res.ok; save();
     return res.ok;
   }catch(e){ console.warn(e); return false; }
@@ -1717,11 +1721,14 @@ async function loadFollowList(type){
 async function loadFollows(){
   if(!DB_ON()||!S.user||!S.user.dbId) return;
   try{
+    const P='id,member_no,handle,avatar,age_band,pref,oshi';
     const [ing,ers]=await Promise.all([
-      dbGet(`follows?select=followee_id&follower_id=eq.${S.user.dbId}&limit=500`),
-      dbGet(`follows?select=follower_id&followee_id=eq.${S.user.dbId}&limit=500`),
+      dbGet(`follows?select=followee_id,profiles!follows_followee_id_fkey(${P})&follower_id=eq.${S.user.dbId}&order=created_at.desc&limit=200`),
+      dbGet(`follows?select=follower_id,profiles!follows_follower_id_fkey(${P})&followee_id=eq.${S.user.dbId}&order=created_at.desc&limit=200`),
     ]);
-    S.flw={ing:ing.map(r=>r.followee_id),ers:ers.length};
+    const pick=rows=>rows.map(r=>r.profiles).filter(Boolean)
+      .map(p=>({id:p.id,no:p.member_no,name:p.handle,avatar:p.avatar,age:p.age_band,pref:p.pref,oshi:p.oshi}));
+    S.flw={ing:ing.map(r=>r.followee_id),ers:ers.length,ingP:pick(ing),ersP:pick(ers)};
     save(); bgRender();
   }catch(e){ console.warn('フォロー情報の読み込みに失敗',e.message); }
 }
@@ -2088,6 +2095,14 @@ const followingCount=()=>DB_ON()?S.flw.ing.length:S.following.length;
 const av=(u,cls='avatar')=>u&&u.avatar
   ?`<img class="${cls} av-img" src="${esc(u.avatar)}" alt="" loading="lazy">`
   :`<span class="${cls}">${initial((u&&(u.name||u.handle))||'?')}</span>`;
+// フォロー中・フォロワーの顔ぶれを少しだけ並べる
+function faceSec(title,count,people,href,empty){
+  if(!DB_ON()) return '';
+  const list=(people||[]).slice(0,8);
+  return `<section class="sec"><div class="sec-h"><h2>${title} ${count}人</h2>${count?`<a class="more" href="${href}">すべて見る</a>`:''}</div>
+    ${list.length?`<div class="faces">${list.map(p=>`<a class="face" href="#/u/${p.no}">${av(p,'mini-av')}<span>${esc(p.name)}</span></a>`).join('')}</div>`
+      :`<p class="hint">${empty}</p>`}</section>`;
+}
 const birthChip=u=>u.birthday?`<span class="chip">🎂 ${+u.birthday.slice(0,2)}月${+u.birthday.slice(3,5)}日</span>`:'';
 function profileCard(u){
   const L=u.links||{};
@@ -2111,10 +2126,10 @@ V.me=()=>{
   <div class="panel rows">
     <a class="row" href="#/card"><div class="main"><span class="t">会員番号 <b class="memno-sm">${esc(u.no?(u.dbId?fmtNo(u.no):'#'+u.no):'—')}</b></span><span class="meta">QRコードを表示・番号をコピー</span></div><span class="join">表示 →</span></a>
     <a class="row" href="#/inbox"><div class="main"><span class="t">お知らせ ${unread()?`<span class="badge">${unread()}</span>`:''}</span><span class="meta">運営からのメッセージ</span></div><span class="join">見る →</span></a>
-    <a class="row" href="#/follows/following"><div class="main"><span class="t">フォロー中 ${followingCount()}人</span><span class="meta">この人たちの投稿を追っています</span></div><span class="join">見る →</span></a>
-    <a class="row" href="#/follows/followers"><div class="main"><span class="t">フォロワー ${S.flw.ers}人</span><span class="meta">あなたをフォローしている人</span></div><span class="join">見る →</span></a>
     <a class="row" href="#/people"><div class="main"><span class="t">ファンをさがす</span><span class="meta">会員番号・QRコードで</span></div><span class="join">さがす →</span></a>
   </div>
+  ${faceSec('フォロー中',followingCount(),S.flw.ingP,'#/follows/following','まだ誰もフォローしていません。')}
+  ${faceSec('フォロワー',S.flw.ers,S.flw.ersP,'#/follows/followers','まだフォロワーはいません。会員番号やQRコードを友だちに教えてみましょう。')}
   <section class="sec"><div class="sec-h"><h2>推しグループ</h2><button class="more linkbtn" id="follow-edit3">編集</button></div>
     <div class="filters">${S.follow.map(g=>`<a class="fchip" href="#/g/${g}">${dot(g)}${esc(gname(g))}</a>`).join('')||'<span class="hint">まだありません</span>'}</div></section>
   ${myCommsHTML()}

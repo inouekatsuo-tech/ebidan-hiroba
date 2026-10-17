@@ -180,7 +180,19 @@ export default async function handler(req, res) {
       const { data: target } = await sb.from('profiles').select('id').eq('id', b.userId).maybeSingle();
       if (!target) return res.status(404).json({ error: '相手が見つかりません' });
       if (b.action === 'follow') {
+        const { data: already } = await sb.from('follows').select('follower_id')
+          .match({ follower_id: me.id, followee_id: target.id }).maybeSingle();
         await sb.from('follows').upsert({ follower_id: me.id, followee_id: target.id });
+        // はじめてフォローしたときだけ、相手にお知らせを送る
+        if (!already) {
+          const { data: mine } = await sb.from('profiles').select('handle,member_no').eq('id', me.id).single();
+          await sb.from('notices').insert({
+            user_id: target.id,
+            title: 'フォローされました',
+            body: `${mine.handle}さん（#${String(mine.member_no).padStart(6, '0')}）があなたをフォローしました。`,
+            url: `/#/u/${mine.member_no}`,
+          });
+        }
       } else {
         await sb.from('follows').delete().match({ follower_id: me.id, followee_id: target.id });
       }
