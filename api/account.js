@@ -216,6 +216,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, people });
     }
 
+    // --- 自分あて＋全員あてのお知らせ ---
+    if (b.action === 'notices') {
+      const { data: me } = await sb.from('profiles').select('id').eq('token', b.token || '').maybeSingle();
+      if (!me) return res.status(401).json({ error: 'ログインが必要です' });
+      const { data } = await sb.from('notices')
+        .select('id,title,body,url,created_at,user_id')
+        .or(`user_id.is.null,user_id.eq.${me.id}`)
+        .order('created_at', { ascending: false }).limit(30);
+      return res.status(200).json({ ok: true, notices: data || [] });
+    }
+
     if (b.action === 'find') {
       const no = Number(String(b.memberNo || '').replace(/[^0-9]/g, ''));
       if (!no) return res.status(400).json({ error: '会員番号を入れてください' });
