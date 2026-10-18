@@ -240,7 +240,7 @@ a.offkai{text-decoration:none}
 a.offkai:hover{border-color:var(--accent)}
 .center{align-self:center}
 a.btn{text-decoration:none;display:inline-block}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:hsl(var(--h) var(--s,62%) var(--l,56%));box-shadow:inset 0 0 0 1px rgba(28,31,58,.14);flex:none;margin-right:5px;vertical-align:middle}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:hsl(var(--h) var(--s,62%) var(--l,56%));box-shadow:inset 0 0 0 1.5px rgba(28,31,58,.28);flex:none;margin-right:5px;vertical-align:middle}
 .dot.all{background:conic-gradient(hsl(345 62% 56%),hsl(40 62% 56%),hsl(140 62% 56%),hsl(215 62% 56%),hsl(300 62% 56%),hsl(345 62% 56%))}
 .gchip{display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;color:var(--ink);white-space:nowrap}
 .fchip .dot{margin-right:4px}
@@ -380,7 +380,7 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .av-pick input[type=file]{display:none}
 /* グループの色を使ったカード */
 .oitem{position:relative;overflow:hidden}
-.oitem.hued{border-left:4px solid hsl(var(--h) var(--s,65%) var(--l,55%))}
+.oitem.hued{border-left:4px solid hsl(var(--h) var(--s,65%) var(--l,55%));box-shadow:inset 5px 0 0 -4px rgba(28,31,58,.22)}
 .oitem .t{font-size:15.5px;line-height:1.5}
 /* 動画（YouTubeのサムネイル） */
 .vitem{padding:0;overflow:hidden;text-decoration:none;display:block}
@@ -391,7 +391,7 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .vitem .t{font-weight:700;font-size:15px;line-height:1.45}
 /* 今日の時間割 */
 .tl{display:flex;flex-direction:column;gap:8px}
-.tlrow{display:flex;gap:12px;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-left:5px solid hsl(var(--h) var(--s,65%) var(--l,55%));border-radius:14px;padding:12px 14px;text-decoration:none}
+.tlrow{display:flex;gap:12px;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-left:5px solid hsl(var(--h) var(--s,65%) var(--l,55%));box-shadow:inset 6px 0 0 -5px rgba(28,31,58,.22);border-radius:14px;padding:12px 14px;text-decoration:none}
 .tlrow .tm{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:hsl(var(--h) var(--s,55%) min(var(--l,55%),42%));min-width:66px;line-height:1.2}
 .tlrow .tm small{display:block;font-size:11px;font-weight:700;color:var(--muted)}
 .tlrow .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -473,8 +473,8 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 <script>
 // 色は各グループの公式カラー（白・灰色は鮮やかさ s を落として表現する）
 const GROUPS=[
-  {id:'chotokkyu',name:'超特急',n:9,hue:338,s:78,l:58},                    // ピンク
-  {id:'milk',name:'M!LK',n:5,hue:220,s:8,l:74},                            // 白
+  {id:'chotokkyu',name:'超特急',n:9,hue:330,s:88,l:65},                    // ピンク
+  {id:'milk',name:'M!LK',n:5,hue:220,s:14,l:95},                           // 白（輪郭で見せる）
   {id:'superdragon',name:'SUPER★DRAGON',short:'スパドラ',n:9,hue:220,s:78,l:54}, // 青
   {id:'sakurashimeji',name:'Sakurashimeji',n:2,hue:142,s:58,l:42},         // 緑
   {id:'onenonly',name:"ONE N' ONLY",n:6,hue:2,s:78,l:52},                  // 赤
