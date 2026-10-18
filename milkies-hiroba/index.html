@@ -917,7 +917,7 @@ V.home=()=>{
     ${matrixHTML()}
     <button class="linkbtn more" id="mx-toggle">${ui.mxAll?'推しグループだけ表示':'全10グループを表示'}</button></section>
   ${(()=>{ const lt=S.threads.filter(t=>t.live&&(!t.g&&!(t.gs||[]).length||(t.gs||[t.g]).some(g=>!g||fav.includes(g)))); return `<section class="sec"><div class="sec-h"><h2>今日の実況スレ</h2><span class="sub">出演情報から自動で作成</span></div>
-    ${lt.length?`<div class="panel rows">${lt.slice(0,4).map(t=>`<a class="row live-row" href="#/thread/${t.id}"><span class="live-dot"></span><div class="main"><span class="t">${esc(t.title.replace('【実況】',''))}</span><span class="meta">${(t.gs&&t.gs.length?t.gs:[t.g]).slice(0,3).map(gchip).join('')}${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count}レス</span></div><span class="join">実況に参加 →</span></a>`).join('')}</div>`:'<p class="hint">今日は推しグループの出演予定がありません。ほかのグループの実況スレは掲示板から見られます。</p>'}</section>`; })()}
+    ${lt.length?`<div class="panel rows">${lt.slice(0,4).map(t=>`<a class="row live-row" href="#/thread/${t.id}"><span class="live-dot"></span><div class="main"><span class="t">${esc(t.title.replace('【実況】',''))}</span><span class="meta">${(t.gs&&t.gs.length?t.gs:[t.g]).slice(0,3).map(gchip).join('')}${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count<=1?'<b style="color:var(--accent)">まだ書き込みなし</b>':`${t.count-1}件の書き込み`}</span></div><span class="join">実況に参加 →</span></a>`).join('')}</div>`:'<p class="hint">今日は推しグループの出演予定がありません。ほかのグループの実況スレは掲示板から見られます。</p>'}</section>`; })()}
   <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
     <div class="feed">${news.slice(0,4).map(itemCard).join('')||'<p class="hint">推しグループを追加すると表示されます。</p>'}</div></section>
@@ -1213,9 +1213,14 @@ V.pick=id=>{
   </section>`;
 };
 
-function threadRow(t){ return `<a class="row" href="#/thread/${t.id}"><div class="main"><span class="t">${esc(t.title)}</span><span class="meta">${gchip(t.g)}<span class="chip ${t.live?'fan':''}">${esc(t.cat)}</span>${t.count}レス · ${esc(t.upd)}</span></div></a>`; }
+function threadRow(t){
+  const empty=t.count<=1;
+  return `<a class="row" href="#/thread/${t.id}"><div class="main"><span class="t">${esc(t.title)}</span>
+    <span class="meta">${gchip(t.g)}<span class="chip ${t.cat==='お題'?'fan':t.live?'fan':''}">${esc(t.cat)}</span>${empty?'<b style="color:var(--accent)">まだ書き込みなし</b>':`${t.count-1}件の書き込み`} · ${esc(t.upd)}</span></div>
+    <span class="join">${empty?'いちばんに書く →':'開く →'}</span></a>`;
+}
 V.board=()=>{
-  const cats=['すべて','実況','ライブ','新曲','初心者','グッズ','雑談'];
+  const cats=['すべて','お題','実況','ライブ','新曲','初心者','グッズ','雑談'];
   const list=S.threads.filter(t=>(ui.boardCat==='すべて'||t.cat===ui.boardCat)&&(ui.bg==='all'||(ui.bg==='none'?!t.g:t.g===ui.bg)));
   return `<div class="page-h"><h1>掲示板</h1><p>誰でもスレッドを立てて、語り合える場所。</p></div>
   <div class="safety panel"><b>書き込みのルール</b><ul><li>チケットの売買・譲渡の書き込みは禁止</li><li>メンバーのプライベート（住所・熱愛など）の書き込みは禁止</li><li>ファン同士の叩きや晒しは禁止</li><li>会員限定・有料コンテンツの掲載、生成AIでメンバーを模したものの投稿は禁止</li></ul></div>
@@ -1248,7 +1253,7 @@ V.thread=id=>{
     ? `<div class="res hidden-post"><div class="hd"><span class="no">${r.n}</span></div><p class="hint">この書き込みは、ルール違反のため運営が非表示にしました。</p></div>`
     : `<div class="res"><div class="hd"><span class="no">${r.n}</span><span>名前：<span class="nm">${esc(r.nm)}</span></span><span>ID:${esc(r.id)}</span></div><p>${esc(r.t).replace(/&gt;&gt;(\d+)/g,'<span class="anc">&gt;&gt;$1</span>')}</p>${r.nm==='広場の運営'?'':`<div class="res-foot">${reaxHTML(r.postId?'db'+r.postId:t.id+':'+r.n,SEED[r.n])}${reportBtn(r.postId?'db'+r.postId:'res:'+t.id+':'+r.n)}</div>`}</div>`).join('');
   return `<a class="back" href="#/board">← 掲示板</a>
-  <div class="page-h"><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)}レス</span><h1>${esc(t.title)}</h1></div>
+  <div class="page-h"><span class="meta">${gchip(t.g)}<span class="chip">${esc(t.cat)}</span>${Math.max(t.count,t.res.length)-1}件の書き込み</span><h1>${esc(t.title)}</h1></div>
   ${t.live?`<div class="notice">このスレッドは出演情報から自動で立ちました。${t.srcUrl?`<a href="${esc(t.srcUrl)}" target="_blank" rel="noopener">公式の情報を見る ↗</a>`:''}</div>`:''}
   ${t.count>t.res.length?`<p class="hint">※モックのため、最初の数件だけ表示しています</p>`:''}
   <div class="panel">${shown||(loadingRes?'<p class="hint">書き込みを読み込んでいます…</p>':'')}</div>
