@@ -2420,7 +2420,7 @@ function toOfficial(items){
       if(n<0||n>6) continue;
       out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',label:it.label||'',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:it.time||''}});
     } else {
-      if(n<-14) continue;
+      if(n<-14 && it.kind!=='video') continue;   // 動画は古くても見てもらう価値がある
       out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:it.kind==='fan'?'fan':'official',
         likes:it.likes||0,
         via:it.kind==='video'?'公式動画':it.kind==='x'?`公式X · @${it.author}`:it.kind==='fan'?`話題の投稿 · @${it.author}`:'公式ニュース',
