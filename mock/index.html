@@ -354,6 +354,32 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .av-pick{display:flex;align-items:center;gap:14px;margin:4px 0 2px}
 .av-pick .avatar{width:64px;height:64px;font-size:22px}
 .av-pick input[type=file]{display:none}
+/* グループの色を使ったカード */
+.oitem{position:relative;overflow:hidden}
+.oitem.hued{border-left:4px solid hsl(var(--h) 65% 55%)}
+.oitem .t{font-size:15.5px;line-height:1.5}
+/* 動画（YouTubeのサムネイル） */
+.vitem{padding:0;overflow:hidden;text-decoration:none;display:block}
+.vitem .thumb{position:relative;aspect-ratio:16/9;background:var(--sunk)}
+.vitem .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.vitem .play{position:absolute;inset:0;margin:auto;width:54px;height:54px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;font-size:20px;padding-left:4px}
+.vitem .vmeta{padding:10px 14px 13px;display:flex;flex-direction:column;gap:5px}
+.vitem .t{font-weight:700;font-size:15px;line-height:1.45}
+/* 今日の時間割 */
+.tl{display:flex;flex-direction:column;gap:8px}
+.tlrow{display:flex;gap:12px;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-left:5px solid hsl(var(--h) 65% 55%);border-radius:14px;padding:12px 14px;text-decoration:none}
+.tlrow .tm{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;color:hsl(var(--h) 55% 42%);min-width:66px;line-height:1.2}
+.tlrow .tm small{display:block;font-size:11px;font-weight:700;color:var(--muted)}
+.tlrow .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tlrow .nm{font-weight:800;font-size:14px}
+.tlrow .ti{font-size:13.5px;color:var(--ink);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.topic{display:flex;flex-direction:column;gap:7px;padding:16px;text-decoration:none;background:linear-gradient(135deg,var(--accent-soft),var(--surface));border-color:hsl(345 70% 60% / .35)}
+.topic b{font-size:16.5px;line-height:1.5}
+.topic .go{font-size:13px;font-weight:700;color:var(--accent)}
+.vgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:420px){.vgrid{grid-template-columns:1fr}}
+.vgrid .vitem .t{font-size:13.5px;-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+.tl-empty{font-size:13px;color:var(--muted);padding:6px 2px}
 .tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px}
 .adtable{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
 .adtable th,.adtable td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left}
@@ -598,7 +624,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',adminSort:'no',followList:null,missingUser:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',adminSort:'no',followList:null,members:null,missingUser:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -657,7 +683,7 @@ function days(){
 const dot=g=>GMAP[g]?`<i class="dot" style="--h:${GMAP[g].hue}"></i>`:'<i class="dot all"></i>';
 const gchip=g=>`<span class="gchip">${dot(g)}${esc(gshort(g))}</span>`;
 const cchip=c=>`<span class="chip cat-${c}">${CMAP[c].name}</span>`;
-function allItems(){ return [...OFFICIAL.filter(o=>o.kind!=='fan'),...S.picks.map(p=>({...p,src:'fan'}))].sort((a,b)=>(a.r??5)-(b.r??5)); }
+function allItems(){ return [...OFFICIAL.filter(o=>o.kind!=='fan'),...realPicks().map(p=>({...p,src:'fan'}))].sort((a,b)=>(a.r??5)-(b.r??5)); }
 function filtered(o){
   return allItems().filter(it=>{
     if(o.g==='follow'&&it.g&&!S.follow.includes(it.g)) return false;
@@ -678,7 +704,8 @@ function page(list,key,sig){
 }
 const moreBtn=p=>p.rest?`<button class="btn ghost center" data-more="${p.key}">もっと見る（残り${p.rest}件）</button>`:'';
 function oCard(it){
-  const tag=it.url?`a class="panel oitem" href="${esc(it.url)}" target="_blank" rel="noopener"`:'article class="panel oitem"';
+  const hue=` style="--h:${hueOf(it.g)}"`, cls=it.g?'panel oitem hued':'panel oitem';
+  const tag=it.url?`a class="${cls}"${hue} href="${esc(it.url)}" target="_blank" rel="noopener"`:`article class="${cls}"${hue}`;
   return `<${tag}><span class="meta">${gchip(it.g)}<span class="chip official">公式 · ${esc(it.via)}</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
     <span class="t">${esc(it.t)}</span>${it.sched?`<span class="meta">📅 ${days()[it.sched.d].w==='今日'?'今日':days()[it.sched.d].day+'日（'+days()[it.sched.d].w+'）'} ${it.sched.time}</span>`:''}${it.url?'<span class="src-link">公式サイトで見る ↗</span>':''}</${it.url?'a':'article'}>`;
 }
@@ -688,7 +715,15 @@ function xCard(it){
     <div class="tw"><blockquote class="twitter-tweet" data-lang="ja" data-dnt="true" data-conversation="none"><a href="${esc(it.url)}"></a></blockquote></div>
     <a class="open" href="${esc(it.url)}" target="_blank" rel="noopener">Xで見る ↗</a></article>`;
 }
-const itemCard=it=>(it.kind==='x'||it.kind==='fan')?xCard(it):it.src==='official'?oCard(it):pickCard(S.picks.find(p=>p.id===it.id));
+const hueOf=g=>GMAP[g]?GMAP[g].hue:258;
+// 公式動画はサムネイルを大きく見せる（文字だけの一覧にしない）
+function vCard(it){
+  return `<a class="panel vitem" href="https://www.youtube.com/watch?v=${esc(it.yt)}" target="_blank" rel="noopener">
+    <div class="thumb"><img src="https://i.ytimg.com/vi/${esc(it.yt)}/mqdefault.jpg" alt="" loading="lazy"><span class="play">▶</span></div>
+    <div class="vmeta"><span class="meta">${gchip(it.g)}<span class="chip official">公式動画</span>${cchip(it.cat)}<span>${esc(it.ago)}</span></span>
+      <span class="t">${esc(it.t)}</span></div></a>`;
+}
+const itemCard=it=>(it.kind==='video'&&it.yt)?vCard(it):(it.kind==='x'||it.kind==='fan')?xCard(it):it.src==='official'?oCard(it):pickCard(S.picks.find(p=>p.id===it.id));
 
 function schedHTML(filter){
   const ds=days();
@@ -764,6 +799,31 @@ function toggleReax(v){
 }
 // ===== 今日のダイジェスト =====
 // 集めたデータから「今日はこれだけ知っておけばOK」を自動で組み立てる（追加費用なし）
+// 今日の出演を「時間割」で見せる（文字の羅列をやめる）
+function todayTimeline(){
+  const list=OFFICIAL.filter(o=>o.kind==='schedule'&&o.sched&&o.sched.d===0)
+    .sort((a,b)=>(a.sched.time?0:1)-(b.sched.time?0:1)||(a.sched.time||'').localeCompare(b.sched.time||''));
+  if(!list.length) return '';
+  const LB={TV:'📺',RADiO:'📻','LiVE&EVENT':'🎤',STAGE:'🎭',MOViE:'🎬',MAG:'📖',BiRTHDAY:'🎂'};
+  const rows=list.slice(0,6).map(o=>{
+    const t=o.sched.time;
+    return `<a class="tlrow" style="--h:${hueOf(o.g)}" href="${esc(o.url||'#/info')}" ${o.url?'target="_blank" rel="noopener"':''}>
+      <span class="tm">${t?esc(t):'—'}<small>${LB[o.label]||'✨'} ${esc((o.label||'').replace('LiVE&EVENT','ライブ').replace('RADiO','ラジオ').replace('MOViE','映画').replace('MAG','雑誌').replace('BiRTHDAY','誕生日'))}</small></span>
+      <span class="tx"><span class="nm">${o.g?esc(gname(o.g)):'EBiDAN'}</span><span class="ti">${esc(o.t)}</span></span></a>`;
+  }).join('');
+  const more=list.length-6;
+  return `<section class="sec"><div class="sec-h"><h2>今日の出演</h2><a class="more" href="#/info">すべて見る</a></div>
+    <div class="tl">${rows}</div>${more>0?`<p class="tl-empty">ほか${more}件</p>`:''}</section>`;
+}
+// 今日のお題スレ（運営から話しかけて、返事しやすくする）
+function topicHTML(){
+  const t=S.threads.find(x=>x.cat==='お題');
+  if(!t) return '';
+  return `<a class="panel topic" href="#/thread/${t.id}">
+    <span class="meta"><span class="chip fan">今日のお題</span>${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count>1?`<span class="chip ok">${t.count-1}件の返事</span>`:''}</span>
+    <b>${esc(t.title.replace('【お題】',''))}</b>
+    <span class="go">${t.count>1?'みんなの答えを見る':'いちばんに答える'} →</span></a>`;
+}
 function digestHTML(){
   if(!LIVE) return '';
   const today=jstToday(), fav=S.follow;
@@ -813,14 +873,15 @@ function digestHTML(){
 const V={};
 V.home=()=>{
   const fav=S.follow;
-  const top=[...S.picks].filter(p=>fav.includes(p.g)).sort((a,b)=>(b.likes+b.shares*5)-(a.likes+a.shares*5)).slice(0,3);
+  const top=[...realPicks()].filter(p=>fav.includes(p.g)).sort((a,b)=>(b.likes+b.shares*5)-(a.likes+a.shares*5)).slice(0,3);
   const favNews=OFFICIAL.filter(o=>(o.kind==='news'||o.kind==='video')&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r);
   const favX=OFFICIAL.filter(o=>o.kind==='x'&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r);
   const news=[...favNews.slice(0,6),...(favNews.length<4?favX.slice(0,4-favNews.length):[])];
   return `
-  ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は30分ごとに自動更新</b>：EBiDAN公式サイトから集めています（最終更新 ${fmtUpdated(LIVE.updated)}）。ファンの投稿・掲示板・コミュニティは架空のサンプルです。</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
+  ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は30分ごとに自動更新</b>：EBiDAN公式サイトから集めています（最終更新 ${fmtUpdated(LIVE.updated)}）</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
   ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>アプリとして使えます</b><span>ホーム画面に追加すると、新着情報が通知で届きます</span></div><span class="add">追加</span><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
-  ${digestHTML()}
+  ${todayTimeline()||digestHTML()}
+  ${topicHTML()}
   <section class="hero">
     <h1>EBiDANの情報、<em>ぜんぶここに。</em></h1>
     <p>10グループの公式発表も、ファンが見つけたいい投稿も。カテゴリ別に仕分けて、流れていかないように。（非公式）</p>
@@ -835,7 +896,10 @@ V.home=()=>{
     ${lt.length?`<div class="panel rows">${lt.slice(0,4).map(t=>`<a class="row live-row" href="#/thread/${t.id}"><span class="live-dot"></span><div class="main"><span class="t">${esc(t.title.replace('【実況】',''))}</span><span class="meta">${(t.gs&&t.gs.length?t.gs:[t.g]).slice(0,3).map(gchip).join('')}${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count}レス</span></div><span class="join">実況に参加 →</span></a>`).join('')}</div>`:'<p class="hint">今日は推しグループの出演予定がありません。ほかのグループの実況スレは掲示板から見られます。</p>'}</section>`; })()}
   <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
-    <div class="panel rows">${news.map(n=>`<a class="row" ${n.url?`href="${esc(n.url)}" target="_blank" rel="noopener"`:''}><div class="main"><span class="meta">${gchip(n.g)}<span class="chip official">${esc(n.via)}</span>${cchip(n.cat)}${n.ago}</span><span class="t">${n.kind==='x'?`公式Xの新着投稿　<span class="hint">タップでXを開く</span>`:esc(n.t)}</span></div></a>`).join('')||'<div class="row"><p class="hint">推しグループを追加すると表示されます。</p></div>'}</div></section>
+    <div class="feed">${news.slice(0,4).map(itemCard).join('')||'<p class="hint">推しグループを追加すると表示されます。</p>'}</div></section>
+  ${(()=>{ const vids=OFFICIAL.filter(o=>o.kind==='video'&&o.yt&&(!o.g||fav.includes(o.g))).slice(0,4);
+    return vids.length?`<section class="sec"><div class="sec-h"><h2>公式の動画</h2><a class="more" href="#/info" data-ic="release">もっと見る</a></div>
+    <div class="vgrid">${vids.map(vCard).join('')}</div></section>`:''; })()}
   <section class="sec"><div class="sec-h"><h2>今日の持ち寄り</h2><span class="sub">Xで話題の投稿は自動で追加されます</span></div>
     <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
   ${['home','both'].includes(S.ads.slot)?adHTML():''}
@@ -1540,7 +1604,7 @@ async function loadThreads(){
       upd:relTime(t.updated_at), res:[], loaded:false, remote:true,
     }));
     // サーバーにあるスレッドを先頭に、手元のサンプルを後ろに
-    S.threads=[...mapped,...S.threads.filter(t=>!t.remote&&!t.live)];
+    S.threads=mapped;   // 本番のスレッドだけを見せる（デモ用の架空スレッドは出さない）
     bgRender();
   }catch(e){ console.warn('スレッドの読み込みに失敗',e); }
 }
@@ -1718,6 +1782,15 @@ async function fetchUser(no){
       bio:p.bio,birthday:p.birthday,avatar:p.avatar,links:p.links,g:null,dbId:p.id};
   }catch(e){ ui.missingUser=no; }
   finally{ fetchingUser=null; render(); }
+}
+// 最近登録した人を読み込む
+async function loadMembers(){
+  if(!DB_ON()) return;
+  try{
+    const rows=await dbGet('profiles?select=id,member_no,handle,avatar,age_band,pref,oshi&banned=is.false&order=created_at.desc&limit=30');
+    ui.members=rows.map(p=>({id:p.id,no:p.member_no,name:p.handle,avatar:p.avatar,age:p.age_band,pref:p.pref,oshi:p.oshi}));
+    bgRender();
+  }catch(e){ ui.members=[]; console.warn('会員の読み込みに失敗',e.message); }
 }
 async function loadFollowList(type){
   try{
@@ -2088,6 +2161,21 @@ V.follows=(type)=>{
   }).join('')}</div>`:`<p class="hint">${followers?'まだフォロワーはいません。会員番号やQRコードを友だちに教えてみましょう。':'まだ誰もフォローしていません。'}<br><a href="#/people">ファンをさがす</a></p>`}`;
 };
 V.people=()=>{
+  if(DB_ON()){
+    if(!ui.members){ loadMembers(); }
+    const list=ui.members||[];
+    return `<a class="back" href="#/me">← マイページ</a>
+    <div class="page-h"><h1>ファンをさがす</h1><p>会員番号やQRコードで探せます。新しく参加した人も表示しています。</p></div>
+    <form class="search" id="nosearch"><input id="no-q" inputmode="numeric" placeholder="会員番号で探す（例：000004）" aria-label="会員番号"><button class="btn sm">探す</button></form>
+    ${S.user?`<a class="btn ghost center" href="#/card">自分のQRコードを見せる</a>`:''}
+    <section class="sec"><div class="sec-h"><h2>最近参加した人</h2><span class="sub">${list.length}人</span></div>
+    ${list.length?`<div class="panel rows">${list.map(u=>{
+      const on=S.flw.ing.includes(u.id), me=S.user&&S.user.dbId===u.id;
+      return `<div class="row">${av(u,'mini-av')}<div class="main"><a class="t" href="#/u/${u.no}" style="text-decoration:none">${esc(u.name)}</a>
+        <span class="meta"><span class="chip">${esc(u.age||'—')}</span><span class="chip">${esc(u.pref||'—')}</span>${u.oshi?`<span class="chip fan">${esc(u.oshi)}推し</span>`:''}<span class="chip">${fmtNo(u.no)}</span></span></div>
+        ${me?'<span class="chip ok">あなた</span>':`<button class="btn sm ${on?'ghost':''}" data-followid="${esc(u.id)}">${on?'フォロー中':'フォロー'}</button>`}</div>`;
+    }).join('')}</div>`:'<p class="hint">読み込んでいます…</p>'}</section>`;
+  }
   const list=sampleUsers();
   return `<a class="back" href="#/me">← マイページ</a>
   <div class="page-h"><h1>ファンをさがす</h1><p>会員番号で探すか、QRコードを読み取ってフォローできます。</p></div>
@@ -2277,6 +2365,11 @@ function jstToday(){ const d=new Date(Date.now()+9*3600e3); return d.toISOString
 function dayDiff(a,b){ return Math.round((new Date(a+'T00:00Z')-new Date(b+'T00:00Z'))/86400e3); }
 function relDate(date,today){ const n=dayDiff(today,date); return n<=0?'今日':n===1?'昨日':n+'日前'; }
 // Xで話題の投稿を、持ち寄りの一覧に自動で追加する
+// デモ用の架空の持ち寄りは、サーバーにつながっているときは表示しない
+function realPicks(){
+  if(!DB_ON()) return S.picks;
+  return S.picks.filter(p=>p.auto||p.mine);
+}
 function ensureAutoPicks(items){
   const today=jstToday();
   const fans=items.filter(it=>it.kind==='fan');
@@ -2307,7 +2400,7 @@ function toOfficial(items){
       out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:it.kind==='fan'?'fan':'official',
         likes:it.likes||0,
         via:it.kind==='video'?'公式動画':it.kind==='x'?`公式X · @${it.author}`:it.kind==='fan'?`話題の投稿 · @${it.author}`:'公式ニュース',
-        kindLabel:it.kind,
+        kindLabel:it.kind,yt:it.yt||null,
         author:it.author,t:it.t||`@${it.author} の投稿`,url:it.url,r:-n,ago:relDate(it.date,today)});
     }
   }

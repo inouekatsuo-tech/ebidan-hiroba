@@ -5,6 +5,7 @@
 // 使い方: node collector/collect.mjs
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { addTimes } from './times.mjs';
+import { addVideoIds } from './yt.mjs';
 import { dirname } from 'node:path';
 
 const BASE = 'https://ebidan.jp';
@@ -136,18 +137,21 @@ async function main() {
   for (const it of fresh) {
     const old = byId.get(it.id);
     // 一度わかった出演時間は、日が過ぎても消さない
-    byId.set(it.id, { ...it, seen: old?.seen || firstSeen, ...(old?.time ? { time: old.time } : {}) });
+    byId.set(it.id, { ...it, seen: old?.seen || firstSeen, ...(old?.time ? { time: old.time } : {}), ...(old?.yt ? { yt: old.yt } : {}) });
   }
 
   const cutoff = new Date(now.getTime() - KEEP_DAYS * 86400e3).toISOString().slice(0, 10);
   // 終わった出演予定は残しても見る人がいないので、3日で片づける（一覧が重くならないように）
   const schedCutoff = new Date(now.getTime() - 3 * 86400e3).toISOString().slice(0, 10);
+  // 動画（MVなど）は古くなっても価値があるので長く残す
+  const videoCutoff = new Date(now.getTime() - 400 * 86400e3).toISOString().slice(0, 10);
   const items = [...byId.values()]
-    .filter(it => it.date >= (it.kind === 'schedule' ? schedCutoff : cutoff))
+    .filter(it => it.date >= (it.kind === 'schedule' ? schedCutoff : it.kind === 'video' ? videoCutoff : cutoff))
     .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 
   // 近い日の予定は、詳細ページから放送・開演の時間を拾って足す
   try { await addTimes(items); } catch (e) { console.log('出演時間の取得でエラー（次回に回します）:', e.message); }
+  try { await addVideoIds(items); } catch (e) { console.log('動画IDの取得でエラー（次回に回します）:', e.message); }
 
   await writeFile(HEALTH, JSON.stringify({ transient: 0, ok: new Date().toISOString() }, null, 1) + '\n');
 
