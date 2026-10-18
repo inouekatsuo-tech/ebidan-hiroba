@@ -17,7 +17,7 @@ const VAPID_PUBLIC = 'BBrg_UQ1b9l-BGpztBQmAnhQroZDk8NaZHuG-es6Wx4m_HKfEJhBkURR8I
 const MAX_PER_RUN = 3;   // 1回の実行で送る通知は最大3通まで（通知疲れを防ぐ）
 
 const GNAME = {
-  chotokkyu: '超特急', milk: 'M!LK', superdragon: 'SUPER★DRAGON', sakurashimeji: 'さくらしめじ',
+  chotokkyu: '超特急', milk: 'M!LK', superdragon: 'SUPER★DRAGON', sakurashimeji: 'Sakurashimeji',
   onenonly: "ONE N' ONLY", genjibu: '原因は自分にある。', buddiis: 'BUDDiiS', icex: 'ICEx',
   lienel: 'Lienel', iiondo: 'iiONDO',
 };

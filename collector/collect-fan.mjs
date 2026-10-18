@@ -28,7 +28,7 @@ const KEYWORDS = {
   chotokkyu: ['"超特急"'],
   milk: ['"M!LK"', '#MILK'],
   superdragon: ['"SUPER★DRAGON"', '"スパドラ"'],
-  sakurashimeji: ['"さくらしめじ"'],
+  sakurashimeji: ['"さくらしめじ"', '"Sakurashimeji"'],
   onenonly: ['"ONE N\' ONLY"', '"ワンエン"'],
   genjibu: ['"原因は自分にある。"', '"げんじぶ"'],
   buddiis: ['"BUDDiiS"'],

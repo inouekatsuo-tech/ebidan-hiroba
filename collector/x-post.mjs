@@ -20,7 +20,7 @@ const GROUP = {
   chotokkyu: { name: '超特急', tag: '超特急', fan: '8号車' },
   milk: { name: 'M!LK', tag: 'MILK', fan: 'みるきーず' },
   superdragon: { name: 'スパドラ', tag: 'スパドラ' },
-  sakurashimeji: { name: 'さくらしめじ', tag: 'さくらしめじ' },
+  sakurashimeji: { name: 'Sakurashimeji', tag: 'Sakurashimeji' },
   onenonly: { name: "ONE N' ONLY", tag: 'ワンエン' },
   genjibu: { name: 'げんじぶ', tag: 'げんじぶ' },
   buddiis: { name: 'BUDDiiS', tag: 'BUDDiiS' },

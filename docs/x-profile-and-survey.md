@@ -108,7 +108,7 @@
 **Q13. その他、ひとことご自由にどうぞ（自由記述）**
 
 **Q14.（任意）よければ教えてください：応援しているグループ**
-超特急 / M!LK / SUPER★DRAGON / さくらしめじ / ONE N' ONLY / 原因は自分にある。/ BUDDiiS / ICEx / Lienel / iiONDO / その他
+超特急 / M!LK / SUPER★DRAGON / Sakurashimeji / ONE N' ONLY / 原因は自分にある。/ BUDDiiS / ICEx / Lienel / iiONDO / その他
 
 **Q15.（任意）年代**
 10代未満 / 10代 / 20代 / 30代 / 40代 / 50代以上
