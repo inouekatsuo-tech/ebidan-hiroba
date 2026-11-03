@@ -18,7 +18,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <script>window.OAUTH_READY=["google","x","apple","email"];</script>
 <script>window.SUPABASE_URL="https://xfrccvpiehgbfwbofedx.supabase.co";window.SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmcmNjdnBpZWhnYmZ3Ym9mZWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzODkxMjAsImV4cCI6MjEwNjk2NTEyMH0.dY-_Y7BoktoFzmeQK_61TtabmmAnd19PYWQuujHN_h4";</script>
-<script>window.VAPID_PUBLIC="BBrg_UQ1b9l-BGpztBQmAnhQroZDk8NaZHuG-es6Wx4m_HKfEJhBkURR8IZuIv-dGOQArskgBFJsL_bnpMs9rxU";</script>
+<script>window.VAPID_PUBLIC="BHwxXpG3FGgkwUx2oLm1BOs0sHAh7VPs5lC3IvLWhFZww3XiiVaPt4cK1l1xUm2za2nt1eZnz0OKpMETgCDST-k";</script>
 <style>html{color-scheme:light dark}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;-webkit-text-size-adjust:100%}img{max-width:100%}[hidden]{display:none!important}</style>
 <!-- アクセス数の集計（Cookieを使わない方式） -->
 <script defer src="/_vercel/insights/script.js"></script>
@@ -456,7 +456,7 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 
 <main class="wrap" id="app"><!-- 検索エンジンや、JavaScriptが動かない環境のための説明。読み込み後はアプリの画面に置き換わります -->
 <section class="hero"><h1>EBiDANの情報、<em>ぜんぶここに。</em></h1>
-<p>推しトピアは、EBiDAN（恵比寿学園男子部）10グループの出演情報・ニュース・動画を、グループ別・カテゴリ別にまとめている非公式のファンサイトです。公式サイトの情報を30分ごとに自動で集めて、テレビ・ラジオ・ライブ・リリース・グッズに仕分けています。ログインなしで読める掲示板と、ファン同士のコミュニティもあります。</p>
+<p>推しトピアは、EBiDAN（恵比寿学園男子部）10グループの出演情報・ニュース・動画を、グループ別・カテゴリ別にまとめている非公式のファンサイトです。公式サイトの情報を1日に数回、自動で集めて、テレビ・ラジオ・ライブ・リリース・グッズに仕分けています。ログインなしで読める掲示板と、ファン同士のコミュニティもあります。</p>
 <p>対象グループ：超特急／M!LK／SUPER★DRAGON／Sakurashimeji／ONE N\' ONLY／原因は自分にある。／BUDDiiS／ICEx／Lienel／iiONDO</p>
 <p class="hint">※スターダストプロモーションおよびEBiDANとは関係のない、ファンが個人で運営するサイトです。</p>
 <noscript><p>このサイトを表示するにはJavaScriptが必要です。</p></noscript></section></main>
@@ -2494,7 +2494,7 @@ function confirmJoin(id){
     setTimeout(()=>{ if(!S.pending.includes(id)) return; S.pending=S.pending.filter(x=>x!==id); S.joined.push(id); save(); render(); toast(`（デモ）「${c.name}」の管理人が参加を承認しました`); },4000);
   } else { S.joined.push(id); save(); render(); toast(`「${c.name}」に参加しました`); }
 }
-// 公式情報：GitHub Actions が30分ごとに集めた data/items.json を読む
+// 公式情報：GitHub Actions が定期的に集めた data/items.json を読む
 let LIVE=null;
 function fmtUpdated(iso){
   const d=new Date(iso), diff=Math.floor((Date.now()-d)/60000);
