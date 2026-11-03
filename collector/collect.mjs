@@ -6,6 +6,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { addTimes } from './times.mjs';
 import { addVideoIds } from './yt.mjs';
+import { fetchChannelVideos, mergeVideos } from './yt-feed.mjs';
 import { dirname } from 'node:path';
 
 const BASE = 'https://ebidan.jp';
@@ -125,6 +126,9 @@ async function main() {
   try { prev = JSON.parse(await readFile(OUT, 'utf8')); } catch {}
 
   const fresh = [...await news(), ...await videos(), ...await schedule(y, m), ...await schedule(ny, nm)];
+  // 各グループの公式YouTubeの新着（RSS）
+  let ytFresh = [];
+  try { ytFresh = await fetchChannelVideos(); } catch (e) { console.log('YouTubeの取得でエラー:', e.message); }
   const counts = fresh.reduce((a, it) => (a[it.kind] = (a[it.kind] || 0) + 1, a), {});
   // どれか1種類でも0件なら、サイトの構成が変わった可能性が高いので失敗扱いにする（GitHubから通知が届く）
   for (const k of ['news', 'video', 'schedule']) if (!counts[k]) throw new Error(`${k} が0件でした。公式サイトの構成が変わった可能性があります`);
@@ -138,6 +142,11 @@ async function main() {
     const old = byId.get(it.id);
     // 一度わかった出演時間は、日が過ぎても消さない
     byId.set(it.id, { ...it, seen: old?.seen || firstSeen, ...(old?.time ? { time: old.time } : {}), ...(old?.yt ? { yt: old.yt } : {}) });
+  }
+
+  // YouTubeの新着を足す（公式サイト由来の動画と重複しないもの）
+  for (const v of mergeVideos([...byId.values()], ytFresh)) {
+    if (!byId.has(v.id)) byId.set(v.id, { ...v, seen: firstSeen });
   }
 
   const cutoff = new Date(now.getTime() - KEEP_DAYS * 86400e3).toISOString().slice(0, 10);

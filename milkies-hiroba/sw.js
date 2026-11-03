@@ -1,6 +1,6 @@
 // ホーム画面アプリとして動くための最小限のService Worker。
 // 通信はそのまま通し、オフラインのときだけ最後に見たページを返す。
-const CACHE = 'ositopia-v33';
+const CACHE = 'ositopia-v34';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil((async () => {
   // 古いキャッシュを捨てて、更新がすぐ反映されるようにする

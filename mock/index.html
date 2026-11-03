@@ -974,6 +974,9 @@ V.g=id=>{
   ${ui.gc==='all'||ui.gc==='media'||ui.gc==='event'?`<section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2></div>${schedHTML(o=>o.g===id&&(ui.gc==='all'||o.cat===ui.gc))}</section>`:''}
   <section class="sec"><div class="sec-h"><h2>${ui.gc==='all'?'新着':CMAP[ui.gc].name}</h2><span class="sub">${list.length}件</span></div>
     <div class="feed">${pg.shown.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>${moreBtn(pg)}</section>
+  ${(()=>{ const vids=OFFICIAL.filter(o=>o.kind==='video'&&o.yt&&o.g===id).slice(0,6);
+    return vids.length?`<section class="sec"><div class="sec-h"><h2>公式の動画</h2><span class="sub">${vids.length}本</span></div>
+    <div class="vgrid">${vids.map(vCard).join('')}</div></section>`:''; })()}
   ${FEAT('board')?`<section class="sec"><div class="sec-h"><h2>スレッド</h2><a class="more" href="#/board" data-bg="${id}">すべて見る</a></div>
     <div class="panel rows">${ths.map(threadRow).join('')||'<div class="row"><p class="hint">まだスレッドはありません。</p></div>'}</div></section>`:''}
   ${FEAT('community')?`<section class="sec"><div class="sec-h"><h2>コミュニティ</h2><a class="more" href="#/community" data-cg="${id}">さがす</a></div>
