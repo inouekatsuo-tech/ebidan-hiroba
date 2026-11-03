@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    const { subscription, follow = [], noti = {}, unsubscribe, token } = body;
+    const { subscription, follow = [], noti = {}, unsubscribe, token, reminders } = body;
     if (!subscription?.endpoint || !/^https:\/\//.test(subscription.endpoint)) {
       return res.status(400).json({ error: 'subscription が不正です' });
     }
@@ -41,6 +41,13 @@ export default async function handler(req, res) {
       keys: subscription.keys,
       userId,
       follow: Array.isArray(follow) ? follow.slice(0, 20).map(String) : [],
+      // 1件ずつのリマインドの予約（最大50件・送信後に消える）
+      reminders: Array.isArray(reminders) ? reminders.slice(0, 50).map(r => ({
+        id: String(r.id || '').slice(0, 80),
+        at: String(r.at || '').slice(0, 16),
+        lead: Math.min(180, Math.max(5, Number(r.lead) || 30)),
+        title: String(r.title || '').slice(0, 80),
+      })).filter(r => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(r.at)) : [],
       noti: { live: noti.live !== false, news: noti.news !== false, comm: noti.comm !== false },
       updated: new Date().toISOString(),
     };

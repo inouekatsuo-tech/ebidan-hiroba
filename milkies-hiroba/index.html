@@ -397,6 +397,12 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .tlrow .tx{display:flex;flex-direction:column;gap:3px;min-width:0}
 .tlrow .nm{font-weight:800;font-size:14px}
 .tlrow .ti{font-size:13.5px;color:var(--ink);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.tlwrap,.itemwrap{display:flex;align-items:stretch;gap:6px}
+.tlwrap .tlrow,.itemwrap .item{flex:1;min-width:0}
+.bell{flex:none;align-self:center;width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:17px;cursor:pointer;line-height:1}
+.bell.on{border-color:var(--accent);background:var(--accent-soft)}
+.leadrow{display:flex;gap:8px;margin:10px 0 4px}
+.leadrow .btn{flex:1}
 .topic{display:flex;flex-direction:column;gap:7px;padding:16px;text-decoration:none;background:linear-gradient(135deg,var(--accent-soft),var(--surface));border-color:hsl(345 70% 60% / .35)}
 .topic b{font-size:16.5px;line-height:1.5}
 .topic .go{font-size:13px;font-weight:700;color:var(--accent)}
@@ -640,7 +646,7 @@ let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
 // 初期値。保存済みデータに無い項目は、ここから自動で補う
 // （古いバージョンで保存した人の画面が真っ白になるのを防ぐ）
-const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],flw:{ing:[],ers:0,ingP:[],ersP:[]},feat:{community:false,accounts:false,board:true},inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{remind:true,live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
+const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],rem:[],flw:{ing:[],ers:0,ingP:[],ersP:[]},feat:{community:false,accounts:false,board:true},inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{remind:true,live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
 (function normalize(){
   const d=DEFAULTS();
   if(!S||typeof S!=='object'||!Array.isArray(S.picks)){ S=d; return; }
@@ -766,7 +772,7 @@ function schedHTML(filter){
     const it=OFFICIAL.filter(o=>o.sched&&o.sched.d===i&&filter(o)).sort((a,b)=>(a.sched.time||'').localeCompare(b.sched.time||''));
     if(!it.length) return '';
     const more=it.length-6;
-    return `<div class="day"><div class="date ${i===0?'today':''}"><b>${d.day}</b><span>${d.w}</span></div><div class="items">${it.slice(0,6).map(s=>`<${s.url?`a href="${esc(s.url)}" target="_blank" rel="noopener"`:'div'} class="item"><span class="meta">${s.sched.time?`<span class="time">${s.sched.time}</span>`:''}${gchip(s.g)}${cchip(s.cat)}${s.via.startsWith('スケジュール')?`<span class="chip">${esc(s.via.replace('スケジュール · ',''))}</span>`:''}</span><span class="t">${esc(s.t)}</span></${s.url?'a':'div'}>`).join('')}${more>0?`<span class="hint">ほか${more}件（情報ページで見られます）</span>`:''}</div></div>`;
+    return `<div class="day"><div class="date ${i===0?'today':''}"><b>${d.day}</b><span>${d.w}</span></div><div class="items">${it.slice(0,6).map(s=>`<div class="itemwrap"><${s.url?`a href="${esc(s.url)}" target="_blank" rel="noopener"`:'div'} class="item"><span class="meta">${s.sched.time?`<span class="time">${s.sched.time}</span>`:''}${gchip(s.g)}${cchip(s.cat)}${s.via.startsWith('スケジュール')?`<span class="chip">${esc(s.via.replace('スケジュール · ',''))}</span>`:''}</span><span class="t">${esc(s.t)}</span></${s.url?'a':'div'}>${bell(s)}</div>`).join('')}${more>0?`<span class="hint">ほか${more}件（情報ページで見られます）</span>`:''}</div></div>`;
   }).join('');
   return rows?`<div class="panel">${rows}</div>`:'<p class="hint">今週の予定はありません。</p>';
 }
@@ -842,9 +848,9 @@ function todayTimeline(){
   const LB={TV:'📺',RADiO:'📻','LiVE&EVENT':'🎤',STAGE:'🎭',MOViE:'🎬',MAG:'📖',BiRTHDAY:'🎂'};
   const rows=list.slice(0,6).map(o=>{
     const t=o.sched.time;
-    return `<a class="tlrow" style="${gvars(o.g)}" href="${esc(o.url||'#/info')}" ${o.url?'target="_blank" rel="noopener"':''}>
+    return `<div class="tlwrap"><a class="tlrow" style="${gvars(o.g)}" href="${esc(o.url||'#/info')}" ${o.url?'target="_blank" rel="noopener"':''}>
       <span class="tm">${t?esc(t):'—'}<small>${LB[o.label]||'✨'} ${esc((o.label||'').replace('LiVE&EVENT','ライブ').replace('RADiO','ラジオ').replace('MOViE','映画').replace('MAG','雑誌').replace('BiRTHDAY','誕生日'))}</small></span>
-      <span class="tx"><span class="nm">${o.g?esc(gname(o.g)):'EBiDAN'}</span><span class="ti">${esc(o.t)}</span></span></a>`;
+      <span class="tx"><span class="nm">${o.g?esc(gname(o.g)):'EBiDAN'}</span><span class="ti">${esc(o.t)}</span></span></a>${bell(o)}</div>`;
   }).join('');
   const more=list.length-6;
   return `<section class="sec"><div class="sec-h"><h2>今日の出演</h2><a class="more" href="#/info">すべて見る</a></div>
@@ -914,7 +920,7 @@ V.home=()=>{
   const favX=OFFICIAL.filter(o=>o.kind==='x'&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r);
   const news=[...favNews.slice(0,6),...(favNews.length<4?favX.slice(0,4-favNews.length):[])];
   return `
-  ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は30分ごとに自動更新</b>：EBiDAN公式サイトから集めています（最終更新 ${fmtUpdated(LIVE.updated)}）</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
+  ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は自動で集めています</b>：EBiDAN公式サイトから1日に数回、自動で取り込んでいます（最終更新 ${fmtUpdated(LIVE.updated)}）</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
   ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>アプリとして使えます</b><span>ホーム画面に追加すると、新着情報が通知で届きます</span></div><span class="add">追加</span><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
   ${todayTimeline()||digestHTML()}
   ${topicHTML()}
@@ -958,7 +964,7 @@ V.info=()=>{
   </div>
   ${ui.pickOpen?pickFormHTML():''}
   ${ui.q?`<div class="meta">「${esc(ui.q)}」の検索結果 · <a href="#/info" id="clearq">解除</a></div>`:''}
-  ${LIVE?`<div class="update-note"><span class="pulse"></span><div><b>30分ごとに自動更新</b><span>EBiDAN公式サイトのニュース・動画・スケジュールを30分ごと、Xで話題のファン投稿を1日3回、自動で集めてカテゴリに仕分けています。最終更新 ${fmtUpdated(LIVE.updated)}（混み合うと少し遅れることがあります）</span></div></div>`:'<p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。</p>'}
+  ${LIVE?`<div class="update-note"><span class="pulse"></span><div><b>自動で集めています</b><span>EBiDAN公式サイトのニュース・動画・スケジュールと、Xで話題のファン投稿を、1日に数回まとめて取り込み、カテゴリに仕分けています。最終更新 ${fmtUpdated(LIVE.updated)}（混み合うと少し遅れることがあります）</span></div></div>`:'<p class="hint">公式サイト・公式X・YouTubeの情報は自動で集めて、カテゴリも自動で仕分けます（このモックではサンプル表示）。</p>'}
   <div class="feed">${pg.shown.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>
   ${moreBtn(pg)}
   ${['info','both'].includes(S.ads.slot)?adHTML():''}`;
@@ -1111,9 +1117,16 @@ async function subscribePush(){
   try{
     const reg=await navigator.serviceWorker.ready;
     let sub=await reg.pushManager.getSubscription();
+    // サーバーの鍵が変わっていたら、登録し直す（古い登録では通知が届かないため）
+    if(sub){
+      const cur=new Uint8Array(sub.options&&sub.options.applicationServerKey||[]);
+      const want=b64ToU8(window.VAPID_PUBLIC);
+      const same=cur.length===want.length&&cur.every((v,i)=>v===want[i]);
+      if(!same){ try{ await sub.unsubscribe(); }catch(e){} sub=null; }
+    }
     if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(window.VAPID_PUBLIC)});
     const res=await fetch('/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subscription:sub.toJSON(),follow:S.follow,noti:S.noti,token:getToken()||undefined})});
+      body:JSON.stringify({subscription:sub.toJSON(),follow:S.follow,noti:S.noti,reminders:S.rem,token:getToken()||undefined})});
     S.pushOn=res.ok; save();
     return res.ok;
   }catch(e){ console.warn(e); return false; }
@@ -2337,6 +2350,41 @@ function notiPanel(){
     : `<p class="hint">iPhoneは<b>ホーム画面に追加すると</b>通知を受け取れます。</p><div class="actions"><a class="btn" href="#/install">ホーム画面に追加する</a></div>`}
   </div>`;
 }
+// ===== リマインド（出演の前に知らせる） =====
+const remOf=id=>S.rem.find(r=>r.id===id);
+function bell(o){
+  if(!o||!o.sched||!o.sched.time||!o.date) return '';
+  const r=remOf(o.id);
+  return `<button class="bell${r?' on':''}" data-bell="${esc(o.id)}" aria-label="リマインドを設定" title="${r?`${r.lead>=60?'1時間':r.lead+'分'}前に通知`:'通知で知らせる'}">${r?'🔔':'🔕'}</button>`;
+}
+function openBell(id){
+  const o=OFFICIAL.find(x=>x.id===id); if(!o) return;
+  const cur=remOf(id);
+  const name=o.t.replace(/^【[^】]+】/,'').trim();
+  $('#login-body').innerHTML=`<button class="x-close" id="login-cancel" aria-label="閉じる">×</button>
+    <h2 id="login-title">いつ知らせますか？</h2>
+    <p><b>${esc(o.sched.time)}</b>　${esc(name).slice(0,40)}</p>
+    <div class="leadrow">${[[60,'1時間前'],[30,'30分前'],[10,'10分前']].map(([v,l])=>
+      `<button class="btn ${cur&&cur.lead===v?'':'ghost'}" data-lead="${id}|${v}">${l}</button>`).join('')}</div>
+    ${cur?`<div class="actions"><button class="btn sm ghost" data-lead="${id}|0">リマインドをやめる</button></div>`:''}
+    <p class="hint">通知はこの端末に届きます。ホーム画面に追加していると確実です。</p>`;
+  if(!$('#login').open) $('#login').showModal();
+}
+async function setReminder(id,lead){
+  const o=OFFICIAL.find(x=>x.id===id); if(!o) return;
+  $('#login').close();
+  S.rem=S.rem.filter(r=>r.id!==id);
+  if(lead>0) S.rem.push({id,at:`${o.date}T${o.sched.time}`,lead,
+    title:`${o.g?gname(o.g)+'　':''}${o.t.replace(/^【[^】]+】/,'').trim()}`.slice(0,80)});
+  const today=jstToday();
+  S.rem=S.rem.filter(r=>r.at.slice(0,10)>=today).slice(-50);
+  save(); render();
+  if(lead>0){
+    if(notiState()!=='granted'){ const ok=await askNoti(); if(!ok){ toast('通知を許可すると、この時間にお知らせできます'); return; } }
+    const ok=await subscribePush();
+    toast(ok?`${lead>=60?'1時間':lead+'分'}前にお知らせします`:'この端末では通知を登録できませんでした');
+  } else { await subscribePush(); toast('リマインドをやめました'); }
+}
 const birthChip=u=>u.birthday?`<span class="chip">🎂 ${+u.birthday.slice(0,2)}月${+u.birthday.slice(3,5)}日</span>`:'';
 function profileCard(u){
   const L=u.links||{};
@@ -2486,7 +2534,7 @@ function toOfficial(items){
     const n=dayDiff(it.date,today);
     if(it.kind==='schedule'){
       if(n<0||n>6) continue;
-      out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',label:it.label||'',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),sched:{d:n,time:it.time||''}});
+      out.push({id:it.id,g:it.g,cat:it.cat,kind:'schedule',src:'official',label:it.label||'',via:'スケジュール · '+(it.label||'予定'),t:it.t,url:it.url,r:n+.5,ago:n===0?'今日':n===1?'明日':(n+'日後'),date:it.date,sched:{d:n,time:it.time||''}});
     } else {
       if(n<-14 && it.kind!=='video') continue;   // 動画は古くても見てもらう価値がある
       out.push({id:it.id,g:it.g,cat:it.cat,kind:it.kind,src:it.kind==='fan'?'fan':'official',
@@ -2648,6 +2696,8 @@ document.addEventListener('click',e=>{
   else if(t.id==='test-noti'){ showLocalNoti('テスト通知','この形でお知らせが届きます 🥛'); }
   else if(d.report){ openReport(d.report); }
   else if(d.msg){ ui.openMsg=ui.openMsg===d.msg?null:d.msg; const m=S.inbox.find(x=>x.id===d.msg); if(m&&!m.read){ m.read=true; save(); } render(); syncBadge(); }
+  else if(d.bell){ openBell(d.bell); }
+  else if(d.lead){ const [id,v]=d.lead.split('|'); setReminder(id,+v); }
   else if(d.asort){ ui.adminSort=d.asort; render(); }
   else if(t.id==='adm-csv'){ downloadMembersCSV(); }
   else if(d.hide){ apiAdmin({action:'hide',postId:d.hide}).then(r=>{ adminLoad(location.hash.includes('reports')?'reports':'home'); toast(r.hidden?'非表示にしました':'再表示しました'); }).catch(e=>toast(e.message)); }
