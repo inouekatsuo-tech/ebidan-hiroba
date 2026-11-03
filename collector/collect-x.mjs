@@ -15,7 +15,7 @@ const CONF = new URL('./x-accounts.json', import.meta.url);
 const STATE = new URL('./x-state.json', import.meta.url);
 const TOKEN = process.env.X_BEARER_TOKEN;
 const MAX = +process.env.X_MAX || 25;        // 1回に取り込む上限
-const BUDGET = +process.env.X_BUDGET || 3;   // 1か月に使う上限（ドル）。超えたらその月は取得を止める
+const BUDGET = +process.env.X_BUDGET || 5;   // 1か月に使う上限（ドル）。超えたらその月は取得を止める
 const PER_POST = 0.005;                      // 1投稿あたりの目安（ドル）
 
 async function main() {
@@ -42,7 +42,11 @@ async function main() {
   url.searchParams.set('tweet.fields', 'created_at,text');
   url.searchParams.set('expansions', 'author_id');
   url.searchParams.set('user.fields', 'username');
-  if (state.since_id) url.searchParams.set('since_id', state.since_id);
+  // 検索APIは直近7日分しか扱えず、それより古い since_id を渡すとエラーになる
+  // （予算超過で取得を止めていた月明けなど）。古いときは since_id を使わずに直近分を取り直す。
+  const sinceTime = state.since_id ? Number(BigInt(state.since_id) >> 22n) + 1288834974657 : 0;
+  if (sinceTime > Date.now() - 6.5 * 86400e3) url.searchParams.set('since_id', state.since_id);
+  else if (state.since_id) console.log('前回の取得から7日近くたっているため、直近の投稿から取り直します');
 
   const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
   if (res.status === 429) { console.log('Xの利用制限にかかりました。次回に回します'); return; }
