@@ -441,8 +441,8 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
   <div class="tabs-in">
     <a class="tab" href="#/home" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>ホーム</a>
     <a class="tab" href="#/info" data-tab="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>情報</a>
-    <a class="tab" href="#/board" data-tab="board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>掲示板</a>
-    <a class="tab" href="#/community" data-tab="community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M3 19c.6-3.4 3-5 6-5s5.4 1.6 6 5M15 14.6c2.8-.3 5.2 1 6 4.4"/></svg>コミュニティ</a>
+    <a class="tab" data-feat="board" href="#/board" data-tab="board"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>掲示板</a>
+    <a class="tab" data-feat="community" href="#/community" data-tab="community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M3 19c.6-3.4 3-5 6-5s5.4 1.6 6 5M15 14.6c2.8-.3 5.2 1 6 4.4"/></svg>コミュニティ</a>
     <a class="tab" href="#/me" data-tab="me" id="tab-me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4.2-6.5 8-6.5s7 2 8 6.5"/></svg>マイページ</a>
   </div>
 </nav>
@@ -616,7 +616,7 @@ let S;
 try{ S=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
 // 初期値。保存済みデータに無い項目は、ここから自動で補う
 // （古いバージョンで保存した人の画面が真っ白になるのを防ぐ）
-const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],flw:{ing:[],ers:0,ingP:[],ersP:[]},inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
+const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pending:[],likes:[],going:[],reax:{},myReax:{},reports:[],flw:{ing:[],ers:0,ingP:[],ersP:[]},feat:{community:false,accounts:false,board:true},inbox:null,pushOn:false,adminOn:false,hidden:[],banned:[],ads:{enabled:false,slot:'info',title:'',text:'',url:''},following:[],noti:{remind:true,live:true,news:true,comm:true},follow:['milk','chotokkyu','onenonly']});
 (function normalize(){
   const d=DEFAULTS();
   if(!S||typeof S!=='object'||!Array.isArray(S.picks)){ S=d; return; }
@@ -640,7 +640,11 @@ function ng(t){
   if(/住所|自宅|熱愛|彼女|彼氏|実家/.test(t)) return 'メンバーのプライベートに関する書き込みはできません（推しトピアのルール）';
   return null;
 }
-function need(){ if(S.user) return true; openLogin(); return false; }
+const FEAT=k=>!!S.feat[k];
+function need(){
+  if(!FEAT('accounts')){ toast('この機能はいま準備中です'); return false; }
+  if(S.user) return true; openLogin(); return false;
+}
 // 書き込みはログイン不要。名前は「名無しさん」、IDは端末ごとに日替わりで作る
 function who(){ return S.user?S.user.name:'名無しさん'; }
 function blocked(){
@@ -824,6 +828,7 @@ function todayTimeline(){
 }
 // 今日のお題スレ（運営から話しかけて、返事しやすくする）
 function topicHTML(){
+  if(!FEAT('board')) return '';
   const t=S.threads.find(x=>x.cat==='お題');
   if(!t) return '';
   return `<a class="panel topic" href="#/thread/${t.id}">
@@ -899,7 +904,7 @@ V.home=()=>{
   <section class="sec"><div class="sec-h"><h2>今週の新着マップ</h2><span class="sub">数字をタップでその情報だけ表示</span></div>
     ${matrixHTML()}
     <button class="linkbtn more" id="mx-toggle">${ui.mxAll?'推しグループだけ表示':'全10グループを表示'}</button></section>
-  ${(()=>{ const lt=S.threads.filter(t=>t.live&&(!t.g&&!(t.gs||[]).length||(t.gs||[t.g]).some(g=>!g||fav.includes(g)))); return `<section class="sec"><div class="sec-h"><h2>今日の実況スレ</h2><span class="sub">出演情報から自動で作成</span></div>
+  ${!FEAT('board')?'':(()=>{ const lt=S.threads.filter(t=>t.live&&(!t.g&&!(t.gs||[]).length||(t.gs||[t.g]).some(g=>!g||fav.includes(g)))); return `<section class="sec"><div class="sec-h"><h2>今日の実況スレ</h2><span class="sub">出演情報から自動で作成</span></div>
     ${lt.length?`<div class="panel rows">${lt.slice(0,4).map(t=>`<a class="row live-row" href="#/thread/${t.id}"><span class="live-dot"></span><div class="main"><span class="t">${esc(t.title.replace('【実況】',''))}</span><span class="meta">${(t.gs&&t.gs.length?t.gs:[t.g]).slice(0,3).map(gchip).join('')}${t.when?`<span class="time">${esc(t.when)}</span>`:''}${t.count<=1?'<b style="color:var(--accent)">まだ書き込みなし</b>':`${t.count-1}件の書き込み`}</span></div><span class="join">実況に参加 →</span></a>`).join('')}</div>`:'<p class="hint">今日は推しグループの出演予定がありません。ほかのグループの実況スレは掲示板から見られます。</p>'}</section>`; })()}
   <section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2><span class="sub">推しグループのみ</span></div>${schedHTML(o=>!o.g||fav.includes(o.g))}</section>
   <section class="sec"><div class="sec-h"><h2>公式の新着</h2><a class="more" href="#/info" data-src="official">もっと見る</a></div>
@@ -963,10 +968,10 @@ V.g=id=>{
   ${ui.gc==='all'||ui.gc==='media'||ui.gc==='event'?`<section class="sec"><div class="sec-h"><h2>今週のスケジュール</h2></div>${schedHTML(o=>o.g===id&&(ui.gc==='all'||o.cat===ui.gc))}</section>`:''}
   <section class="sec"><div class="sec-h"><h2>${ui.gc==='all'?'新着':CMAP[ui.gc].name}</h2><span class="sub">${list.length}件</span></div>
     <div class="feed">${pg.shown.map(itemCard).join('')||'<p class="hint">この条件の情報はまだありません。</p>'}</div>${moreBtn(pg)}</section>
-  <section class="sec"><div class="sec-h"><h2>スレッド</h2><a class="more" href="#/board" data-bg="${id}">すべて見る</a></div>
-    <div class="panel rows">${ths.map(threadRow).join('')||'<div class="row"><p class="hint">まだスレッドはありません。</p></div>'}</div></section>
-  <section class="sec"><div class="sec-h"><h2>コミュニティ</h2><a class="more" href="#/community" data-cg="${id}">さがす</a></div>
-    <div class="grid">${comms.map(commCard).join('')||'<p class="hint">まだコミュニティはありません。つくってみませんか？</p>'}</div></section>`;
+  ${FEAT('board')?`<section class="sec"><div class="sec-h"><h2>スレッド</h2><a class="more" href="#/board" data-bg="${id}">すべて見る</a></div>
+    <div class="panel rows">${ths.map(threadRow).join('')||'<div class="row"><p class="hint">まだスレッドはありません。</p></div>'}</div></section>`:''}
+  ${FEAT('community')?`<section class="sec"><div class="sec-h"><h2>コミュニティ</h2><a class="more" href="#/community" data-cg="${id}">さがす</a></div>
+    <div class="grid">${comms.map(commCard).join('')||'<p class="hint">まだコミュニティはありません。つくってみませんか？</p>'}</div></section>`:''}`;
 };
 // ===== ホーム画面に追加（PWA） =====
 function isStandalone(){ try{ return matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }catch(e){ return false; } }
@@ -1274,6 +1279,7 @@ function commSeg(active){
   return `<div class="seg" role="tablist"><a href="#/community" aria-current="${active==='find'?'page':'false'}">さがす</a><a href="#/mycomm" aria-current="${active==='mine'?'page':'false'}">参加中（${n}）</a></div>`;
 }
 V.community=()=>{
+  if(!FEAT('community')) return comingSoon('コミュニティ');
   const kinds=['すべて','公演','地域','年代','推しメン','その他'];
   return `<div class="page-h"><h1>コミュニティ</h1><p>グループ・地域・年代・公演でつながろう。コミュニティの中でイベントもひらけます。</p></div>
   ${commSeg('find')}
@@ -1299,6 +1305,7 @@ function myCommsHTML(){
   </section>`;
 }
 V.mycomm=()=>{
+  if(!FEAT('community')) return comingSoon('コミュニティ');
   if(!S.user) return `<div class="page-h"><h1>コミュニティ</h1></div>${commSeg('mine')}<div class="panel compose"><p class="hint">参加中のコミュニティを見るにはログインしてください。</p><div class="actions"><button class="btn" id="login-open2">ログイン</button></div></div>`;
   return `<div class="page-h"><h1>コミュニティ</h1></div>${commSeg('mine')}${myCommsHTML()}`;
 };
@@ -1321,6 +1328,7 @@ function joinArea(c){
   return `<button class="btn" id="join" data-id="${c.id}">${c.join==='承認制'?'参加を申請する':'参加する'}</button>`;
 }
 V.c=(id,tab='top')=>{
+  if(!FEAT('community')) return comingSoon('コミュニティ');
   const c=S.comms.find(x=>x.id===id); if(!c) return V.community();
   const see=canSeeDetail(c), closed=c.join==='承認制'&&!see;
   const tabs=[['top','トップ'],['events',`イベント（${c.events.length}）`],['topics','トピック'],['members','メンバー']];
@@ -1368,6 +1376,7 @@ V.c=(id,tab='top')=>{
 };
 
 V.e=(cid,eid)=>{
+  if(!FEAT('community')) return comingSoon('イベント');
   const c=S.comms.find(x=>x.id===cid), e=c&&c.events.find(x=>x.id===eid); if(!e) return V.community();
   const k=cid+':'+eid, g=S.going.includes(k), n=e.joined+(c.remote?0:(g?1:0)), see=canSeeDetail(c), isHost=S.user&&e.host===S.user.name;
   let act='';
@@ -1393,6 +1402,7 @@ V.e=(cid,eid)=>{
 };
 
 V.newcomm=()=>{
+  if(!FEAT('community')) return comingSoon('コミュニティ');
   if(!S.user) return `<a class="back" href="#/community">← コミュニティ</a><div class="page-h"><h1>コミュニティをつくる</h1></div><div class="panel compose"><p class="hint">コミュニティをつくるにはログインしてください。</p><div class="actions"><button class="btn" id="login-open2">ログイン</button></div></div>`;
   const teen=S.user.age==='10代';
   const onlys=teen?['全年代','10代のみ']:['全年代','10代のみ','18歳以上のみ'];
@@ -1602,8 +1612,12 @@ async function apiBoard(body){
 async function loadSettings(){
   if(!DB_ON()) return;
   try{
-    const rows=await dbGet('settings?select=value&key=eq.ads');
-    if(rows[0]&&rows[0].value){ S.ads={...S.ads,...rows[0].value}; save(); bgRender(); }
+    const rows=await dbGet('settings?select=key,value&key=in.(ads,features)');
+    for(const r of rows){
+      if(r.key==='ads'&&r.value) S.ads={...S.ads,...r.value};
+      if(r.key==='features'&&r.value) S.feat={...S.feat,...r.value};
+    }
+    save(); bgRender();
   }catch(e){}
 }
 async function loadThreads(){
@@ -1893,7 +1907,7 @@ function downloadMembersCSV(){
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   toast(`${ADMIN.users.length}人ぶんを保存しました`);
 }
-let ADMIN = { pass:'', stats:null, recent:[], reports:[], posts:[], users:[], ads:null, loading:false };
+let ADMIN = { pass:'', stats:null, recent:[], reports:[], posts:[], users:[], ads:null, features:null, loading:false };
 const isAdmin = () => !!S.adminOn && !!ADMIN.pass;
 async function apiAdmin(body){
   const r=await fetchT('/api/admin',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1909,6 +1923,7 @@ async function adminLoad(sub){
     if(sub==='reports'){ const r=await apiAdmin({action:'reports'}); ADMIN.reports=r.reports; ADMIN.posts=r.posts; }
     if(sub==='users'){ const r=await apiAdmin({action:'users',q:ui.adminQ}); ADMIN.users=r.users; }
     if(sub==='ads'){ const r=await apiAdmin({action:'ads'}); ADMIN.ads=r.ads; }
+    if(sub==='features'){ const r=await apiAdmin({action:'features'}); ADMIN.features=r.features; }
   }catch(e){ toast(e.message); }
   ADMIN.loading=false; render();
 }
@@ -1938,7 +1953,7 @@ V.admin = (sub = 'home') => {
       <p class="hint">※モックのため合言葉は端末内で確認しています。本番では運営アカウントのログインに置き換えます。</p>
     </form>`;
 
-  const tabs = [['home','ダッシュボード'],['reports',`通報（${ADMIN.stats?ADMIN.stats.openReports:ADMIN.reports.length}）`],['users','ユーザー'],['notice','お知らせ'],['ads','広告'],['settings','設定']];
+  const tabs = [['home','ダッシュボード'],['reports',`通報（${ADMIN.stats?ADMIN.stats.openReports:ADMIN.reports.length}）`],['users','ユーザー'],['notice','お知らせ'],['features','公開機能'],['ads','広告'],['settings','設定']];
   let body = '';
 
   if (sub === 'home') {
@@ -2015,6 +2030,21 @@ V.admin = (sub = 'home') => {
       <p class="err" id="nt-err" hidden></p>
       <div class="actions"><button class="btn">全員に送信する</button></div>
       <p class="hint">登録しているすべての人の受信箱に届きます。</p>
+    </form>`;
+  }
+
+  if (sub === 'features') {
+    if (!ADMIN.features && !ADMIN.loading) adminLoad('features');
+    const f = ADMIN.features || { community:false, accounts:false, board:true };
+    const ITEMS=[['board','掲示板','スレッド・実況スレ・お題スレ。登録なしで書き込めます'],
+      ['accounts','アカウント（ログイン）','マイページ・会員番号・フォロー・プロフィール'],
+      ['community','コミュニティ','コミュニティとオフ会。アカウントが必要です']];
+    body = `<form class="panel compose" id="featform">
+      <h3>公開する機能</h3>
+      <p class="hint">人が増えるまで隠しておきたい機能を、ここで切り替えられます。隠しても中のデータは消えません。</p>
+      ${ITEMS.map(([k,l,d])=>`<label class="fl" style="align-items:flex-start"><input type="checkbox" data-feat-k="${k}" ${f[k]?'checked':''}>
+        <span><b>${l}</b><br><span class="hint">${d}</span></span></label>`).join('')}
+      <div class="actions"><button class="btn">保存する</button></div>
     </form>`;
   }
 
@@ -2155,6 +2185,7 @@ function sampleUsers(){
   return [...out.values()];
 }
 V.follows=(type)=>{
+  if(!FEAT('accounts')) return comingSoon('フォロー');
   if(!S.user) return V.me();
   const followers=type==='followers';
   const title=followers?'フォロワー':'フォロー中';
@@ -2173,6 +2204,7 @@ V.follows=(type)=>{
   }).join('')}</div>`:`<p class="hint">${followers?'まだフォロワーはいません。会員番号やQRコードを友だちに教えてみましょう。':'まだ誰もフォローしていません。'}<br><a href="#/people">ファンをさがす</a></p>`}`;
 };
 V.people=()=>{
+  if(!FEAT('accounts')) return comingSoon('ファンをさがす');
   if(DB_ON()){
     if(!ui.members){ loadMembers(); }
     const list=ui.members||[];
@@ -2203,6 +2235,7 @@ V.people=()=>{
 // ===== プロフィール編集 =====
 const SNS=[['x','X','https://x.com/'],['instagram','Instagram','https://instagram.com/'],['tiktok','TikTok','https://tiktok.com/@'],['threads','Threads','https://threads.com/@']];
 V.profile=()=>{
+  if(!FEAT('accounts')) return comingSoon('プロフィール');
   if(!S.user) return V.me();
   const u=S.user, L=u.links||{};
   return `<a class="back" href="#/me">← マイページ</a>
@@ -2249,6 +2282,37 @@ function faceSec(title,count,people,href,empty){
     ${list.length?`<div class="faces">${list.map(p=>`<a class="face" href="#/u/${p.no}">${av(p,'mini-av')}<span>${esc(p.name)}</span></a>`).join('')}</div>`
       :`<p class="hint">${empty}</p>`}</section>`;
 }
+// アカウント機能を隠しているときの「設定」ページ
+function settingsPage(){
+  return `<div class="page-h"><h1>設定</h1><p>推しグループと通知を設定すると、出演を見逃さなくなります。</p></div>
+  <section class="sec"><div class="sec-h"><h2>推しグループ</h2><button class="more linkbtn" id="follow-edit3">編集</button></div>
+    <div class="filters">${S.follow.map(g=>`<a class="fchip" href="#/g/${g}">${dot(g)}${esc(gname(g))}</a>`).join('')||'<span class="hint">まだありません</span>'}</div>
+    <p class="hint">選んだグループの情報が、ホームと通知に優先して表示されます。</p></section>
+  ${notiPanel()}
+  ${isStandalone()?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>アプリとして使えます</b><span>ホーム画面に追加すると、出演の前に通知が届きます</span></div><span class="add">追加</span></a>`}
+  <div class="panel compose"><h3>このサイトについて</h3>
+    <p class="hint">推しトピアは、EBiDAN10グループの情報をまとめている非公式のファンサイトです。掲示板は登録なしで書き込めます。</p>
+    <div class="actions"><a class="btn sm ghost" href="#/about">運営者情報</a><a class="btn sm ghost" href="#/privacy">プライバシー</a><a class="btn sm ghost" href="#/terms">利用規約</a></div></div>`;
+}
+function comingSoon(name){
+  return `<a class="back" href="#/home">← ホーム</a>
+  <div class="page-h"><h1>${esc(name)}は準備中です</h1>
+  <p>いまは「情報をまとめて、見逃さないようにする」ことに集中しています。${esc(name)}は、もう少し人が集まってから公開します。</p></div>
+  <div class="panel compose"><p class="hint">先に通知を受け取る設定をしておくと、推しの出演を見逃さなくなります。</p>
+  <div class="actions"><a class="btn" href="#/me">通知の設定へ</a></div></div>`;
+}
+function notiPanel(){
+  return `<div class="panel compose"><h3>通知</h3>
+    ${notiState()==='granted'?`<span class="chip ok">通知はオンです</span>
+      <div class="noti-list">${[['remind','出演の30分前にお知らせ'],['live','実況スレが立ったとき'],['news','推しグループの新着情報'],['comm','コミュニティ・イベントのお知らせ']].map(([k,l])=>`<label class="fl"><input type="checkbox" data-noti="${k}" ${S.noti[k]?'checked':''}> ${l}</label>`).join('')}</div>
+      <p class="hint">${S.pushOn?'この端末は「アプリを閉じていても届く通知」に登録済みです。':'この端末では、アプリを開いているときだけお知らせします。'}</p>
+      <div class="actions">${S.pushOn?'<button class="btn sm ghost" id="push-off">通知を止める</button>':'<button class="btn sm ghost" id="push-on">閉じていても届くようにする</button>'}<button class="btn sm ghost" id="test-noti">テスト通知</button></div>`
+    : notiState()==='denied'?`<p class="err">通知がオフになっています。</p>
+      <ol class="rules" style="padding-left:28px"><li>iPhoneの「設定」アプリを開く</li><li>「通知」をタップ</li><li>一覧から「推しトピア」を選ぶ</li><li>「通知を許可」をオンにする</li></ol>`
+    : isStandalone()?`<p class="hint">推しの出演の30分前にお知らせします。実況スレや新着情報も届きます。</p><div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>`
+    : `<p class="hint">iPhoneは<b>ホーム画面に追加すると</b>通知を受け取れます。</p><div class="actions"><a class="btn" href="#/install">ホーム画面に追加する</a></div>`}
+  </div>`;
+}
 const birthChip=u=>u.birthday?`<span class="chip">🎂 ${+u.birthday.slice(0,2)}月${+u.birthday.slice(3,5)}日</span>`:'';
 function profileCard(u){
   const L=u.links||{};
@@ -2261,6 +2325,7 @@ function profileCard(u){
   </div></div>`;
 }
 V.me=()=>{
+  if(!FEAT('accounts')) return settingsPage();
   if(!S.user) return `<div class="page-h"><h1>マイページ</h1><p>アカウントをつくると、<b>コミュニティ参加・イベント・フォロー・会員番号</b>が使えます。情報を見るだけ、掲示板に書き込むだけなら登録は不要です。</p></div>
     <div class="panel dlg">${providersHTML()}</div>`;
   const u=S.user;
@@ -2286,16 +2351,7 @@ V.me=()=>{
     <li>公開されるのは「年代」と「都道府県」まで。生まれた年や市区町村は保存しません（誕生日は月日だけ・任意）</li>
     <li>${u.age==='10代'?'10代の方は、同じ10代からのメッセージだけ受け取れます':'10代の方へのメッセージは送れません'}</li>
     <li>困ったときは、どの投稿からも「通報」「ブロック」ができます</li></ul></div>
-  <div class="panel compose"><h3>通知</h3>
-    ${notiState()==='granted'?`<span class="chip ok">通知はオンです</span>
-      <div class="noti-list">${[['live','実況スレが立ったとき'],['news','推しグループの新着情報'],['comm','コミュニティ・イベントのお知らせ']].map(([k,l])=>`<label class="fl"><input type="checkbox" data-noti="${k}" ${S.noti[k]?'checked':''}> ${l}</label>`).join('')}</div>
-      <p class="hint">${S.pushOn?'この端末は「アプリを閉じていても届く通知」に登録済みです。':'この端末では、アプリを開いているときだけお知らせします。'}</p>
-      <div class="actions">${S.pushOn?'<button class="btn sm ghost" id="push-off">通知を止める</button>':'<button class="btn sm ghost" id="push-on">閉じていても届くようにする</button>'}<button class="btn sm ghost" id="test-noti">テスト通知</button></div>`
-    : notiState()==='denied'?`<p class="err">通知がオフになっています。</p>
-      <ol class="rules" style="padding-left:28px"><li>iPhoneの「設定」アプリを開く</li><li>「通知」をタップ</li><li>一覧から「推しトピア」を選ぶ</li><li>「通知を許可」をオンにする</li></ol>`
-    : isStandalone()?`<p class="hint">実況スレや推しの新着をお知らせします。</p><div class="actions"><button class="btn" id="ask-noti">通知をオンにする</button></div>`
-    : `<p class="hint">iPhoneは<b>ホーム画面に追加すると</b>通知を受け取れます。</p><div class="actions"><a class="btn" href="#/install">ホーム画面に追加する</a></div>`}
-  </div>
+  ${notiPanel()}
   <button class="btn ghost" id="logout">ログアウト</button>`;
 };
 const BRAND={
@@ -2434,6 +2490,7 @@ function renderNow(){
   const view=V[r]?V[r](id,sub):V.home();
   $('#app').innerHTML=view;
   const tab={pick:'info',g:'home',install:'me',card:'me',u:'me',admin:'',about:'',privacy:'',terms:'',inbox:'me',people:'me',follows:'me',profile:'me',thread:'board',c:'community',e:'community',mycomm:'community',newcomm:'community'}[r]||r;
+  document.querySelectorAll('.tab[data-feat]').forEach(a=>{ a.hidden = !S.feat[a.dataset.feat]; });
   document.querySelectorAll('.tab').forEach(a=>{ if(a.dataset.tab===tab) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   watchEmbeds();
   if(S.user){ ensureInbox(); $('#tab-me').classList.toggle('has-new',unread()>0); }
@@ -2441,7 +2498,8 @@ function renderNow(){
     toast(location.hash.includes('cancel')?'ログインを中止しました':'ログインできませんでした。もう一度お試しください'); }
   syncBadge();
   if($('#qrbox')&&S.user) drawQR($('#qrbox'), memberUrl(S.user.no));
-  $('#acct').innerHTML=S.user?`<a href="#/me" aria-label="マイページ" style="text-decoration:none">${av(S.user)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
+  $('#acct').innerHTML=!FEAT('accounts')?'':S.user?`<a href="#/me" aria-label="マイページ" style="text-decoration:none">${av(S.user)}</a>`:`<button class="btn sm" id="login-open">ログイン</button>`;
+  { const me=$('#tab-me'); if(me&&me.lastChild) me.lastChild.textContent=FEAT('accounts')?'マイページ':'設定'; }
 }
 // Xの埋め込みは、画面に近づいたものだけ読み込む（475件まとめて読むと固まるため）
 let embedObs=null;
@@ -2717,6 +2775,12 @@ document.addEventListener('submit',e=>{
     if(!title||!body) return showErr('#nt-err','件名と本文を入れてください');
     apiAdmin({action:'notice',title,body}).then(()=>{ $('#nt-title').value=''; $('#nt-body').value=''; toast('全員にお知らせを送信しました'); })
       .catch(e=>showErr('#nt-err',e.message));
+  }
+  else if(f.id==='featform'){
+    const value={};
+    f.querySelectorAll('[data-feat-k]').forEach(c=>{ value[c.dataset.featK]=c.checked; });
+    apiAdmin({action:'features',value}).then(r=>{ ADMIN.features=r.features; S.feat={...S.feat,...r.features}; save(); render(); toast('公開する機能を変更しました'); })
+      .catch(e=>toast(e.message));
   }
   else if(f.id==='adsform'){
     const v={enabled:$('#ad-on').checked,slot:$('#ad-slot').value,title:$('#ad-title').value.trim(),text:$('#ad-text').value.trim(),url:$('#ad-url').value.trim()};

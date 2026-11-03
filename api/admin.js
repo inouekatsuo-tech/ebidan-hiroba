@@ -134,6 +134,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, ads: data?.value || {} });
     }
 
+    // --- 公開する機能の切り替え ---
+    if (a === 'features') {
+      if (b.value) {
+        await sb.from('settings').upsert({ key: 'features', value: b.value, updated_at: new Date().toISOString() });
+      }
+      const { data } = await sb.from('settings').select('value').eq('key', 'features').maybeSingle();
+      return res.status(200).json({ ok: true, features: data?.value || { community: false, accounts: false, board: true } });
+    }
+
     return res.status(400).json({ error: 'action が不正です' });
   } catch (e) {
     console.error(e);

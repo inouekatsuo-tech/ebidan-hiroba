@@ -40,6 +40,24 @@ function buildNotifications(items, state, threads = []) {
   const sent = new Set(state.sent || []);
   const out = [];
 
+  // ⓪ 出演の約30分前のリマインド（いちばん喜ばれる通知）
+  const nowHM = new Date(Date.now() + 9 * 3600e3).toISOString().slice(11, 16);
+  const mins = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+  const nowM = mins(nowHM);
+  for (const it of items.filter(x => x.kind === 'schedule' && x.date === today && x.time)) {
+    const diff = mins(it.time) - nowM;
+    if (diff < 8 || diff > 45) continue;           // これから始まるものだけ（30分前の回で拾う）
+    const id = `remind:${today}:${it.id}`;
+    if (sent.has(id)) continue;
+    const name = it.t.replace(/^【[^】]+】/, '').trim();
+    out.push({
+      id, type: 'remind', g: it.g,
+      title: `まもなく ${it.time}`,
+      body: `${it.g ? GNAME[it.g] + '　' : ''}${name}`,
+      url: `${SITE}/#/home`,
+    });
+  }
+
   // ① 今日の実況スレ（テレビ・ラジオ・イベント）
   const live = items.filter(it => it.kind === 'schedule' && it.date === today && (it.cat === 'media' || it.cat === 'event'));
   const seenTitle = new Set();
@@ -127,6 +145,7 @@ async function main() {
       }
     }
     for (const n of notis) {
+      if (n.type === 'remind' && sub.noti?.remind === false) continue;
       if (n.type === 'live' && sub.noti?.live === false) continue;
       if (n.type === 'news' && sub.noti?.news === false) continue;
       if (n.g && sub.follow?.length && !sub.follow.includes(n.g)) continue;   // 推しグループ以外は送らない
