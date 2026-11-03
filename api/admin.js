@@ -11,13 +11,33 @@ function okPass(given) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+// 合言葉の総当たりを防ぐ（同じ回線から15分で10回まちがえたら、しばらく受け付けない）
+const FAIL_MAX = 10, FAIL_WINDOW = 15 * 60e3;
+async function failCount(sb, ip) {
+  const { data } = await sb.from('tokens').select('value').eq('key', 'adminfail:' + ip).maybeSingle();
+  const v = data?.value;
+  if (!v || Date.now() - (v.at || 0) > FAIL_WINDOW) return 0;
+  return v.n || 0;
+}
+async function noteFail(sb, ip, n) {
+  await sb.from('tokens').upsert({ key: 'adminfail:' + ip, value: { n, at: Date.now() }, updated_at: new Date().toISOString() });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
   try {
     const b = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
-    if (!okPass(b.pass)) return res.status(401).json({ error: '合言葉が違います' });
     const sb = db();
+    const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+
+    const fails = await failCount(sb, ip);
+    if (fails >= FAIL_MAX) return res.status(429).json({ error: 'しばらく経ってからお試しください' });
+    if (!okPass(b.pass)) {
+      await noteFail(sb, ip, fails + 1);
+      return res.status(401).json({ error: '合言葉が違います' });
+    }
+    if (fails) await sb.from('tokens').delete().eq('key', 'adminfail:' + ip);
     const a = b.action;
 
     if (a === 'login') return res.status(200).json({ ok: true });
