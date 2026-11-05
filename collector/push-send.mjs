@@ -3,10 +3,10 @@
 //
 // 必要な環境変数:
 //   VAPID_PRIVATE_KEY     … 通知の署名に使う秘密鍵（GitHub Secrets）
-//   BLOB_READ_WRITE_TOKEN … 購読者の保存先（Vercel Blob）
+//   SUPABASE_URL / SUPABASE_SERVICE_KEY … 購読者の保存先（データベース）
 // どちらか無いときは、何もせず正常終了する。
 import { readFile, writeFile } from 'node:fs/promises';
-import { list, del } from '@vercel/blob';
+
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
@@ -112,8 +112,8 @@ async function markPushed(ids) {
 }
 
 async function main() {
-  const priv = process.env.VAPID_PRIVATE_KEY, blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!priv || !blobToken) { console.log('通知の鍵または保存先が未設定のため、送信をスキップしました'); return; }
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  if (!priv || !process.env.SUPABASE_SERVICE_KEY) { console.log('通知の鍵または保存先が未設定のため、送信をスキップしました'); return; }
 
   let state = { sent: [] };
   try { state = JSON.parse(await readFile(STATE, 'utf8')); } catch {}
@@ -123,17 +123,18 @@ async function main() {
   const personal = await personalNotices();
   if (!notis.length && !personal.length) { console.log('送る通知はありません'); return; }
 
-  const { blobs } = await list({ prefix: 'subs/', token: blobToken });
+  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
+  const { data: subs } = await sb.from('push_subs').select('endpoint,keys,follow,noti,user_id').limit(2000);
+  const blobs = subs || [];
   if (!blobs.length) { console.log(`通知対象 ${notis.length} 件ありますが、購読者がまだいません`); }
 
   webpush.setVapidDetails(SITE.replace(/^https?:\/\//, 'mailto:info@') , VAPID_PUBLIC, priv);
 
   let ok = 0, gone = 0, personalOk = [];
   for (const b of blobs) {
-    let sub;
-    try { sub = await (await fetch(b.url, { cache: 'no-store' })).json(); } catch { continue; }
+    const sub = b;
     // その人あてのお知らせ（フォローされた等）
-    for (const n of personal.filter(x => sub.userId && x.user_id === sub.userId)) {
+    for (const n of personal.filter(x => sub.user_id && x.user_id === sub.user_id)) {
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: sub.keys },
@@ -141,7 +142,7 @@ async function main() {
         );
         ok++; personalOk.push(n.id);
       } catch (e) {
-        if (e.statusCode === 404 || e.statusCode === 410) { await del(b.url, { token: blobToken }); gone++; break; }
+        if (e.statusCode === 404 || e.statusCode === 410) { await sb.from('push_subs').delete().eq('endpoint', sub.endpoint); gone++; break; }
       }
     }
     for (const n of notis) {
@@ -156,7 +157,7 @@ async function main() {
         );
         ok++;
       } catch (e) {
-        if (e.statusCode === 404 || e.statusCode === 410) { await del(b.url, { token: blobToken }); gone++; break; }
+        if (e.statusCode === 404 || e.statusCode === 410) { await sb.from('push_subs').delete().eq('endpoint', sub.endpoint); gone++; break; }
         console.error('送信エラー', e.statusCode || e.message);
       }
     }

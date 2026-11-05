@@ -1,10 +1,8 @@
-// 通知の購読を受け付ける（ブラウザ → ここ → Vercel Blobに保存）
-// 保存するのは「通知の送り先」と「どのグループの通知がほしいか」だけ。
-// 名前やメールアドレスは保存しない。
-import { put, del, list } from '@vercel/blob';
-import { createHash } from 'node:crypto';
+// 通知の購読を受け付ける（ブラウザ → ここ → データベース）
+// 保存するのは「通知の送り先」と「どの通知がほしいか」だけ。名前やメールアドレスは保存しない。
+import { createClient } from '@supabase/supabase-js';
 
-const key = endpoint => 'subs/' + createHash('sha256').update(endpoint).digest('hex').slice(0, 32) + '.json';
+const db = () => createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -16,48 +14,51 @@ export default async function handler(req, res) {
     if (!subscription?.endpoint || !/^https:\/\//.test(subscription.endpoint)) {
       return res.status(400).json({ error: 'subscription が不正です' });
     }
-
-    const path = key(subscription.endpoint);
+    const sb = db();
+    const endpoint = subscription.endpoint;
 
     if (unsubscribe) {
-      const found = await list({ prefix: path });
-      await Promise.all(found.blobs.map(b => del(b.url)));
+      await sb.from('push_subs').delete().eq('endpoint', endpoint);   // 予約もまとめて消える
       return res.status(200).json({ ok: true, unsubscribed: true });
     }
 
     // ログインしている人なら、その人あての通知も送れるように会員のIDを控える
     let userId = null;
     if (token) {
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, { auth: { persistSession: false } });
-        const { data: me } = await sb.from('profiles').select('id').eq('token', token).maybeSingle();
-        userId = me?.id || null;
-      } catch {}
+      const { data: me } = await sb.from('profiles').select('id').eq('token', token).maybeSingle();
+      userId = me?.id || null;
     }
 
-    const data = {
-      endpoint: subscription.endpoint,
-      keys: subscription.keys,
-      userId,
+    await sb.from('push_subs').upsert({
+      endpoint, keys: subscription.keys || {},
       follow: Array.isArray(follow) ? follow.slice(0, 20).map(String) : [],
-      // 1件ずつのリマインドの予約（最大50件・送信後に消える）
-      reminders: Array.isArray(reminders) ? reminders.slice(0, 50).map(r => ({
-        id: String(r.id || '').slice(0, 80),
-        at: String(r.at || '').slice(0, 16),
-        lead: Math.min(180, Math.max(5, Number(r.lead) || 30)),
-        title: String(r.title || '').slice(0, 80),
-      })).filter(r => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(r.at)) : [],
-      noti: { live: noti.live !== false, news: noti.news !== false, comm: noti.comm !== false },
-      updated: new Date().toISOString(),
-    };
-    await put(path, JSON.stringify(data), {
-      access: 'public', contentType: 'application/json',
-      addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0,
+      noti: { remind: noti.remind !== false, live: noti.live !== false, news: noti.news !== false, comm: noti.comm !== false },
+      user_id: userId,
+      updated_at: new Date().toISOString(),
     });
+
+    // リマインドの予約は、送られてきた内容でそのまま置き換える
+    if (Array.isArray(reminders)) {
+      await sb.from('reminders').delete().eq('endpoint', endpoint).eq('sent', false);
+      const rows = reminders.slice(0, 50).map(r => {
+        const at = String(r.at || '');
+        if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(at)) return null;
+        const lead = Math.min(180, Math.max(5, Number(r.lead) || 30));
+        const start = new Date(at + ':00+09:00');
+        if (isNaN(start)) return null;
+        return {
+          endpoint, item_id: String(r.id || '').slice(0, 80),
+          start_at: start.toISOString(),
+          fire_at: new Date(start.getTime() - lead * 60000).toISOString(),
+          lead, title: String(r.title || '').slice(0, 80),
+        };
+      }).filter(Boolean);
+      if (rows.length) await sb.from('reminders').insert(rows);
+    }
+
     return res.status(200).json({ ok: true });
   } catch (e) {
     console.error(e);
-    return res.status(500).json({ error: '保存に失敗しました' });
+    return res.status(500).json({ error: '登録できませんでした' });
   }
 }

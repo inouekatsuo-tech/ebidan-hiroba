@@ -2954,6 +2954,8 @@ loadComms();
 handleOAuthReturn().then(done=>{ if(!done) restoreAccount(); });
 maybeAskNoti();
 maybeAskInstall();
+// 通知をオンにしている端末は、起動時に登録を確認する（鍵の入れ替えや保存先の変更に自動で追従する）
+if(S.pushOn) setTimeout(()=>subscribePush(),3000);
 // ホーム画面アプリとして動かすための登録（マニフェストがあるときだけ）
 if('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) {
   addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
