@@ -1,28 +1,29 @@
 // 登録されている端末へ、確認用の通知を1通だけ送る。
-// 使い方: VAPID_PRIVATE_KEY=... BLOB_READ_WRITE_TOKEN=... node collector/push-test.mjs "本文"
-import { list, del } from '@vercel/blob';
+// 使い方: VAPID_PRIVATE_KEY=... VAPID_PUBLIC=... SUPABASE_URL=... SUPABASE_SERVICE_KEY=... node collector/push-test.mjs "本文"
 import webpush from 'web-push';
+import { createClient } from '@supabase/supabase-js';
 
 const SITE = 'https://ositopia.com';
-const VAPID_PUBLIC = 'BBrg_UQ1b9l-BGpztBQmAnhQroZDk8NaZHuG-es6Wx4m_HKfEJhBkURR8IZuIv-dGOQArskgBFJsL_bnpMs9rxU';
 const body = process.argv[2] || '通知のテストです。これが見えていれば成功です 🎉';
+const { VAPID_PRIVATE_KEY: priv, VAPID_PUBLIC: pub, SUPABASE_URL: url, SUPABASE_SERVICE_KEY: key } = process.env;
 
-const priv = process.env.VAPID_PRIVATE_KEY, token = process.env.BLOB_READ_WRITE_TOKEN;
-if (!priv || !token) { console.error('鍵が設定されていません'); process.exit(1); }
+if (!priv || !pub || !url || !key) { console.error('環境変数が足りません'); process.exit(1); }
 
-const { blobs } = await list({ prefix: 'subs/', token });
-console.log(`登録されている端末: ${blobs.length} 台`);
-if (!blobs.length) { console.log('まだ登録がありません。スマホで「通知をオンにする」を押してから、もう一度実行してください'); process.exit(0); }
+const sb = createClient(url, key, { auth: { persistSession: false } });
+webpush.setVapidDetails('mailto:info@ositopia.com', pub, priv);
 
-webpush.setVapidDetails('mailto:info@ositopia.com', VAPID_PUBLIC, priv);
-for (const b of blobs) {
-  const sub = await (await fetch(b.url, { cache: 'no-store' })).json();
+const { data: subs } = await sb.from('push_subs').select('endpoint,keys').limit(500);
+if (!subs?.length) { console.log('登録されている端末がありません'); process.exit(0); }
+
+let ok = 0, gone = 0;
+for (const s of subs) {
   try {
-    await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys },
-      JSON.stringify({ title: '推しトピア', body, url: SITE + '/#/home', tag: 'test' }));
-    console.log('送信しました →', sub.endpoint.slice(0, 55) + '…（推し:', (sub.follow || []).join(',') || '未設定', '）');
+    await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys },
+      JSON.stringify({ title: '推しトピア', body, url: `${SITE}/#/home`, tag: 'test' }));
+    ok++;
   } catch (e) {
-    console.error('失敗', e.statusCode || e.message);
-    if (e.statusCode === 404 || e.statusCode === 410) { await del(b.url, { token }); console.log('→ 無効な登録だったので削除しました'); }
+    if (e.statusCode === 404 || e.statusCode === 410) { await sb.from('push_subs').delete().eq('endpoint', s.endpoint); gone++; }
+    else console.error('送信エラー', e.statusCode || e.message);
   }
 }
+console.log(`${subs.length}件中 ${ok}件に送信しました（解除済み ${gone}件を整理）`);
