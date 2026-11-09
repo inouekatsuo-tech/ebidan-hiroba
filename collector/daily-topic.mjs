@@ -49,7 +49,16 @@ async function main() {
   const now = jstNow(), today = now.toISOString().slice(0, 10);
   const { items } = JSON.parse(await readFile(ITEMS, 'utf8'));
 
-  // 今日のぶんがもうあれば何もしない
+  // 返事がつかなかった古いお題は片づける
+  const limit = new Date(now.getTime() - KEEP_DAYS * 86400e3).toISOString().slice(0, 10);
+  const { data: old } = await sb.from('threads').select('id')
+    .eq('cat', 'お題').lt('live_date', limit).lte('reply_count', 1);
+  if (old?.length) {
+    await sb.from('threads').delete().in('id', old.map(t => t.id));
+    console.log(`古いお題スレを ${old.length} 件片づけました`);
+  }
+
+  // 今日のぶんがもうあれば、ここで終わり
   const { data: exist } = await sb.from('threads').select('id')
     .eq('live_date', today).eq('cat', 'お題').maybeSingle();
   if (exist) { console.log('今日のお題スレはすでにあります'); return; }
@@ -67,14 +76,6 @@ async function main() {
     body: `${lead}\n\n・名前を入れなくても「名無しさん」として書けます\n・一言だけでも大丈夫です\n・反応だけしたい人は、スタンプを押してください`,
   });
 
-  // 返事がつかなかった古いお題は片づける
-  const limit = new Date(now.getTime() - KEEP_DAYS * 86400e3).toISOString().slice(0, 10);
-  const { data: old } = await sb.from('threads').select('id')
-    .eq('cat', 'お題').lt('live_date', limit).lte('reply_count', 1);
-  if (old?.length) {
-    await sb.from('threads').delete().in('id', old.map(t => t.id));
-    console.log(`古いお題スレを ${old.length} 件片づけました`);
-  }
   console.log(`お題スレを作りました: ${title}`);
 }
 
