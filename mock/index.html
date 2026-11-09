@@ -381,6 +381,9 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .bell.on{border-color:var(--accent);background:var(--accent-soft)}
 .leadrow{display:flex;gap:8px;margin:10px 0 4px}
 .leadrow .btn{flex:1}
+.notice-cta{display:flex;flex-direction:column;gap:8px;padding:16px;background:linear-gradient(135deg,var(--ok-soft),var(--surface));border-color:hsl(160 50% 45% / .3)}
+.notice-cta b{font-size:16px}
+.notice-cta p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.6}
 .topic{display:flex;flex-direction:column;gap:7px;padding:16px;text-decoration:none;background:linear-gradient(135deg,var(--accent-soft),var(--surface));border-color:hsl(345 70% 60% / .35)}
 .topic b{font-size:16.5px;line-height:1.5}
 .topic .go{font-size:13px;font-weight:700;color:var(--accent)}
@@ -639,7 +642,7 @@ const DEFAULTS=()=>({...JSON.parse(JSON.stringify(SEED)),user:null,joined:[],pen
   if(S.user&&!S.user.no) S.user.no=String(100000+Math.floor(Math.random()*40000));
 })();
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
-let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',adminSort:'no',followList:null,members:null,missingUser:null,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
+let ui={loginMsgShown:false,pickFilter:'すべて',boardCat:'すべて',commKind:'すべて',q:'',pickTags:[],newThread:false,cq:'',evForm:false,openMsg:null,foundUser:null,adminLoaded:false,adminRepLoaded:false,oauthToken:null,googleTicket:null,adminQ:'',adminSort:'no',followList:null,members:null,missingUser:null,hideNoti:false,hideInstall:(()=>{try{return !!localStorage.getItem('hide-install')}catch(e){return false}})(),ig:'all',ic:'all',src:'all',gc:'all',bg:'all',cg:'all',mxAll:false,pickOpen:false,pageN:{},pageSig:{}};
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -836,6 +839,17 @@ function todayTimeline(){
     <div class="tl">${rows}</div>${more>0?`<p class="tl-empty">ほか${more}件</p>`:''}</section>`;
 }
 // 今日のお題スレ（運営から話しかけて、返事しやすくする）
+// 通知がオフの人に、リマインドの価値を伝える
+function notiCTA(){
+  if(notiState()==='granted'||ui.hideNoti) return '';
+  const n=OFFICIAL.filter(o=>o.kind==='schedule'&&o.sched&&o.sched.d===0&&o.sched.time).length;
+  return `<div class="panel notice-cta">
+    <b>出演を見逃さないようにできます</b>
+    <p>推しの出演の<b>1時間前・30分前・10分前</b>にお知らせします${n?`（今日は${n}件の出演があります）`:''}。</p>
+    <div class="actions">${isStandalone()
+      ? '<button class="btn" id="ask-noti">通知をオンにする</button>'
+      : '<a class="btn" href="#/install">ホーム画面に追加して受け取る</a>'}<button class="btn sm ghost" id="hide-noti">あとで</button></div></div>`;
+}
 function topicHTML(){
   if(!FEAT('board')) return '';
   const t=S.threads.find(x=>x.cat==='お題');
@@ -899,9 +913,9 @@ V.home=()=>{
   const favX=OFFICIAL.filter(o=>o.kind==='x'&&(!o.g||fav.includes(o.g))).sort((a,b)=>a.r-b.r);
   const news=[...favNews.slice(0,6),...(favNews.length<4?favX.slice(0,4-favNews.length):[])];
   return `
-  ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は自動で集めています</b>：EBiDAN公式サイトから1日に数回、自動で取り込んでいます（最終更新 ${fmtUpdated(LIVE.updated)}）</div></div>`:`<div class="demo-note">これは確認用のモック（試作）です。掲載している情報・投稿・人物はすべて架空のサンプルです。</div>`}
-  ${isStandalone()||ui.hideInstall?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>アプリとして使えます</b><span>ホーム画面に追加すると、新着情報が通知で届きます</span></div><span class="add">追加</span><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
   ${todayTimeline()||digestHTML()}
+  ${notiCTA()}
+  ${isStandalone()||ui.hideInstall||visitCount()<2?'':`<a class="panel install-banner" href="#/install"><img src="icon-192.png" alt="" onerror="this.remove()"><div><b>アプリとして使えます</b><span>ホーム画面に追加すると、出演の前に通知が届きます</span></div><span class="add">追加</span><button class="x" id="hide-install" aria-label="閉じる">×</button></a>`}
   ${topicHTML()}
   <section class="hero">
     <h1>EBiDANの情報、<em>ぜんぶここに。</em></h1>
@@ -922,6 +936,7 @@ V.home=()=>{
     return vids.length?`<section class="sec"><div class="sec-h"><h2>公式の動画</h2><a class="more" href="#/info" data-ic="release">もっと見る</a></div>
     <div class="vgrid">${vids.map(vCard).join('')}</div></section>`:''; })()}
 
+  ${LIVE?`<div class="live-note"><span class="pulse"></span><div><b>公式情報は自動で集めています</b>：EBiDAN公式サイトから1日に数回、自動で取り込んでいます（最終更新 ${fmtUpdated(LIVE.updated)}）</div></div>`:''}
   ${['home','both'].includes(S.ads.slot)?adHTML():''}
   ${(()=>{ const hot=S.threads.filter(t=>!t.live&&t.count>1&&(!t.g||fav.includes(t.g))).slice(0,3);
     return hot.length?`<section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
@@ -2666,6 +2681,7 @@ document.addEventListener('click',e=>{
         .then(async()=>{ await loadComms(); toast(add?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); })
         .catch(e=>toast(e.message)); return; }
     const i=S.going.indexOf(d.go); i<0?S.going.push(d.go):S.going.splice(i,1); save(); render(); toast(i<0?'イベントに参加します！マイページの「参加予定」に追加しました':'参加を取り消しました'); }
+  else if(t.id==='hide-noti'){ ui.hideNoti=true; render(); }
   else if(t.id==='hide-install'){ e.preventDefault(); ui.hideInstall=true; try{localStorage.setItem('hide-install','1');}catch(err){} render(); }
   else if(t.id==='install-later'){ $('#login').close(); toast('ホームの「アプリとして使えます」からいつでも追加できます'); }
   else if(t.id==='install-how'){ $('#login').close(); location.hash='#/install'; }
