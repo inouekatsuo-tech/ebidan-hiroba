@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const ITEMS = new URL('../milkies-hiroba/data/items.json', import.meta.url);
 const URL_ = process.env.SUPABASE_URL, KEY = process.env.SUPABASE_SERVICE_KEY;
-const KEEP_DAYS = 7;            // 返事のないお題を片づけるまでの日数
+const KEEP_DAYS = 2;            // 返事のないお題を片づけるまでの日数（並べて置くと寂しく見えるため）
 const WD = '日月火水木金土';
 
 const jstNow = () => new Date(Date.now() + 9 * 3600e3);
@@ -33,12 +33,12 @@ function pick(items, today) {
   if (live) return [`今日の「${clean(live.t).slice(0, 24)}」、行く人いますか？`,
     '参戦する人も、行けないけど応援している人も、ここで話しましょう。現地の写真や座席の話は、ルールの範囲でどうぞ。'];
 
-  // テレビ・ラジオがある日は、見る約束をする場にする
-  const tv = todays.filter(it => it.label === 'TV' || it.label === 'RADiO');
+  // テレビ・ラジオがある日は、番組名を出して「一緒に見よう」と誘う
+  const tv = todays.filter(it => (it.label === 'TV' || it.label === 'RADiO') && it.time);
   if (tv.length) {
-    const t = tv.find(x => x.time) || tv[0];
-    return [`今日は${tv.length}件の出演があります。何を見ますか？`,
-      `${t.time ? t.time + 'から' : ''}「${clean(t.t).slice(0, 24)}」ほか。実況スレもあるので、一緒に見ましょう。`];
+    const t = tv.sort((a, b) => (b.time || '').localeCompare(a.time || ''))[0];   // いちばん遅い＝ゴールデン帯を選ぶ
+    return [`今夜の「${clean(t.t).slice(0, 22)}」、見る人いますか？`,
+      `${t.time}からです。${tv.length > 1 ? `今日はほかにも${tv.length - 1}件の出演があります。` : ''}実況スレもあるので、一緒に見ましょう。`];
   }
   return WEEKLY[d.getUTCDay()];
 }

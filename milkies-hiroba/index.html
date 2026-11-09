@@ -345,10 +345,12 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 .inherit{background:var(--sunk);border-radius:10px;padding:8px 12px;font-size:12px;display:flex;flex-direction:column}
 .inherit b{font-size:12.5px}
 .inherit span{color:var(--muted)}
+.foot-sub{margin-top:10px;font-size:11.5px;color:var(--muted);text-align:center}
+.foot-sub .admin-link{margin-left:10px;opacity:.5}
 .foot-links{border-top:1px solid var(--line);background:var(--surface);padding:18px 16px calc(96px + env(safe-area-inset-bottom,0px))}
-.foot-in{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.foot-in{max-width:680px;margin:0 auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
 .foot-in p{margin:0;font-size:12px;color:var(--muted);line-height:1.7}
-.foot-in nav{display:flex;flex-wrap:wrap;gap:14px}
+.foot-in nav{display:flex;flex-wrap:wrap;gap:10px 18px;justify-content:center}
 .foot-in nav a{font-size:12.5px;color:var(--ink);font-weight:700;text-decoration:none}
 .foot-in nav a:hover{color:var(--accent)}
 .legal{padding:18px 16px;line-height:1.9}
@@ -463,7 +465,8 @@ button.row{width:100%;text-align:left;background:none;border:0;border-top:1px so
 <footer class="foot-links">
   <div class="foot-in">
     <p>推しトピアは、ファンが個人で運営する<b>非公式サイト</b>です。アーティスト・所属事務所とは関係ありません。</p>
-    <nav><a href="#/about">運営者情報</a><a href="#/privacy">プライバシーポリシー</a><a href="#/terms">利用規約</a><a href="mailto:info@ositopia.com">お問い合わせ</a><a href="#/admin" class="admin-link">運営</a></nav>
+    <nav><a href="#/about">運営者情報</a><a href="#/privacy">プライバシーポリシー</a><a href="#/terms">利用規約</a><a href="mailto:info@ositopia.com">お問い合わせ</a></nav>
+    <p class="foot-sub">掲載内容の削除のご依頼も、お問い合わせからお願いします。<a href="#/admin" class="admin-link">運営</a></p>
   </div>
 </footer>
 
@@ -942,11 +945,11 @@ V.home=()=>{
   ${(()=>{ const vids=OFFICIAL.filter(o=>o.kind==='video'&&o.yt&&(!o.g||fav.includes(o.g))).slice(0,4);
     return vids.length?`<section class="sec"><div class="sec-h"><h2>公式の動画</h2><a class="more" href="#/info" data-ic="release">もっと見る</a></div>
     <div class="vgrid">${vids.map(vCard).join('')}</div></section>`:''; })()}
-  <section class="sec"><div class="sec-h"><h2>今日の持ち寄り</h2><span class="sub">Xで話題の投稿は自動で追加されます</span></div>
-    <div class="panel rows">${top.map((p,i)=>`<a class="row" href="#/pick/${p.id}"><span class="rank ${i===0?'r1':''}">${i+1}</span><div class="main"><span class="t">${esc(p.note||p.text)}</span><span class="meta">${gchip(p.g)}${cchip(p.cat)}♥ ${p.likes} · ${p.shares}人が持ち寄り</span></div></a>`).join('')||'<div class="row"><p class="hint">まだありません。</p></div>'}</div></section>
+
   ${['home','both'].includes(S.ads.slot)?adHTML():''}
-  <section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
-    <div class="panel rows">${S.threads.filter(t=>!t.live&&(!t.g||fav.includes(t.g))).slice(0,3).map(threadRow).join('')}</div></section>`;
+  ${(()=>{ const hot=S.threads.filter(t=>!t.live&&t.count>1&&(!t.g||fav.includes(t.g))).slice(0,3);
+    return hot.length?`<section class="sec"><div class="sec-h"><h2>盛り上がっているスレッド</h2><a class="more" href="#/board">掲示板へ</a></div>
+    <div class="panel rows">${hot.map(threadRow).join('')}</div></section>`:''; })()}`;
 };
 
 V.info=()=>{
